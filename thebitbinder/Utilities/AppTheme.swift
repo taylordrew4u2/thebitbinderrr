@@ -193,11 +193,7 @@ func dismissKeyboard() {
 #endif
 }
 
-/// Open a URL — uses UIApplication on iOS, NSWorkspace on macOS Catalyst
+/// Open a URL — UIApplication on iOS and Mac Catalyst
 func openURL(_ url: URL) {
-#if targetEnvironment(macCatalyst)
-    NSWorkspace.shared.open(url)
-#else
     UIApplication.shared.open(url)
-#endif
 }
