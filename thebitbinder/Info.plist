@@ -61,6 +61,8 @@
 	<string>Allow camera access to scan jokes from notebooks and import photos.</string>
 	<key>NSDocumentsFolderUsageDescription</key>
 	<string>Allow saving exported PDFs and recordings locally.</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Use Face ID to secure your comedy notebook.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Allow microphone access to record your performances and talk to The BitBuddy AI assistant.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
@@ -86,6 +88,7 @@
 		<string>audio</string>
 		<string>fetch</string>
 		<string>processing</string>
+		<string>remote-notification</string>
 	</array>
 	<key>UIFileSharingEnabled</key>
 	<true/>
