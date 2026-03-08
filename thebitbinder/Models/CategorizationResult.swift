@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import SwiftData
 
 // MARK: - Category Matching Result
 struct CategoryMatch: Codable {
@@ -26,22 +25,3 @@ struct CategoryMatch: Codable {
     }
 }
 
-// MARK: - User Feedback for Better Categorization
-@Model
-final class CategorizationFeedback {
-    var id: UUID
-    var jokeId: UUID
-    var suggestedCategory: String
-    var userApproved: Bool
-    var userProvidedCategory: String?
-    var dateRecorded: Date
-    
-    init(jokeId: UUID, suggestedCategory: String, userApproved: Bool = false, userProvidedCategory: String? = nil) {
-        self.id = UUID()
-        self.jokeId = jokeId
-        self.suggestedCategory = suggestedCategory
-        self.userApproved = userApproved
-        self.userProvidedCategory = userProvidedCategory
-        self.dateRecorded = Date()
-    }
-}

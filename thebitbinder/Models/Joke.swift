@@ -10,11 +10,11 @@ import SwiftData
 
 @Model
 final class Joke {
-    var id: UUID
-    var content: String
-    var title: String
-    var dateCreated: Date
-    var dateModified: Date
+    var id: UUID = UUID()
+    var content: String = ""
+    var title: String = ""
+    var dateCreated: Date = Date()
+    var dateModified: Date = Date()
     var folder: JokeFolder?
     
     // Smart categorization fields - stored as strings to avoid SwiftData array issues

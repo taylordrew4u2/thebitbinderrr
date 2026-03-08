@@ -30,9 +30,9 @@ final class iCloudSyncService: NSObject, ObservableObject {
     private let iCloudSyncEnabledKey = "iCloudSyncEnabled"
     private let lastSyncDateKey = "lastSyncDate"
     
-    // CloudKit container - lazy initialized to avoid crashes if CloudKit isn't configured
+    // CloudKit container - uses the explicit container ID from entitlements
     private lazy var container: CKContainer = {
-        return CKContainer.default()
+        return CKContainer(identifier: "iCloud.The-BitBinder.thebitbinder")
     }()
     
     override init() {

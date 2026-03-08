@@ -19,16 +19,4 @@ struct ChatMessage: Identifiable, Equatable {
         self.isUser = isUser
         self.timestamp = Date()
     }
-    
-    // Legacy initializer for compatibility
-    init(content: String, isUser: Bool) {
-        self.text = content
-        self.isUser = isUser
-        self.timestamp = Date()
-    }
-    
-    // Property alias for compatibility
-    var content: String {
-        return text
-    }
 }

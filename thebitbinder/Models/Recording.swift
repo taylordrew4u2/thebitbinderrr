@@ -10,11 +10,11 @@ import SwiftData
 
 @Model
 final class Recording {
-    var id: UUID
-    var name: String
-    var dateCreated: Date
-    var duration: TimeInterval
-    var fileURL: String
+    var id: UUID = UUID()
+    var name: String = ""
+    var dateCreated: Date = Date()
+    var duration: TimeInterval = 0.0
+    var fileURL: String = ""
     var setListID: UUID?
     var transcription: String?
     

@@ -10,12 +10,12 @@ import SwiftData
 
 @Model
 final class BrainstormIdea {
-    var id: UUID
-    var content: String
-    var dateCreated: Date
-    var dateModified: Date
-    var colorHex: String  // Store color as hex for variety in grid
-    var isVoiceNote: Bool  // Track if it was created via voice
+    var id: UUID = UUID()
+    var content: String = ""
+    var dateCreated: Date = Date()
+    var dateModified: Date = Date()
+    var colorHex: String = "F5E6D3"  // Store color as hex for variety in grid
+    var isVoiceNote: Bool = false  // Track if it was created via voice
     
     init(content: String, colorHex: String = "F5E6D3", isVoiceNote: Bool = false) {
         self.id = UUID()

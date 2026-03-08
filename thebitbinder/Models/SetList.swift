@@ -10,10 +10,10 @@ import SwiftData
 
 @Model
 final class SetList {
-    var id: UUID
-    var name: String
-    var dateCreated: Date
-    var dateModified: Date
+    var id: UUID = UUID()
+    var name: String = ""
+    var dateCreated: Date = Date()
+    var dateModified: Date = Date()
     
     // Store UUIDs as a comma-separated string to avoid SwiftData Array<UUID> issues
     private var jokeIDsString: String = ""

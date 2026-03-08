@@ -84,17 +84,6 @@ struct AppTheme {
             colors: [Color(red: 0.38, green: 0.26, blue: 0.16), Color(red: 0.28, green: 0.18, blue: 0.10)],
             startPoint: .top, endPoint: .bottom
         )
-
-        // Legacy aliases
-        static let primary = brand; static let secondary = brandDeep; static let accent = brand
-        static let paperBackground = surface; static let notebookSpine = notebookAccent
-        static let notebookSpineLight = Color(red: 0.62, green: 0.48, blue: 0.32)
-        static let notebookPaper = paperCream; static let marginLine = marginRed
-        static let ruledLine = paperLine; static let cardBackground = surfaceElevated
-        static let subtleBackground = brand.opacity(0.08); static let dimOverlay = Color.black.opacity(0.55)
-        static let primaryGradient = brandGradient; static let accentGradient = brandGradient
-        static let notebookGradient = leatherGradient
-        static let warmPaperGradient = LinearGradient(colors: [paperCream, Color.white], startPoint: .top, endPoint: .bottom)
     }
 
     // MARK: - Typography
@@ -143,13 +132,6 @@ struct AppTheme {
         static let lg  = (color: Color.black.opacity(0.16), radius: CGFloat(16), x: CGFloat(0), y: CGFloat(6))
         /// Inner page shadow
         static let inner = (color: Color.black.opacity(0.08), radius: CGFloat(6), x: CGFloat(2), y: CGFloat(0))
-
-        // Legacy
-        static func soft(color: Color = .black.opacity(0.1)) -> some View { EmptyView() }
-        static let cardShadow    = md
-        static let floatingShadow = (color: Colors.brand.opacity(0.22), radius: CGFloat(12), x: CGFloat(0), y: CGFloat(5))
-        static let menuShadow    = (color: Color.black.opacity(0.28), radius: CGFloat(22), x: CGFloat(-8), y: CGFloat(0))
-        static let glowShadow    = (color: Colors.brand.opacity(0.28), radius: CGFloat(14), x: CGFloat(0), y: CGFloat(0))
     }
 }
 

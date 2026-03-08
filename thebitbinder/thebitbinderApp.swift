@@ -23,51 +23,38 @@ struct thebitbinderApp: App {
             RoastJoke.self,
             BrainstormIdea.self,
         ])
-        
-        let fileManager = FileManager.default
-        if let appSupportURL = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first {
-            try? fileManager.createDirectory(at: appSupportURL, withIntermediateDirectories: true, attributes: nil)
-        }
-        
-        let modelConfiguration = ModelConfiguration(
-            schema: schema,
-            isStoredInMemoryOnly: false,
-            allowsSave: true
-        )
 
-        // Attempt 1: Open persistent store (handles lightweight migration for new tables automatically)
+        // Primary: persistent store with CloudKit sync
         do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
+            let config = ModelConfiguration(
+                schema: schema,
+                isStoredInMemoryOnly: false,
+                allowsSave: true,
+                cloudKitDatabase: .automatic
+            )
+            return try ModelContainer(for: schema, configurations: [config])
         } catch {
-            print("⚠️ [ModelContainer] Persistent store failed: \(error.localizedDescription)")
+            print("⚠️ [ModelContainer] Persistent store failed: \(error)")
         }
-        
-        // Attempt 2: Delete the corrupted store file and try again
-        // This only runs if the store is truly broken, not on a normal migration
+
+        // Fallback: persistent store without CloudKit (if container not configured in portal)
         do {
-            let storeURL = modelConfiguration.url
-            let storePath = storeURL.path
-            
-            // Remove the main store file and associated WAL/SHM files
-            for suffix in ["", "-wal", "-shm"] {
-                let fileURL = URL(fileURLWithPath: storePath + suffix)
-                if fileManager.fileExists(atPath: fileURL.path) {
-                    try? fileManager.removeItem(at: fileURL)
-                    print("🗑️ [ModelContainer] Removed: \(fileURL.lastPathComponent)")
-                }
-            }
-            
-            print("🔄 [ModelContainer] Retrying with fresh persistent store...")
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
+            let config = ModelConfiguration(
+                schema: schema,
+                isStoredInMemoryOnly: false,
+                allowsSave: true,
+                cloudKitDatabase: .none
+            )
+            return try ModelContainer(for: schema, configurations: [config])
         } catch {
-            print("❌ [ModelContainer] Fresh store also failed: \(error.localizedDescription)")
+            print("⚠️ [ModelContainer] Non-CloudKit store also failed: \(error)")
         }
-        
-        // Attempt 3: Last resort — in-memory store (data won't persist but app won't crash)
+
+        // Last resort: in-memory (app works but data won't persist across launches)
         do {
-            print("⚠️ [ModelContainer] Falling back to in-memory store. Data will NOT persist.")
-            let inMemoryConfig = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
-            return try ModelContainer(for: schema, configurations: [inMemoryConfig])
+            print("❌ [ModelContainer] Falling back to in-memory store.")
+            let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
+            return try ModelContainer(for: schema, configurations: [config])
         } catch {
             fatalError("Could not create ModelContainer at all: \(error)")
         }

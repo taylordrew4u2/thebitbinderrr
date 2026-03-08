@@ -10,21 +10,18 @@ import SwiftData
 
 @Model
 final class RoastJoke {
-    var id: UUID
-    var content: String
-    var title: String
-    var dateCreated: Date
-    var dateModified: Date
+    var id: UUID = UUID()
+    var content: String = ""
+    var title: String = ""
+    var dateCreated: Date = Date()
+    var dateModified: Date = Date()
 
     /// The person this roast is about
     var target: RoastTarget?
 
     init(content: String, title: String = "", target: RoastTarget? = nil) {
-        self.id = UUID()
         self.content = content
         self.title = title.isEmpty ? "Untitled Roast" : title
-        self.dateCreated = Date()
-        self.dateModified = Date()
         self.target = target
     }
 }

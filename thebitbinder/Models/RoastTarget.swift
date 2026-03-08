@@ -12,12 +12,12 @@ import SwiftData
 
 @Model
 final class RoastTarget {
-    var id: UUID
-    var name: String
-    var notes: String
+    var id: UUID = UUID()
+    var name: String = ""
+    var notes: String = ""
     var photoData: Data?
-    var dateCreated: Date
-    var dateModified: Date
+    var dateCreated: Date = Date()
+    var dateModified: Date = Date()
 
     @Relationship(deleteRule: .cascade, inverse: \RoastJoke.target)
     var jokes: [RoastJoke]?

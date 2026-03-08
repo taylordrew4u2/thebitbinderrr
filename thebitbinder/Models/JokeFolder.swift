@@ -10,9 +10,9 @@ import SwiftData
 
 @Model
 final class JokeFolder {
-    var id: UUID
-    var name: String
-    var dateCreated: Date
+    var id: UUID = UUID()
+    var name: String = ""
+    var dateCreated: Date = Date()
     var isRecentlyAdded: Bool = false  // Special marker for "Recently Added" folder
     @Relationship(deleteRule: .nullify, inverse: \Joke.folder) var jokes: [Joke]?
     
