@@ -26,5 +26,7 @@ final class AppStartupCoordinator: ObservableObject {
         
         // For now, minimal delay to ensure all systems boot
         try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
+        
+        print("✅ [AppStartupCoordinator] All systems ready for app launch")
     }
 }

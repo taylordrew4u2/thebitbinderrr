@@ -102,8 +102,15 @@ struct AddRoastTargetView: View {
             notes: notes.trimmingCharacters(in: .whitespacesAndNewlines),
             photoData: photoData
         )
-        modelContext.insert(target)
-        try? modelContext.save()
-        dismiss()
+        
+        do {
+            modelContext.insert(target)
+            try modelContext.save()
+            print("✅ [RoastTarget] Saved: \(target.name) (ID: \(target.id))")
+            dismiss()
+        } catch {
+            print("❌ [RoastTarget] Failed to save: \(error)")
+            print("❌ [RoastTarget] Error detail: \(String(describing: error))")
+        }
     }
 }

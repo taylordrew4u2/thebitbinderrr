@@ -23,10 +23,12 @@ final class RoastTarget: Identifiable {
     var jokes: [RoastJoke]?
 
     /// Convenience: sorted jokes, newest first
+    @Transient
     var sortedJokes: [RoastJoke] {
         (jokes ?? []).sorted { $0.dateCreated > $1.dateCreated }
     }
 
+    @Transient
     var jokeCount: Int {
         jokes?.count ?? 0
     }
