@@ -282,4 +282,200 @@ class PDFExportService {
             return nil
         }
     }
+    
+    // MARK: - Brainstorm Export
+    
+    static func exportBrainstormToPDF(ideas: [BrainstormIdea], fileName: String = "BitBinder_Brainstorm") -> URL? {
+        let pdfMetaData = [
+            kCGPDFContextCreator: "The BitBinder",
+            kCGPDFContextAuthor: "The BitBinder App",
+            kCGPDFContextTitle: fileName
+        ]
+        let format = UIGraphicsPDFRendererFormat()
+        format.documentInfo = pdfMetaData as [String: Any]
+        
+        let pageWidth = 8.5 * 72.0
+        let pageHeight = 11.0 * 72.0
+        let pageRect = CGRect(x: 0, y: 0, width: pageWidth, height: pageHeight)
+        let renderer = UIGraphicsPDFRenderer(bounds: pageRect, format: format)
+        
+        let documentsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        let pdfURL = documentsURL.appendingPathComponent("\(fileName).pdf")
+        
+        do {
+            try renderer.writePDF(to: pdfURL) { context in
+                let margin: CGFloat = 72.0
+                let contentWidth = pageWidth - (2 * margin)
+                var yPosition: CGFloat = margin
+                
+                let titleAttrs: [NSAttributedString.Key: Any] = [
+                    .font: UIFont.boldSystemFont(ofSize: 24),
+                    .foregroundColor: UIColor.black
+                ]
+                let subtitleAttrs: [NSAttributedString.Key: Any] = [
+                    .font: UIFont.systemFont(ofSize: 12),
+                    .foregroundColor: UIColor.gray
+                ]
+                let contentAttrs: [NSAttributedString.Key: Any] = [
+                    .font: UIFont.systemFont(ofSize: 14),
+                    .foregroundColor: UIColor.black
+                ]
+                let numberAttrs: [NSAttributedString.Key: Any] = [
+                    .font: UIFont.boldSystemFont(ofSize: 14),
+                    .foregroundColor: UIColor.darkGray
+                ]
+                
+                context.beginPage()
+                
+                let title = "💡 The BitBinder - Brainstorm"
+                let titleSize = title.size(withAttributes: titleAttrs)
+                title.draw(at: CGPoint(x: margin, y: yPosition), withAttributes: titleAttrs)
+                yPosition += titleSize.height + 8
+                
+                let subtitle = "\(ideas.count) idea\(ideas.count == 1 ? "" : "s")"
+                subtitle.draw(at: CGPoint(x: margin, y: yPosition), withAttributes: subtitleAttrs)
+                yPosition += 30
+                
+                for (index, idea) in ideas.enumerated() {
+                    let number = "\(index + 1)."
+                    let numberSize = number.size(withAttributes: numberAttrs)
+                    
+                    let contentSize = idea.content.boundingRect(
+                        with: CGSize(width: contentWidth - 30, height: .greatestFiniteMagnitude),
+                        options: [.usesLineFragmentOrigin, .usesFontLeading],
+                        attributes: contentAttrs,
+                        context: nil
+                    ).size
+                    
+                    let totalHeight = max(numberSize.height, contentSize.height) + 16
+                    if yPosition + totalHeight > pageHeight - margin {
+                        context.beginPage()
+                        yPosition = margin
+                    }
+                    
+                    number.draw(at: CGPoint(x: margin, y: yPosition), withAttributes: numberAttrs)
+                    idea.content.draw(
+                        in: CGRect(x: margin + 30, y: yPosition, width: contentWidth - 30, height: contentSize.height),
+                        withAttributes: contentAttrs
+                    )
+                    yPosition += totalHeight
+                }
+            }
+            return pdfURL
+        } catch {
+            print("Error creating brainstorm PDF: \(error)")
+            return nil
+        }
+    }
+    
+    // MARK: - Export Everything (Jokes + Brainstorm)
+    
+    static func exportEverythingToPDF(jokes: [Joke], ideas: [BrainstormIdea], fileName: String = "BitBinder_Export") -> URL? {
+        let pdfMetaData = [
+            kCGPDFContextCreator: "The BitBinder",
+            kCGPDFContextAuthor: "The BitBinder App",
+            kCGPDFContextTitle: fileName
+        ]
+        let format = UIGraphicsPDFRendererFormat()
+        format.documentInfo = pdfMetaData as [String: Any]
+        
+        let pageWidth = 8.5 * 72.0
+        let pageHeight = 11.0 * 72.0
+        let pageRect = CGRect(x: 0, y: 0, width: pageWidth, height: pageHeight)
+        let renderer = UIGraphicsPDFRenderer(bounds: pageRect, format: format)
+        
+        let documentsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        let pdfURL = documentsURL.appendingPathComponent("\(fileName).pdf")
+        
+        let titleAttrs: [NSAttributedString.Key: Any] = [.font: UIFont.boldSystemFont(ofSize: 24), .foregroundColor: UIColor.black]
+        let sectionAttrs: [NSAttributedString.Key: Any] = [.font: UIFont.boldSystemFont(ofSize: 18), .foregroundColor: UIColor(red: 0.2, green: 0.4, blue: 0.8, alpha: 1)]
+        let subtitleAttrs: [NSAttributedString.Key: Any] = [.font: UIFont.systemFont(ofSize: 12), .foregroundColor: UIColor.gray]
+        let numberAttrs: [NSAttributedString.Key: Any] = [.font: UIFont.boldSystemFont(ofSize: 14), .foregroundColor: UIColor.darkGray]
+        let contentAttrs: [NSAttributedString.Key: Any] = [.font: UIFont.systemFont(ofSize: 14), .foregroundColor: UIColor.black]
+        let dividerAttrs: [NSAttributedString.Key: Any] = [.font: UIFont.systemFont(ofSize: 10), .foregroundColor: UIColor.lightGray]
+        
+        func drawText(_ text: String, attrs: [NSAttributedString.Key: Any], x: CGFloat, y: CGFloat, width: CGFloat) -> CGFloat {
+            let size = text.boundingRect(
+                with: CGSize(width: width, height: .greatestFiniteMagnitude),
+                options: [.usesLineFragmentOrigin, .usesFontLeading],
+                attributes: attrs, context: nil
+            ).size
+            text.draw(in: CGRect(x: x, y: y, width: width, height: size.height), withAttributes: attrs)
+            return size.height
+        }
+        
+        do {
+            try renderer.writePDF(to: pdfURL) { context in
+                let margin: CGFloat = 72.0
+                let contentWidth = pageWidth - (2 * margin)
+                var y: CGFloat = margin
+                
+                context.beginPage()
+                
+                // Cover title
+                let cover = "The BitBinder - Full Export"
+                y += drawText(cover, attrs: titleAttrs, x: margin, y: y, width: contentWidth) + 8
+                let date = DateFormatter.localizedString(from: Date(), dateStyle: .long, timeStyle: .none)
+                y += drawText(date, attrs: subtitleAttrs, x: margin, y: y, width: contentWidth) + 6
+                let summary = "\(jokes.count) joke\(jokes.count == 1 ? "" : "s") · \(ideas.count) brainstorm idea\(ideas.count == 1 ? "" : "s")"
+                y += drawText(summary, attrs: subtitleAttrs, x: margin, y: y, width: contentWidth) + 40
+                
+                // ── JOKES SECTION ──
+                if !jokes.isEmpty {
+                    if y + 40 > pageHeight - margin { context.beginPage(); y = margin }
+                    y += drawText("✍️ Jokes", attrs: sectionAttrs, x: margin, y: y, width: contentWidth) + 20
+                    
+                    for (index, joke) in jokes.enumerated() {
+                        let number = "\(index + 1)."
+                        let numSize = number.size(withAttributes: numberAttrs)
+                        let contentSize = joke.content.boundingRect(
+                            with: CGSize(width: contentWidth - 30, height: .greatestFiniteMagnitude),
+                            options: [.usesLineFragmentOrigin, .usesFontLeading],
+                            attributes: contentAttrs, context: nil
+                        ).size
+                        let totalH = max(numSize.height, contentSize.height) + 16
+                        if y + totalH > pageHeight - margin { context.beginPage(); y = margin }
+                        number.draw(at: CGPoint(x: margin, y: y), withAttributes: numberAttrs)
+                        joke.content.draw(
+                            in: CGRect(x: margin + 30, y: y, width: contentWidth - 30, height: contentSize.height),
+                            withAttributes: contentAttrs
+                        )
+                        y += totalH
+                    }
+                }
+                
+                // ── BRAINSTORM SECTION ──
+                if !ideas.isEmpty {
+                    // Always start brainstorm on a new page
+                    context.beginPage(); y = margin
+                    y += drawText("💡 Brainstorm Ideas", attrs: sectionAttrs, x: margin, y: y, width: contentWidth) + 20
+                    
+                    for (index, idea) in ideas.enumerated() {
+                        let number = "\(index + 1)."
+                        let numSize = number.size(withAttributes: numberAttrs)
+                        let contentSize = idea.content.boundingRect(
+                            with: CGSize(width: contentWidth - 30, height: .greatestFiniteMagnitude),
+                            options: [.usesLineFragmentOrigin, .usesFontLeading],
+                            attributes: contentAttrs, context: nil
+                        ).size
+                        let totalH = max(numSize.height, contentSize.height) + 16
+                        if y + totalH > pageHeight - margin { context.beginPage(); y = margin }
+                        number.draw(at: CGPoint(x: margin, y: y), withAttributes: numberAttrs)
+                        idea.content.draw(
+                            in: CGRect(x: margin + 30, y: y, width: contentWidth - 30, height: contentSize.height),
+                            withAttributes: contentAttrs
+                        )
+                        y += totalH
+                    }
+                }
+                
+                // Ignore unused variable warnings
+                _ = dividerAttrs
+            }
+            return pdfURL
+        } catch {
+            print("Error creating full export PDF: \(error)")
+            return nil
+        }
+    }
 }

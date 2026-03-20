@@ -15,6 +15,7 @@ struct JokesView: View {
     @Query private var jokes: [Joke]
     @Query private var folders: [JokeFolder]
     @Query(sort: \RoastTarget.dateModified, order: .reverse) private var roastTargets: [RoastTarget]
+    @Query(sort: \BrainstormIdea.dateCreated, order: .reverse) private var brainstormIdeas: [BrainstormIdea]
     
     // Roast mode — toggled from Settings
     @AppStorage("roastModeEnabled") private var roastMode = false
@@ -549,7 +550,17 @@ struct JokesView: View {
                         Button(action: { expandAllJokes.toggle() }) {
                             Label(expandAllJokes ? "Collapse Content" : "Expand Content", systemImage: expandAllJokes ? "arrow.up.left.and.arrow.down.right" : "arrow.down.right.and.arrow.up.left")
                         }
-                        Button(action: exportJokesToPDF) {
+                        Menu {
+                            Button(action: exportJokesToPDF) {
+                                Label("Export Jokes", systemImage: "doc.text")
+                            }
+                            Button(action: exportBrainstormToPDF) {
+                                Label("Export Brainstorm", systemImage: "lightbulb")
+                            }
+                            Button(action: exportEverythingToPDF) {
+                                Label("Export Everything", systemImage: "square.and.arrow.up")
+                            }
+                        } label: {
                             Label("Export to PDF", systemImage: "square.and.arrow.up")
                         }
                     } label: {
@@ -1201,6 +1212,21 @@ struct JokesView: View {
             jokesToExport = jokes.filter { !$0.isDeleted }
         }
         if let url = PDFExportService.exportJokesToPDF(jokes: jokesToExport) {
+            exportedPDFURL = url
+            showingExportAlert = true
+        }
+    }
+    
+    private func exportBrainstormToPDF() {
+        if let url = PDFExportService.exportBrainstormToPDF(ideas: brainstormIdeas) {
+            exportedPDFURL = url
+            showingExportAlert = true
+        }
+    }
+    
+    private func exportEverythingToPDF() {
+        let jokesToExport = jokes.filter { !$0.isDeleted }
+        if let url = PDFExportService.exportEverythingToPDF(jokes: jokesToExport, ideas: brainstormIdeas) {
             exportedPDFURL = url
             showingExportAlert = true
         }
