@@ -57,7 +57,6 @@ final class ImportedJokeMetadata: Identifiable {
     var sourceFilename: String = ""
     var importTimestamp: Date = Date()
     
-    @Relationship(inverse: \ImportBatch.importedRecords)
     var batch: ImportBatch?
     
     var tags: [String] {
@@ -111,7 +110,6 @@ final class UnresolvedImportFragment: Identifiable {
     var createdAt: Date = Date()
     var isResolved: Bool = false
     
-    @Relationship(inverse: \ImportBatch.unresolvedFragments)
     var batch: ImportBatch?
     
     var tags: [String] {

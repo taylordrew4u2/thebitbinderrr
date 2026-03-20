@@ -71,11 +71,17 @@ final class iCloudSyncService: NSObject, ObservableObject {
     }
     
     @objc private func handleRemoteChange(_ notification: Notification) {
+        // Debounce — only process once per 2 seconds to avoid loops
+        NSObject.cancelPreviousPerformRequests(withTarget: self, selector: #selector(processRemoteChange), object: nil)
+        perform(#selector(processRemoteChange), with: nil, afterDelay: 2.0)
+    }
+    
+    @objc private func processRemoteChange() {
         Task { @MainActor in
-            // Tell SwiftData to process the remote changes by saving+resetting context
-            try? modelContext?.save()
             lastSyncDate = Date()
-            print("🔄 [iCloud] Remote changes merged into context")
+            // Post a notification so any listening views can refresh their queries
+            NotificationCenter.default.post(name: .init("iCloudDataDidChange"), object: nil)
+            print("🔄 [iCloud] Remote changes received — UI will refresh")
         }
     }
     
