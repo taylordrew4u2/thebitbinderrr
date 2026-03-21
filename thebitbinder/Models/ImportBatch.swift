@@ -57,6 +57,7 @@ final class ImportedJokeMetadata: Identifiable {
     var sourceFilename: String = ""
     var importTimestamp: Date = Date()
     
+    // Relationship to ImportBatch - CloudKit will handle this as a REFERENCE
     var batch: ImportBatch?
     
     var tags: [String] {
@@ -110,6 +111,7 @@ final class UnresolvedImportFragment: Identifiable {
     var createdAt: Date = Date()
     var isResolved: Bool = false
     
+    // Relationship to ImportBatch - CloudKit will handle this as a REFERENCE
     var batch: ImportBatch?
     
     var tags: [String] {

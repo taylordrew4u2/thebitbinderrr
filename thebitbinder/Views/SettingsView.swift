@@ -136,6 +136,28 @@ struct SettingsView: View {
                     Text("Automatically back up all your jokes, roasts, recordings, and photos to iCloud.")
                 }
                 
+                // MARK: - Data Safety
+                Section {
+                    NavigationLink(destination: DataSafetyView()) {
+                        Label {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Data Safety")
+                                    .foregroundColor(.primary)
+                                Text("Protect against data loss")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                        } icon: {
+                            Image(systemName: "shield.checkered")
+                                .foregroundColor(.green)
+                        }
+                    }
+                } header: {
+                    Text("Data Protection")
+                } footer: {
+                    Text("Automatic backups, data validation, and recovery tools to ensure your data is never lost during app updates.")
+                }
+                
                 // MARK: - Daily Notifications
                 DailyNotificationSection()
                 

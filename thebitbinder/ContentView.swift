@@ -45,9 +45,9 @@ enum AppScreen: String, CaseIterable {
     case notebookSaver = "Notebook"
     case settings = "Settings"
 
-    // The screens visible in roast mode (in order)
+    // The screens visible in roast mode (in order) - only roasts (targets) and settings
     static var roastScreens: [AppScreen] {
-        [.brainstorm, .jokes, .sets, .recordings, .notebookSaver, .settings]
+        [.jokes, .settings]
     }
 
     var icon: String {
@@ -127,6 +127,12 @@ struct MainTabView: View {
 
     private func navigate(to screen: AppScreen) {
         guard screen != selectedScreen else { return }
+        
+        // In roast mode, only allow navigation to roast screens
+        if roastMode && !AppScreen.roastScreens.contains(screen) {
+            return
+        }
+        
         screenHistory.append(selectedScreen)
         selectedScreen = screen
     }
@@ -140,9 +146,8 @@ struct MainTabView: View {
     private func handleRoastModeChange(isRoast: Bool) {
         screenHistory.removeAll()
         if isRoast {
-            if !AppScreen.roastScreens.contains(selectedScreen) {
-                selectedScreen = .jokes
-            }
+            // In roast mode, ensure we're on a valid roast screen
+            selectedScreen = .jokes // Always start with roasts in roast mode
         } else {
             selectedScreen = .notepad
         }
@@ -156,14 +161,32 @@ struct MainTabView: View {
 
             // Main content
             Group {
-                switch selectedScreen {
-                case .notepad:       HomeView()
-                case .brainstorm:    BrainstormView()
-                case .jokes:         JokesView()
-                case .sets:          SetListsView()
-                case .recordings:    RecordingsView()
-                case .notebookSaver: NotebookView()
-                case .settings:      SettingsView()
+                // In roast mode, only allow roast screens
+                if roastMode && !AppScreen.roastScreens.contains(selectedScreen) {
+                    // Force to roasts if somehow we're on a non-roast screen
+                    EmptyView()
+                        .onAppear {
+                            selectedScreen = .jokes
+                        }
+                } else {
+                    switch selectedScreen {
+                    case .notepad:       
+                        if roastMode {
+                            // Roast mode should never show notepad - redirect to roasts
+                            EmptyView()
+                                .onAppear {
+                                    selectedScreen = .jokes
+                                }
+                        } else {
+                            HomeView()
+                        }
+                    case .brainstorm:    BrainstormView()
+                    case .jokes:         JokesView()
+                    case .sets:          SetListsView()
+                    case .recordings:    RecordingsView()
+                    case .notebookSaver: NotebookView()
+                    case .settings:      SettingsView()
+                    }
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -247,6 +270,12 @@ struct MainTabView: View {
         }
         .onChange(of: roastMode) { _, newValue in
             handleRoastModeChange(isRoast: newValue)
+        }
+        .onAppear {
+            // Fix initial screen selection if roast mode is already enabled
+            if roastMode && !AppScreen.roastScreens.contains(selectedScreen) {
+                selectedScreen = .jokes
+            }
         }
         .sheet(isPresented: $showAIChat) {
             NavigationStack {
