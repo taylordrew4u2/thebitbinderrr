@@ -61,10 +61,14 @@ final class BitBuddyService: NSObject, ObservableObject {
         let dataContext = BitBuddyDataContext(recentJokes: recentJokeProvider?() ?? [])
         
         do {
-            let response = try await backend.send(message: message, session: session, dataContext: dataContext)
-            appendTurn(.init(role: .assistant, text: response), conversationId: activeConversationId)
+            let rawResponse = try await backend.send(message: message, session: session, dataContext: dataContext)
+            
+            // Process the response through our new JSON handler
+            let displayText = handleBitBuddyResponse(rawResponse)
+            
+            appendTurn(.init(role: .assistant, text: displayText), conversationId: activeConversationId)
             isConnected = true
-            return response
+            return displayText
         } catch {
             isConnected = false
             throw error
@@ -255,6 +259,91 @@ final class BitBuddyService: NSObject, ObservableObject {
         }
         
         return try await sendMessage("User sent an audio message and wants feedback on the recorded idea.")
+    }
+    
+    // MARK: - JSON Response Handling
+    
+    /// Handles structured JSON responses from BitBuddy and executes any actions
+    /// - Parameter rawResponse: The raw response string from the LLM
+    /// - Returns: The cleaned response text to display in the chat UI
+    func handleBitBuddyResponse(_ rawResponse: String) -> String {
+        print("🤖 [BitBuddy] Raw response: \(rawResponse)")
+        
+        // Try to parse as JSON
+        guard let jsonData = rawResponse.data(using: .utf8),
+              let jsonObject = try? JSONSerialization.jsonObject(with: jsonData) as? [String: Any] else {
+            print("⚠️ [BitBuddy] Failed to parse JSON, returning raw response")
+            return rawResponse
+        }
+        
+        // Extract the response text
+        let responseText = jsonObject["response"] as? String ?? rawResponse
+        
+        // Handle single action
+        if let actionDict = jsonObject["action"] as? [String: Any] {
+            executeBitBuddyAction(actionDict)
+        }
+        
+        // Handle multiple actions
+        if let actionsArray = jsonObject["actions"] as? [[String: Any]] {
+            for actionDict in actionsArray {
+                executeBitBuddyAction(actionDict)
+            }
+        }
+        
+        return responseText
+    }
+    
+    /// Executes a single BitBuddy action
+    /// - Parameter action: Dictionary containing action type and parameters
+    private func executeBitBuddyAction(_ action: [String: Any]) {
+        guard let actionType = action["type"] as? String else {
+            print("❌ [BitBuddy] Invalid action - missing type")
+            return
+        }
+        
+        print("🎬 [BitBuddy] Executing action: \(actionType)")
+        
+        switch actionType {
+        case "add_joke":
+            handleAddJokeAction(action)
+        default:
+            print("⚠️ [BitBuddy] Unknown action type: \(actionType)")
+        }
+    }
+    
+    /// Handles the add_joke action - saves a joke to the Jokes folder
+    /// - Parameter action: Action dictionary containing the joke text
+    private func handleAddJokeAction(_ action: [String: Any]) {
+        guard let jokeText = action["joke"] as? String, !jokeText.isEmpty else {
+            print("❌ [BitBuddy] add_joke action missing joke text")
+            return
+        }
+        
+        do {
+            // Get Documents directory
+            let documentsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            let jokesFolder = documentsURL.appendingPathComponent("Jokes")
+            
+            // Create Jokes folder if it doesn't exist
+            if !FileManager.default.fileExists(atPath: jokesFolder.path) {
+                try FileManager.default.createDirectory(at: jokesFolder, withIntermediateDirectories: true)
+                print("📁 [BitBuddy] Created Jokes folder")
+            }
+            
+            // Create filename with timestamp
+            let timestamp = Int(Date().timeIntervalSince1970)
+            let filename = "joke_\(timestamp).txt"
+            let fileURL = jokesFolder.appendingPathComponent(filename)
+            
+            // Save the joke to file
+            try jokeText.write(to: fileURL, atomically: true, encoding: .utf8)
+            print("✅ [BitBuddy] Saved joke to: \(filename)")
+            print("💾 [BitBuddy] Joke content: \(jokeText.prefix(50))...")
+            
+        } catch {
+            print("❌ [BitBuddy] Failed to save joke: \(error.localizedDescription)")
+        }
     }
     
     // MARK: - Private helpers

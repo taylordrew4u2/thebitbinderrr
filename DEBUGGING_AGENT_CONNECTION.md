@@ -11,7 +11,7 @@ When you send a message, watch the Xcode console for these log messages:
 ### Expected Flow (Success)
 ```
 📤 [Widget] Sending message: Hello
-✅ [Widget] Saved user message to Firebase
+✅ [Widget] Saved user message
 🚀 [Widget] Calling ElevenLabs service...
 🎤 [ElevenLabs] Sending message: Hello
 🎤 [ElevenLabs] Request URL: https://elevenlabs-proxy.taylordrew4u.workers.dev
@@ -20,7 +20,7 @@ When you send a message, watch the Xcode console for these log messages:
 🎤 [ElevenLabs] Response Data: {...}
 🎤 [ElevenLabs] Parsed JSON: {...}
 📥 [Widget] Received response: <agent response>
-✅ [Widget] Saved AI response to Firebase
+✅ [Widget] Saved AI response
 ```
 
 ## Troubleshooting Steps
@@ -143,7 +143,7 @@ Current configuration:
 - Check conversation ID is being saved
 
 ### Message appears in widget but doesn't reach agent
-**Problem**: Firebase saving but agent isn't responding  
+Problem: Message saves but agent isn't responding
 **Solution**:
 - Check ElevenLabs service status
 - Verify proxy endpoint is correct
@@ -225,7 +225,7 @@ Here's what successful debug output should look like:
 
 ```
 📤 [Widget] Sending message: How do I structure a joke?
-✅ [Widget] Saved user message to Firebase
+✅ [Widget] Saved user message
 🚀 [Widget] Calling ElevenLabs service...
 🎤 [ElevenLabs] Sending message: How do I structure a joke?
 🎤 [ElevenLabs] Request URL: https://elevenlabs-proxy.taylordrew4u.workers.dev
@@ -234,7 +234,7 @@ Here's what successful debug output should look like:
 🎤 [ElevenLabs] Response Data: {"response":"A joke typically has setup, build-up, and punchline..."}
 🎤 [ElevenLabs] Parsed JSON: ["response": "A joke typically..."]
 📥 [Widget] Received response: A joke typically has setup, build-up, and punchline...
-✅ [Widget] Saved AI response to Firebase
+✅ [Widget] Saved AI response
 ```
 
 ---

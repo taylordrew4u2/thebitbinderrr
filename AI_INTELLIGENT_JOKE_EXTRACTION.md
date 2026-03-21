@@ -173,7 +173,7 @@ Each gets AI analysis (category, tags, rating)
 ### Performance
 - ~5-10 seconds per 1000 words of text
 - Parallel processing for multiple files
-- Firebase saving in background
+- Background processing for all saves
 
 ## Usage
 

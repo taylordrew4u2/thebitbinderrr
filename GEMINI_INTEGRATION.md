@@ -24,7 +24,7 @@ The `ElevenLabsAgentService.swift` has been updated to use:
 ```
 3. **Gemini generates response**
 4. **Response parsed and displayed** in widget
-5. **Message saved to Firebase**
+5. **Message saved locally**
 
 ## Current Status
 

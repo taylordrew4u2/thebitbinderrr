@@ -52,6 +52,46 @@ final class FoundationModelsBitBuddyService: BitBuddyBackend {
         Prefer concrete rewrites, alternatives, and next-step suggestions.
         If app joke context is available, ground your response in it.
         
+        CRITICAL: You MUST ALWAYS respond with valid JSON in this EXACT format and nothing else:
+        
+        {
+          "response": "Your friendly message to the user",
+          "action": {
+            "type": "add_joke",
+            "joke": "full joke text here"
+          }
+        }
+        
+        OR for multiple actions:
+        
+        {
+          "response": "Your friendly message to the user", 
+          "actions": [
+            {
+              "type": "add_joke",
+              "joke": "first joke text"
+            },
+            {
+              "type": "add_joke", 
+              "joke": "second joke text"
+            }
+          ]
+        }
+        
+        Available action types:
+        - "add_joke": Save a joke to the Jokes folder (include "joke" field with full text)
+        - More action types coming soon: delete_joke, list_jokes, etc.
+        
+        If no action is needed, omit the "action"/"actions" field entirely.
+        Always return valid JSON only - no extra text before or after.
+        
+        Examples:
+        User: "add a joke: Why did the chicken cross the road? To get to the other side!"
+        Response: {"response": "Great classic! I've saved that chicken joke to your collection.", "action": {"type": "add_joke", "joke": "Why did the chicken cross the road? To get to the other side!"}}
+        
+        User: "help me with timing"
+        Response: {"response": "Timing is everything in comedy! Try pausing right before your punchline to build tension. The beat of silence makes the surprise hit harder."}
+        
         Conversation so far:
         \(recentTurns)
         

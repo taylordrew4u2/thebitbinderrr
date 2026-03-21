@@ -17,31 +17,38 @@ final class LocalFallbackBitBuddyService: BitBuddyBackend {
         dataContext: BitBuddyDataContext
     ) async throws -> String {
         let trimmed = message.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return "Send me a joke, premise, or problem and I’ll help punch it up." }
+        guard !trimmed.isEmpty else { 
+            return createJSONResponse("Send me a joke, premise, or problem and I'll help punch it up.")
+        }
         
         let lower = trimmed.lowercased()
         
+        // Check if user wants to add a joke
+        if let jokeText = extractJokeFromAddRequest(lower, original: trimmed) {
+            return createJSONResponse("Perfect! I've saved that joke to your collection. It's got good energy!", action: ["type": "add_joke", "joke": jokeText])
+        }
+        
         if lower.contains("tag") || lower.contains("punch up") || lower.contains("punch-up") {
-            return buildPunchUpResponse(for: trimmed, context: dataContext)
+            return createJSONResponse(buildPunchUpResponse(for: trimmed, context: dataContext))
         }
         
         if lower.contains("rewrite") || lower.contains("reword") {
-            return buildRewriteResponse(for: trimmed, context: dataContext)
+            return createJSONResponse(buildRewriteResponse(for: trimmed, context: dataContext))
         }
         
         if lower.contains("organize") || lower.contains("folder") || lower.contains("categor") {
-            return buildOrganizationResponse(for: trimmed, context: dataContext)
+            return createJSONResponse(buildOrganizationResponse(for: trimmed, context: dataContext))
         }
         
         if lower.contains("set") || lower.contains("order") || lower.contains("sequence") {
-            return buildSetOrderResponse(context: dataContext)
+            return createJSONResponse(buildSetOrderResponse(context: dataContext))
         }
         
         if lower.contains("title") {
-            return buildTitleIdeas(for: trimmed)
+            return createJSONResponse(buildTitleIdeas(for: trimmed))
         }
         
-        return buildGeneralComedyResponse(for: trimmed, context: dataContext, session: session)
+        return createJSONResponse(buildGeneralComedyResponse(for: trimmed, context: dataContext, session: session))
     }
     
     private func buildPunchUpResponse(for message: String, context: BitBuddyDataContext) -> String {
@@ -191,5 +198,45 @@ final class LocalFallbackBitBuddyService: BitBuddyBackend {
             .map { $0.prefix(1).uppercased() + $0.dropFirst().lowercased() }
             .joined(separator: " ")
         return words.isEmpty ? fallback : words
+    }
+    
+    // MARK: - JSON Response Helpers
+    
+    /// Creates a JSON response in the required BitBuddy format
+    private func createJSONResponse(_ response: String, action: [String: Any]? = nil) -> String {
+        var jsonObject: [String: Any] = ["response": response]
+        
+        if let action = action {
+            jsonObject["action"] = action
+        }
+        
+        do {
+            let jsonData = try JSONSerialization.data(withJSONObject: jsonObject, options: [])
+            return String(data: jsonData, encoding: .utf8) ?? fallbackResponse(response)
+        } catch {
+            return fallbackResponse(response)
+        }
+    }
+    
+    /// Fallback for when JSON serialization fails - still try to be helpful
+    private func fallbackResponse(_ response: String) -> String {
+        return "{\"response\": \"\(response.replacingOccurrences(of: "\"", with: "\\\""))\"}"
+    }
+    
+    /// Extracts joke text from "add joke:" type messages
+    private func extractJokeFromAddRequest(_ lowerMessage: String, original: String) -> String? {
+        let addPatterns = ["add a joke:", "add joke:", "save joke:", "save a joke:", "new joke:"]
+        
+        for pattern in addPatterns {
+            if lowerMessage.contains(pattern) {
+                if let range = lowerMessage.range(of: pattern) {
+                    let startIndex = original.index(range.upperBound, offsetBy: 0, limitedBy: original.endIndex) ?? original.endIndex
+                    let jokeText = String(original[startIndex...]).trimmingCharacters(in: .whitespacesAndNewlines)
+                    return jokeText.isEmpty ? nil : jokeText
+                }
+            }
+        }
+        
+        return nil
     }
 }

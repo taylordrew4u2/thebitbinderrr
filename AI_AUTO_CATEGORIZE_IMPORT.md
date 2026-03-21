@@ -155,7 +155,7 @@ Jokes > Wordplay folder
 ### Seamless Experience
 - Progress indication during processing
 - Import summary when complete
-- All data saved to Firebase
+- All data saved locally
 - Works offline (queued for sync)
 
 ## Use Cases
@@ -211,7 +211,7 @@ Update Joke with AI data
   ↓
 Auto-create/assign folder
   ↓
-Save to Firebase
+Save locally
 ```
 
 ### Database Updates
@@ -250,7 +250,7 @@ Joke {
 
 ⏱️ **Speed per joke**: ~10 seconds (depends on Gemini API)  
 📊 **Batch processing**: Parallel where possible  
-💾 **Storage**: All metadata saved locally + Firebase  
+💾 **Storage**: All metadata saved locally + Local  
 ⚡ **Works with**: PDFs, Images (PNG/JPG/HEIC), Text files  
 
 ## Gemini API Note

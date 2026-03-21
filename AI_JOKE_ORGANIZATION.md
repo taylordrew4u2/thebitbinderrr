@@ -71,8 +71,8 @@ For each joke, Gemini determines:
 - Groups similar jokes together
 - Suggests performance order
 
-### Firebase Integration
-- All categorization data saved to Firebase
+### Local Integration
+- All categorization data saved to Local
 - Persists across sessions
 - Syncs across devices (with account)
 
@@ -80,7 +80,7 @@ For each joke, Gemini determines:
 
 ⏱️ **Speed**: ~10 seconds per joke (depends on Gemini API)
 📊 **Accuracy**: Gemini 2.0 Flash is highly accurate for joke analysis
-💾 **Storage**: All data saved in Firebase
+💾 **Storage**: All data saved in Local
 
 ## API Usage
 
@@ -147,7 +147,7 @@ New fields on each Joke:
 - `difficulty: String?` - Easy/Medium/Hard
 - `humorRating: Int` - 1-10 rating
 
-### Firebase Storage
+### Local Storage
 All metadata saved automatically to:
 ```
 jokes/{jokeId}/
@@ -185,8 +185,8 @@ jokes/{jokeId}/
 ### Missing categories/tags
 **Solution**: Gemini couldn't parse response - try again later
 
-### Firebase not saving
-**Solution**: Verify Firebase database rules allow writes
+### Local not saving
+**Solution**: Verify Local database rules allow writes
 
 ## Advanced Features
 
@@ -225,7 +225,7 @@ Use tags to build:
 - JokeCategorizationService created
 - AutoOrganizeView updated with Gemini integration
 - Joke model enhanced with AI fields
-- Firebase persistence working
+- Local persistence working
 - Error handling in place
 
 ## Next Time You Open the App

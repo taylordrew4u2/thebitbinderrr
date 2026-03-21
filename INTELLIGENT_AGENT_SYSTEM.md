@@ -16,7 +16,6 @@ When you send a message in the widget:
 2. **Intelligent processing** - Service analyzes the message content
 3. **Smart response** - Returns a helpful, relevant response based on keywords
 4. **Instant feedback** - No waiting for external API, instant responses
-5. **Firebase persistence** - Message saved to Firebase database
 
 ## Key Features
 
@@ -30,7 +29,7 @@ When you send a message in the widget:
   - Audience engagement
   - Timing and pacing
 
-✅ **Conversation History** - All messages saved to Firebase  
+✅ **Conversation History** - All messages saved to local storage  
 ✅ **Works Offline** - Doesn't depend on external API  
 ✅ **Scalable** - Can be extended with more response patterns  
 
@@ -122,26 +121,6 @@ ElevenLabsAgentService.sendMessage()
 generateAgentResponse() (intelligent system)
     ↓
 Response displayed in widget
-    ↓
-Message saved to Firebase
-```
-
-## Firebase Integration
-
-All messages are still saved to Firebase:
-
-```
-aiWidget/conversations/{conversationId}/messages/
-├── {messageId1}/
-│   ├── text: "User message"
-│   ├── isUser: true
-│   ├── timestamp: 1708450500000
-│   └── sender: "user"
-├── {messageId2}/
-│   ├── text: "Agent response"
-│   ├── isUser: false
-│   ├── timestamp: 1708450502000
-│   └── sender: "assistant"
 ```
 
 ## Future Enhancements
@@ -170,7 +149,7 @@ Each should return relevant, helpful responses.
 ## Status
 
 ✅ **System is fully operational**  
-✅ **All messages save to Firebase**  
+✅ **All messages save to local storage**  
 ✅ **Instant responses working**  
 ✅ **No external API required**  
 
