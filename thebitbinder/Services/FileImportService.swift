@@ -1,71 +1,148 @@
 import Foundation
 import UIKit
+import SwiftData
 
 final class FileImportService {
     static let shared = FileImportService()
     
-    private let pdfExtractionService = PDFExtractionService.shared
-    private let normalizationService = TextNormalizationService()
-    private let segmentationEngine = JokeSegmentationEngine()
-    private let assemblyService = JokeAssemblyService()
+    private let pipelineCoordinator = ImportPipelineCoordinator.shared
+    private let dataLogger = DataOperationLogger.shared
     
     private init() {}
     
     func importBatch(from url: URL) async throws -> ImportBatchResult {
-        let fileName = url.lastPathComponent
-        let ext = url.pathExtension.lowercased()
+        dataLogger.logInfo("Starting new pipeline import for \(url.lastPathComponent)")
         
-        switch ext {
-        case "pdf":
-            let extraction = try await pdfExtractionService.extractText(from: url)
-            let segments = extraction.pages.flatMap { page in
-                segmentationEngine.segment(
-                    text: page.text,
-                    fileName: fileName,
-                    pageNumber: page.pageNumber,
-                    startingOrder: (page.pageNumber - 1) * 1000
+        do {
+            let pipelineResult = try await pipelineCoordinator.processFile(url: url)
+            
+            // Convert pipeline result to legacy format for compatibility
+            let legacyResult = convertToLegacyFormat(pipelineResult)
+            
+            dataLogger.logInfo("Pipeline import completed: \(pipelineResult.autoSavedJokes.count) auto-saved, \(pipelineResult.reviewQueueJokes.count) need review")
+            
+            return legacyResult
+            
+        } catch {
+            dataLogger.logError(error, operation: "PIPELINE_IMPORT", context: url.lastPathComponent)
+            throw error
+        }
+    }
+    
+    /// Modern import method that returns the full pipeline result
+    func importWithPipeline(from url: URL) async throws -> ImportPipelineResult {
+        dataLogger.logInfo("Starting pipeline import for \(url.lastPathComponent)")
+        
+        do {
+            let result = try await pipelineCoordinator.processFile(url: url)
+            
+            dataLogger.logInfo("Pipeline import completed successfully")
+            dataLogger.logInfo("Auto-saved: \(result.autoSavedJokes.count)")
+            dataLogger.logInfo("Review queue: \(result.reviewQueueJokes.count)")
+            dataLogger.logInfo("Rejected: \(result.rejectedBlocks.count)")
+            
+            return result
+            
+        } catch {
+            dataLogger.logError(error, operation: "PIPELINE_IMPORT", context: url.lastPathComponent)
+            throw error
+        }
+    }
+    
+    /// Saves approved jokes to the data store
+    func saveApprovedJokes(_ jokes: [ImportedJoke], to modelContext: ModelContext) throws {
+        for importedJoke in jokes {
+            let joke = Joke(content: importedJoke.body, title: importedJoke.title ?? "")
+            joke.dateCreated = importedJoke.sourceMetadata.importTimestamp
+            joke.dateModified = importedJoke.sourceMetadata.importTimestamp
+            
+            // Set tags
+            joke.tags = importedJoke.tags
+            
+            modelContext.insert(joke)
+            
+            dataLogger.logDataCreation(joke, context: modelContext)
+        }
+        
+        try modelContext.save()
+        dataLogger.logBulkOperation("IMPORT_SAVE", entityType: "Joke", count: jokes.count, context: modelContext)
+    }
+    
+    // MARK: - Legacy Compatibility
+    
+    private func convertToLegacyFormat(_ pipelineResult: ImportPipelineResult) -> ImportBatchResult {
+        let allJokes = pipelineResult.autoSavedJokes + pipelineResult.reviewQueueJokes
+        
+        let importedRecords = allJokes.map { joke in
+            ImportedJokeRecord(
+                id: joke.id,
+                title: joke.title ?? "",
+                body: joke.body,
+                rawSourceText: joke.rawSourceText,
+                notes: "",
+                tags: joke.tags,
+                confidence: convertConfidence(joke.confidence),
+                sourceFilename: joke.sourceMetadata.fileName,
+                sourceOrder: joke.sourceMetadata.orderInFile,
+                importTimestamp: joke.sourceMetadata.importTimestamp,
+                parsingFlags: ImportParsingFlags(
+                    titleWasInferred: joke.title == nil,
+                    containsUnresolvedFragments: joke.confidence == .low,
+                    ambiguousBoundaryBefore: false,
+                    ambiguousBoundaryAfter: false,
+                    originatedFromShortFragment: joke.body.split(whereSeparator: \.isWhitespace).count < 10
+                ),
+                unresolvedFragments: [],
+                sourcePage: joke.sourceMetadata.pageNumber
+            )
+        }
+        
+        let unresolvedFragments = pipelineResult.reviewQueueJokes.map { joke in
+            ImportedFragment(
+                id: UUID(),
+                text: joke.rawSourceText,
+                normalizedText: joke.body,
+                kind: .joke,
+                confidence: convertConfidence(joke.confidence),
+                sourceLocation: ImportSourceLocation(
+                    fileName: joke.sourceMetadata.fileName,
+                    pageNumber: joke.sourceMetadata.pageNumber,
+                    orderIndex: joke.sourceMetadata.orderInFile
+                ),
+                tags: joke.tags,
+                titleCandidate: joke.title,
+                parsingFlags: ImportParsingFlags(
+                    titleWasInferred: joke.title == nil,
+                    containsUnresolvedFragments: true,
+                    ambiguousBoundaryBefore: false,
+                    ambiguousBoundaryAfter: false,
+                    originatedFromShortFragment: false
                 )
-            }
-            return assemblyService.assembleBatch(from: segments, fileName: fileName)
-        case "doc", "docx":
-            if let attrString = try? NSAttributedString(url: url, options: [:], documentAttributes: nil) {
-                let segments = segmentationEngine.segment(text: attrString.string, fileName: fileName)
-                return assemblyService.assembleBatch(from: segments, fileName: fileName)
-            }
-        case "jpg", "jpeg", "png", "heic", "heif", "tiff", "bmp", "gif":
-            if let data = try? Data(contentsOf: url), let image = UIImage(data: data) {
-                let text = try await TextRecognitionService.recognizeText(from: image)
-                let normalized = normalizationService.normalize(text)
-                let segments = segmentationEngine.segment(text: normalized, fileName: fileName)
-                return assemblyService.assembleBatch(from: segments, fileName: fileName)
-            }
-        default:
-            if let text = try? String(contentsOf: url, encoding: .utf8) {
-                let normalized = normalizationService.normalize(text)
-                let segments = segmentationEngine.segment(text: normalized, fileName: fileName)
-                return assemblyService.assembleBatch(from: segments, fileName: fileName)
-            }
-            if let data = try? Data(contentsOf: url), let text = String(data: data, encoding: .ascii) {
-                let normalized = normalizationService.normalize(text)
-                let segments = segmentationEngine.segment(text: normalized, fileName: fileName)
-                return assemblyService.assembleBatch(from: segments, fileName: fileName)
-            }
+            )
         }
         
         return ImportBatchResult(
-            sourceFileName: fileName,
-            importedRecords: [],
-            unresolvedFragments: [],
-            orderedFragments: [],
+            sourceFileName: pipelineResult.sourceFile,
+            importedRecords: importedRecords,
+            unresolvedFragments: unresolvedFragments,
+            orderedFragments: unresolvedFragments,
             stats: ImportBatchStats(
-                totalSegments: 0,
-                totalImportedRecords: 0,
-                unresolvedFragmentCount: 0,
-                highConfidenceBoundaries: 0,
-                mediumConfidenceBoundaries: 0,
-                lowConfidenceBoundaries: 0
+                totalSegments: pipelineResult.pipelineStats.totalBlocksCreated,
+                totalImportedRecords: pipelineResult.pipelineStats.autoSavedCount + pipelineResult.pipelineStats.reviewQueueCount,
+                unresolvedFragmentCount: pipelineResult.pipelineStats.reviewQueueCount,
+                highConfidenceBoundaries: pipelineResult.pipelineStats.autoSavedCount,
+                mediumConfidenceBoundaries: pipelineResult.pipelineStats.reviewQueueCount,
+                lowConfidenceBoundaries: pipelineResult.pipelineStats.rejectedCount
             ),
             importTimestamp: Date()
         )
+    }
+    
+    private func convertConfidence(_ confidence: ImportConfidence) -> ParsingConfidence {
+        switch confidence {
+        case .high: return .high
+        case .medium: return .medium
+        case .low: return .low
+        }
     }
 }

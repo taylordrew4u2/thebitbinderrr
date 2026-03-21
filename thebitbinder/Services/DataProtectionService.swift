@@ -123,11 +123,6 @@ final class DataProtectionService: ObservableObject {
                 } else {
                     sourceURL = storeURL.appendingPathExtension(String(ext.dropFirst()))
                 }
-                if ext.isEmpty {
-                    sourceURL = storeURL
-                } else {
-                    sourceURL = storeURL.appendingPathExtension(String(ext.dropFirst()))
-                }
                 let destURL = storeDirectory.appending(path: "default.store\(ext)")
                 
                 if fileManager.fileExists(atPath: sourceURL.path) {
