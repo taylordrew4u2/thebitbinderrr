@@ -42,6 +42,22 @@ struct SmartImportReviewView: View {
                     // Progress bar
                     progressSection
                     
+                    // Gemini rate-limit error banner (shown when daily limit is hit)
+                    if let rateLimitErr = viewModel.rateLimitError {
+                        HStack(spacing: 8) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundColor(.white)
+                            Text(rateLimitErr.localizedDescription ?? "Gemini daily limit reached.")
+                                .font(.caption)
+                                .foregroundColor(.white)
+                                .lineLimit(2)
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Color.orange)
+                    }
+                    
                     if viewModel.reviewItems.isEmpty {
                         emptyState
                     } else if let current = viewModel.currentItem {
@@ -120,6 +136,14 @@ struct SmartImportReviewView: View {
                     .font(.caption)
                     .foregroundColor(roastMode ? .white.opacity(0.7) : AppTheme.Colors.textSecondary)
                 Spacer()
+                // Gemini daily budget indicator
+                Label("\(viewModel.geminiRequestsRemaining) AI left today", systemImage: "sparkles")
+                    .font(.caption2)
+                    .foregroundColor(
+                        viewModel.geminiRequestsRemaining < 50
+                            ? .orange
+                            : (roastMode ? .white.opacity(0.5) : AppTheme.Colors.textTertiary)
+                    )
                 Text(viewModel.progressText)
                     .font(.caption.bold())
                     .foregroundColor(roastMode ? .white : AppTheme.Colors.textPrimary)

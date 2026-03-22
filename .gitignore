@@ -16,3 +16,6 @@ DerivedData/
 
 # SPM
 .build/
+
+# Secrets – never commit real API keys
+Secrets.plist

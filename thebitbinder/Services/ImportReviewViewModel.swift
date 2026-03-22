@@ -15,7 +15,13 @@ final class ImportReviewViewModel: ObservableObject {
     @Published var reviewItems: [ImportReviewItem] = []
     @Published var currentIndex = 0
     @Published var isProcessing = false
-    
+    /// Set when the Gemini daily rate-limit is hit during import.
+    @Published var rateLimitError: GeminiRateLimitError? = nil
+
+    // Gemini request stats (updated on load)
+    var geminiRequestsRemaining: Int { GeminiJokeExtractor.shared.remainingRequests() }
+    var geminiRequestsUsed: Int      { GeminiJokeExtractor.shared.todayRequestCount() }
+
     private let pipelineCoordinator = ImportPipelineCoordinator.shared
     
     var currentItem: ImportReviewItem? {
