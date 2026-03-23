@@ -691,6 +691,10 @@ struct SmartImportReviewView: View {
     private func finishAndSave() async {
         let results = viewModel.getReviewResults()
         
+        // Build the objects to insert but track them so we can roll back on failure.
+        var insertedJokes: [Joke] = []
+        var insertedIdeas: [BrainstormIdea] = []
+
         // Insert approved jokes
         for importedJoke in results.approvedJokes {
             let joke = Joke(content: importedJoke.body, title: importedJoke.title ?? "")
@@ -702,17 +706,18 @@ struct SmartImportReviewView: View {
             joke.importConfidence = importedJoke.confidence.rawValue
             joke.importTimestamp = importedJoke.sourceMetadata.importTimestamp
             modelContext.insert(joke)
+            insertedJokes.append(joke)
         }
         
         // Insert brainstorm items
         for item in results.brainstormItems {
-            let content = item.editedBody
             let idea = BrainstormIdea(
-                content: content,
+                content: item.editedBody,
                 colorHex: BrainstormIdea.randomColor(),
                 isVoiceNote: false
             )
             modelContext.insert(idea)
+            insertedIdeas.append(idea)
         }
         
         // Retry save with exponential backoff
@@ -741,6 +746,12 @@ struct SmartImportReviewView: View {
                 try? await Task.sleep(nanoseconds: delay)
             }
         }
+        
+        // All retries exhausted — roll back all inserted objects to avoid phantom context entries,
+        // then surface the error to the user.
+        for joke in insertedJokes { modelContext.delete(joke) }
+        for idea in insertedIdeas { modelContext.delete(idea) }
+        try? modelContext.save() // best-effort rollback flush
         
         // All retries exhausted — show error to user
         let errorDetail = lastError?.localizedDescription ?? "Unknown error"

@@ -15,7 +15,11 @@ final class BrainstormIdea: Identifiable {
     var dateCreated: Date = Date()
     var colorHex: String = "F5E6D3"  // Store color as hex for variety in grid
     var isVoiceNote: Bool = false  // Track if it was created via voice
-    
+
+    // Soft-delete (trash) support — mirrors Joke model
+    var isDeleted: Bool = false
+    var deletedDate: Date?
+
     init(content: String, colorHex: String = "F5E6D3", isVoiceNote: Bool = false) {
         self.id = UUID()
         self.content = content
@@ -40,5 +44,18 @@ final class BrainstormIdea: Identifiable {
     
     static func randomColor() -> String {
         noteColors.randomElement() ?? "FFF9C4"
+    }
+
+    // MARK: - Trash Helpers
+
+    /// Moves this idea to trash. Use instead of modelContext.delete() for recoverability.
+    func moveToTrash() {
+        isDeleted = true
+        deletedDate = Date()
+    }
+
+    func restoreFromTrash() {
+        isDeleted = false
+        deletedDate = nil
     }
 }

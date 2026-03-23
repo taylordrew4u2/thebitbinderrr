@@ -10,7 +10,7 @@ import SwiftData
 
 struct SetListsView: View {
     @Environment(\.modelContext) private var modelContext
-    @Query private var setLists: [SetList]
+    @Query(filter: #Predicate<SetList> { !$0.isDeleted }) private var setLists: [SetList]
     @AppStorage("roastModeEnabled") private var roastMode = false
     
     @State private var showingCreateSetList = false
@@ -72,7 +72,12 @@ struct SetListsView: View {
     
     private func deleteSetLists(at offsets: IndexSet) {
         for index in offsets {
-            modelContext.delete(filteredSetLists[index])
+            filteredSetLists[index].moveToTrash()
+        }
+        do {
+            try modelContext.save()
+        } catch {
+            print("❌ [SetListsView] Failed to save after soft-delete: \(error)")
         }
     }
 }

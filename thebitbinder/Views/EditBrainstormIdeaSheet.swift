@@ -53,7 +53,12 @@ struct EditBrainstormIdeaSheet: View {
 
                     // Delete button
                     Button(role: .destructive) {
-                        modelContext.delete(idea)
+                        idea.moveToTrash()
+                        do {
+                            try modelContext.save()
+                        } catch {
+                            print("❌ [EditBrainstormIdeaSheet] Failed to save after soft-delete: \(error)")
+                        }
                         dismiss()
                     } label: {
                         Label("Delete Thought", systemImage: "trash")

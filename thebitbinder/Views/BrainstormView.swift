@@ -12,7 +12,7 @@ import AVFoundation
 
 struct BrainstormView: View {
     @Environment(\.modelContext) private var modelContext
-    @Query(sort: \BrainstormIdea.dateCreated, order: .reverse) private var ideas: [BrainstormIdea]
+    @Query(filter: #Predicate<BrainstormIdea> { !$0.isDeleted }, sort: \BrainstormIdea.dateCreated, order: .reverse) private var ideas: [BrainstormIdea]
     @AppStorage("roastModeEnabled") private var roastMode = false
     
     @State private var showAddSheet = false
@@ -214,7 +214,8 @@ struct BrainstormView: View {
                                 
                                 Button(role: .destructive) {
                                     withAnimation {
-                                        modelContext.delete(idea)
+                                        idea.moveToTrash()
+                                        try? modelContext.save()
                                     }
                                 } label: {
                                     Label("Delete", systemImage: "trash")
@@ -308,11 +309,15 @@ struct BrainstormView: View {
     private func batchDeleteSelectedIdeas() {
         withAnimation {
             for idea in ideas where selectedIdeaIDs.contains(idea.id) {
-                modelContext.delete(idea)
+                idea.moveToTrash()
             }
             selectedIdeaIDs.removeAll()
             isSelectMode = false
-            try? modelContext.save()
+            do {
+                try modelContext.save()
+            } catch {
+                print("❌ [BrainstormView] Failed to save after batch soft-delete: \(error)")
+            }
         }
     }
     
@@ -395,12 +400,26 @@ struct BrainstormView: View {
         
         modelContext.insert(joke)
         
-        // Optionally delete the original idea
-        withAnimation {
-            modelContext.delete(idea)
+        // Save joke first — only soft-delete the idea once it's confirmed persisted
+        do {
+            try modelContext.save()
+        } catch {
+            // Save failed — remove the unsaved joke to avoid a phantom entry
+            modelContext.delete(joke)
+            print("❌ [BrainstormView] Failed to save promoted joke: \(error)")
+            return
         }
         
-        try? modelContext.save()
+        // Only soft-delete the idea after the joke is confirmed saved
+        withAnimation {
+            idea.moveToTrash()
+        }
+        
+        do {
+            try modelContext.save()
+        } catch {
+            print("⚠️ [BrainstormView] Joke saved but failed to trash original idea: \(error)")
+        }
         
         // Notify user with haptic feedback
         let generator = UINotificationFeedbackGenerator()

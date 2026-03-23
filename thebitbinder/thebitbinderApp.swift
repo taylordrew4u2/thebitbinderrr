@@ -218,11 +218,21 @@ struct thebitbinderApp: App {
         .modelContainer(sharedModelContainer)
         .onChange(of: scenePhase) {
             if scenePhase == .background {
-                try? sharedModelContainer.mainContext.save()
+                do {
+                    try sharedModelContainer.mainContext.save()
+                } catch {
+                    print("❌ [AppLifecycle] Failed to save on background: \(error)")
+                    DataOperationLogger.shared.logError(error, operation: "BackgroundSave")
+                }
                 iCloudKeyValueStore.shared.pushToCloud()
             } else if scenePhase == .active {
                 // Save triggers SwiftData to merge any pending remote changes into the UI
-                try? sharedModelContainer.mainContext.save()
+                do {
+                    try sharedModelContainer.mainContext.save()
+                } catch {
+                    print("❌ [AppLifecycle] Failed to save on foreground: \(error)")
+                    DataOperationLogger.shared.logError(error, operation: "ForegroundSave")
+                }
                 iCloudKeyValueStore.shared.pullFromCloud()
                 NotificationManager.shared.scheduleIfNeeded()
             }

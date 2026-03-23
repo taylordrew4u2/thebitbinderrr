@@ -16,6 +16,10 @@ final class RoastJoke: Identifiable {
     var dateCreated: Date = Date()
     var dateModified: Date = Date()
 
+    // Soft-delete (trash) support
+    var isDeleted: Bool = false
+    var deletedDate: Date?
+
     /// The person this roast is about
     @Relationship(deleteRule: .nullify)
     var target: RoastTarget?
@@ -24,5 +28,20 @@ final class RoastJoke: Identifiable {
         self.content = content
         self.title = title.isEmpty ? KeywordTitleGenerator.title(from: content) : title
         self.target = target
+    }
+
+    // MARK: - Trash Helpers
+
+    /// Moves this roast joke to trash. Use instead of modelContext.delete() for recoverability.
+    func moveToTrash() {
+        isDeleted = true
+        deletedDate = Date()
+        dateModified = Date()
+    }
+
+    func restoreFromTrash() {
+        isDeleted = false
+        deletedDate = nil
+        dateModified = Date()
     }
 }

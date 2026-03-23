@@ -11,7 +11,7 @@ import AVFoundation
 
 struct RecordingsView: View {
     @Environment(\.modelContext) private var modelContext
-    @Query(sort: \Recording.dateCreated, order: .reverse) private var recordings: [Recording]
+    @Query(filter: #Predicate<Recording> { !$0.isDeleted }, sort: \Recording.dateCreated, order: .reverse) private var recordings: [Recording]
     @AppStorage("roastModeEnabled") private var roastMode = false
 
     @State private var searchText = ""
@@ -75,21 +75,46 @@ struct RecordingsView: View {
         }
     }
     
+    /// Soft-deletes the recording DB record. Audio file is preserved until permanent purge.
+    /// This prevents the scenario where the audio file is deleted but the DB save fails.
     private func deleteRecordings(at offsets: IndexSet) {
         for index in offsets {
-            let recording = filteredRecordings[index]
-            
-            // Determine the actual file URL (handle both relative and absolute paths)
-            var fileURL: URL
-            if recording.fileURL.hasPrefix("/") {
-                fileURL = URL(fileURLWithPath: recording.fileURL)
-            } else {
-                let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-                fileURL = documentsPath.appendingPathComponent(recording.fileURL)
+            filteredRecordings[index].moveToTrash()
+        }
+        do {
+            try modelContext.save()
+        } catch {
+            print("❌ [RecordingsView] Failed to save after soft-delete: \(error)")
+        }
+    }
+
+    /// Permanently deletes a recording: removes the audio file, then removes the DB record.
+    /// Only call this when the user explicitly confirms permanent deletion (e.g. from a trash view).
+    static func permanentlyDelete(_ recording: Recording, context: ModelContext) {
+        // Resolve audio file URL
+        let fileURL: URL
+        if recording.fileURL.hasPrefix("/") {
+            fileURL = URL(fileURLWithPath: recording.fileURL)
+        } else {
+            let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            fileURL = documentsPath.appendingPathComponent(recording.fileURL)
+        }
+
+        // Delete the audio file first, then the DB record
+        if FileManager.default.fileExists(atPath: fileURL.path) {
+            do {
+                try FileManager.default.removeItem(at: fileURL)
+            } catch {
+                // Log but don't abort — the DB record should still be removed
+                print("⚠️ [RecordingsView] Failed to delete audio file '\(fileURL.lastPathComponent)': \(error)")
             }
-            
-            try? FileManager.default.removeItem(at: fileURL)
-            modelContext.delete(recording)
+        }
+
+        context.delete(recording)
+        do {
+            try context.save()
+        } catch {
+            print("❌ [RecordingsView] Failed to save after permanent recording deletion: \(error)")
         }
     }
 }

@@ -15,7 +15,11 @@ final class SetList: Identifiable {
     var dateCreated: Date = Date()
     var dateModified: Date = Date()
     var notes: String = ""  // Added per CD_SetList schema
-    
+
+    // Soft-delete (trash) support
+    var isDeleted: Bool = false
+    var deletedDate: Date?
+
     // Store UUIDs as a comma-separated string to avoid SwiftData Array<UUID> issues
     private var jokeIDsString: String = ""
     private var roastJokeIDsString: String = ""
@@ -55,5 +59,20 @@ final class SetList: Identifiable {
         self.notes = notes
         self.jokeIDsString = jokeIDs.map { $0.uuidString }.joined(separator: ",")
         self.roastJokeIDsString = roastJokeIDs.map { $0.uuidString }.joined(separator: ",")
+    }
+
+    // MARK: - Trash Helpers
+
+    /// Moves this set list to trash. Use instead of modelContext.delete() for recoverability.
+    func moveToTrash() {
+        isDeleted = true
+        deletedDate = Date()
+        dateModified = Date()
+    }
+
+    func restoreFromTrash() {
+        isDeleted = false
+        deletedDate = nil
+        dateModified = Date()
     }
 }

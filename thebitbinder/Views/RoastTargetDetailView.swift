@@ -194,13 +194,13 @@ struct RoastTargetDetailView: View {
         let jokes = filteredJokes
         for index in offsets {
             guard index < jokes.count else { continue }
-            modelContext.delete(jokes[index])
+            jokes[index].moveToTrash()
         }
         do {
             try modelContext.save()
         } catch {
             #if DEBUG
-            print("❌ [RoastTargetDetailView] Failed to persist roast deletion: \(error)")
+            print("❌ [RoastTargetDetailView] Failed to persist roast soft-delete: \(error)")
             #endif
         }
     }
