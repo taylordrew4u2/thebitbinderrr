@@ -39,11 +39,23 @@ struct thebitbinderApp: App {
         
         // 🛡️ CRITICAL DATA PROTECTION: Check if store file exists and create emergency backup
         if FileManager.default.fileExists(atPath: storeURL.path) {
+            let timestamp = Int(Date().timeIntervalSince1970)
             let emergencyBackupURL = URL.applicationSupportDirectory
-                .appending(path: "emergency_backup_\(Int(Date().timeIntervalSince1970)).store")
+                .appending(path: "emergency_backup_\(timestamp).store")
             
             do {
+                // Backup the main store file
                 try FileManager.default.copyItem(at: storeURL, to: emergencyBackupURL)
+                
+                // Also backup WAL and SHM journal files (contains uncommitted data)
+                for ext in ["-shm", "-wal"] {
+                    let sourceJournal = URL(fileURLWithPath: storeURL.path + ext)
+                    let destJournal = URL(fileURLWithPath: emergencyBackupURL.path + ext)
+                    if FileManager.default.fileExists(atPath: sourceJournal.path) {
+                        try FileManager.default.copyItem(at: sourceJournal, to: destJournal)
+                    }
+                }
+                
                 print("🛡️ [DataProtection] Emergency backup created before container initialization")
             } catch {
                 print("⚠️ [DataProtection] Could not create emergency backup: \(error)")

@@ -19,6 +19,9 @@ struct AddRoastTargetView: View {
     @State private var photoData: Data?
     @State private var photoImage: UIImage?
 
+    @State private var showSaveError = false
+    @State private var saveErrorMessage = ""
+
     private let accentColor = AppTheme.Colors.roastAccent
 
     var body: some View {
@@ -66,17 +69,22 @@ struct AddRoastTargetView: View {
                     TextField("e.g. friend, coworker, celebrity...", text: $notes)
                 }
             }
-            .navigationTitle("New Roast Target")
+            .scrollContentBackground(.hidden)
+            .background(AppTheme.Colors.roastBackground)
+            .navigationTitle("🔥 New Roast Target")
             .navigationBarTitleDisplayMode(.inline)
+            .bitBinderToolbar(roastMode: true)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
+                        .foregroundColor(accentColor)
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Create") {
                         saveTarget()
                     }
                     .fontWeight(.semibold)
+                    .foregroundColor(accentColor)
                     .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }
@@ -91,8 +99,15 @@ struct AddRoastTargetView: View {
                 }
             }
             .onAppear {
+                #if DEBUG
                 print("📋 [AddRoastTargetView] View appeared")
                 print("📋 [AddRoastTargetView] ModelContext available: \(modelContext)")
+                #endif
+            }
+            .alert("Save Failed", isPresented: $showSaveError) {
+                Button("OK", role: .cancel) { }
+            } message: {
+                Text(saveErrorMessage)
             }
         }
     }
@@ -107,27 +122,20 @@ struct AddRoastTargetView: View {
             photoData: photoData
         )
         
-        print("📝 [AddRoastTargetView] Creating target: \(target.name)")
-        print("📝 [AddRoastTargetView] Target ID: \(target.id)")
-        print("📝 [AddRoastTargetView] Model context: \(modelContext)")
+        modelContext.insert(target)
         
         do {
-            modelContext.insert(target)
-            print("📝 [AddRoastTargetView] Inserted into context")
-            
             try modelContext.save()
-            print("✅ [AddRoastTargetView] Successfully saved: \(target.name) (ID: \(target.id))")
-            print("📝 [AddRoastTargetView] ModelContext transaction complete, flushing changes...")
-            
-            // Force a complete transaction flush and allow Query to refresh
-            // Increase delay to 1 second to ensure SwiftData detects the change
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                print("📝 [AddRoastTargetView] Dismissing after full query refresh")
-                dismiss()
-            }
+            #if DEBUG
+            print("✅ [AddRoastTargetView] Target '\(trimmed)' saved successfully (id: \(target.id))")
+            #endif
+            dismiss()
         } catch {
+            #if DEBUG
             print("❌ [AddRoastTargetView] Failed to save: \(error)")
-            print("❌ [AddRoastTargetView] Error detail: \(String(describing: error))")
+            #endif
+            saveErrorMessage = "Could not save target: \(error.localizedDescription)"
+            showSaveError = true
         }
     }
 }

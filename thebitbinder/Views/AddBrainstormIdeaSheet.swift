@@ -58,15 +58,16 @@ struct AddBrainstormIdeaSheet: View {
             }
             .navigationTitle(roastMode ? "🔥 New Fire Thought" : "New Thought")
             .navigationBarTitleDisplayMode(.inline)
+            .bitBinderToolbar(roastMode: roastMode)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
-                        .foregroundColor(roastMode ? AppTheme.Colors.roastAccent : AppTheme.Colors.inkBlue)
+                        .foregroundColor(roastMode ? AppTheme.Colors.roastAccent : AppTheme.Colors.primaryAction)
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") { saveIdea() }
                         .fontWeight(.semibold)
-                        .foregroundColor(roastMode ? AppTheme.Colors.roastAccent : AppTheme.Colors.inkBlue)
+                        .foregroundColor(roastMode ? AppTheme.Colors.roastAccent : AppTheme.Colors.primaryAction)
                         .disabled(content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }

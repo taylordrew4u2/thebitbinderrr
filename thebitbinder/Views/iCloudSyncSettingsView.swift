@@ -249,7 +249,7 @@ struct iCloudSyncSettingsView: View {
                         }
                         .padding(12)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(RoundedRectangle(cornerRadius: 8).fill(Color(.systemGray6)))
+                        .background(RoundedRectangle(cornerRadius: 8).fill(AppTheme.Colors.surfaceElevated))
                     }
                 }
             }

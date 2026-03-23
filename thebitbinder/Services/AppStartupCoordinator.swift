@@ -20,10 +20,46 @@ final class AppStartupCoordinator: ObservableObject {
     func start() async {
         guard !isReady else { return }
 
+        // Seed any API keys that weren't entered via Settings UI
+        seedAPIKeysIfNeeded()
+
         await performDataProtectionSequence()
 
         statusText = "Ready"
         isReady = true
+    }
+
+    // MARK: - API Key Seeding
+
+    /// Seeds API keys from the bundled plists into UserDefaults on first launch
+    /// (or whenever UserDefaults doesn't already have a key for a provider).
+    /// UserDefaults is always checked first by AIKeyLoader, so this is the
+    /// most reliable way to ensure keys are available without Xcode target setup.
+    private func seedAPIKeysIfNeeded() {
+        let providers: [AIProviderType] = AIProviderType.allCases
+        for provider in providers {
+            // Only seed if there's no user-entered key already
+            let existing = UserDefaults.standard.string(forKey: provider.userDefaultsKey)
+            guard existing == nil || existing!.isEmpty else { continue }
+
+            // Try to read from the bundled plist
+            if let url = Bundle.main.url(forResource: provider.secretsPlistName, withExtension: "plist"),
+               let dict = NSDictionary(contentsOf: url),
+               let key = dict[provider.plistKey] as? String,
+               !key.isEmpty,
+               !key.hasPrefix("YOUR_") {
+                UserDefaults.standard.set(key, forKey: provider.userDefaultsKey)
+                print("🔑 [AppStartup] Seeded \(provider.displayName) key from plist")
+            }
+        }
+
+        // Log provider readiness
+        print("📥 [AppStartup] Extraction providers loaded:")
+        for provider in AIProviderType.allCases {
+            let key = AIKeyLoader.loadKey(for: provider)
+            let status = key != nil ? "✅ ready" : "⚠️  no key"
+            print("   \(provider.displayName): \(status)")
+        }
     }
 
     private func performDataProtectionSequence() async {
@@ -69,6 +105,14 @@ final class AppStartupCoordinator: ObservableObject {
             print("⚠️ [AppStartup] Data validation found minor issues")
         } else {
             print("✅ [AppStartup] Data validation passed")
+        }
+        
+        // Auto-repair broken relationships (Joke→Folder AND RoastJoke→RoastTarget)
+        if !validation.issues.isEmpty {
+            let repaired = await dataValidation.repairDataIssues(context: context, issues: validation.issues)
+            if !repaired.isEmpty {
+                print("🔧 [AppStartup] Auto-repaired \(repaired.count) issue(s): \(repaired.joined(separator: "; "))")
+            }
         }
         
         // Handle schema changes

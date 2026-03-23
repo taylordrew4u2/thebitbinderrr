@@ -115,19 +115,24 @@ final class DataProtectionService: ObservableObject {
         do {
             try fileManager.createDirectory(at: storeDirectory, withIntermediateDirectories: true)
             
-            // Backup main store file and associated files
+            // Backup main store file and SQLite journal files
             for ext in ["", "-shm", "-wal"] {
-                let sourceURL: URL
-                if ext.isEmpty {
-                    sourceURL = storeURL
-                } else {
-                    sourceURL = storeURL.appendingPathExtension(String(ext.dropFirst()))
-                }
+                let sourceURL = URL(fileURLWithPath: storeURL.path + ext)
                 let destURL = storeDirectory.appending(path: "default.store\(ext)")
                 
                 if fileManager.fileExists(atPath: sourceURL.path) {
                     try fileManager.copyItem(at: sourceURL, to: destURL)
+                    print("📦 [DataProtection] Backed up: default.store\(ext)")
                 }
+            }
+            
+            // Backup the external storage directory
+            // SwiftData stores @Attribute(.externalStorage) blobs here (e.g. RoastTarget photos)
+            let externalStorageURL = URL(fileURLWithPath: storeURL.path + "_Files")
+            if fileManager.fileExists(atPath: externalStorageURL.path) {
+                let destExternalURL = storeDirectory.appending(path: "default.store_Files")
+                try fileManager.copyItem(at: externalStorageURL, to: destExternalURL)
+                print("📦 [DataProtection] External storage directory backed up")
             }
             
             print("📦 [DataProtection] SwiftData store backed up")
@@ -373,24 +378,46 @@ final class DataProtectionService: ObservableObject {
     private func restoreSwiftDataStore(from sourceURL: URL) async throws {
         let storeURL = URL.applicationSupportDirectory.appending(path: "default.store")
         
-        // Close any existing store connections would need to be handled by the app
+        // All possible SQLite/SwiftData companion files
+        let extensions = ["", "-shm", "-wal"]
         
-        for ext in ["", "-shm", "-wal"] {
-            let sourceFile = sourceURL.appending(path: "default.store\(ext)")
-            let destFile: URL
-            if ext.isEmpty {
-                destFile = storeURL
-            } else {
-                destFile = storeURL.appendingPathExtension(String(ext.dropFirst()))
-            }
-            
-            if fileManager.fileExists(atPath: sourceFile.path) {
-                // Remove existing file
-                try? fileManager.removeItem(at: destFile)
-                // Copy backup file
-                try fileManager.copyItem(at: sourceFile, to: destFile)
+        // Step 1: Remove ALL existing store files (including journal)
+        // This prevents SQLite from replaying old WAL entries over restored data
+        for ext in extensions {
+            let destFile = URL(fileURLWithPath: storeURL.path + ext)
+            if fileManager.fileExists(atPath: destFile.path) {
+                try fileManager.removeItem(at: destFile)
+                print("📦 [DataProtection] Removed existing: default.store\(ext)")
             }
         }
+        
+        // Also remove the SwiftData external storage directory
+        // (this is where @Attribute(.externalStorage) blobs like photoData live)
+        let externalStorageURL = URL(fileURLWithPath: storeURL.path + "_Files")
+        if fileManager.fileExists(atPath: externalStorageURL.path) {
+            try fileManager.removeItem(at: externalStorageURL)
+            print("📦 [DataProtection] Removed existing external storage directory")
+        }
+        
+        // Step 2: Copy backup files into place
+        for ext in extensions {
+            let sourceFile = sourceURL.appending(path: "default.store\(ext)")
+            let destFile = URL(fileURLWithPath: storeURL.path + ext)
+            
+            if fileManager.fileExists(atPath: sourceFile.path) {
+                try fileManager.copyItem(at: sourceFile, to: destFile)
+                print("📦 [DataProtection] Restored: default.store\(ext)")
+            }
+        }
+        
+        // Step 3: Restore external storage directory if it was backed up
+        let sourceExternalStorage = sourceURL.appending(path: "default.store_Files")
+        if fileManager.fileExists(atPath: sourceExternalStorage.path) {
+            try fileManager.copyItem(at: sourceExternalStorage, to: externalStorageURL)
+            print("📦 [DataProtection] Restored external storage directory")
+        }
+        
+        print("✅ [DataProtection] SwiftData store fully restored — app must restart to load")
     }
     
     private func restoreUserDefaults(from sourceURL: URL) throws {

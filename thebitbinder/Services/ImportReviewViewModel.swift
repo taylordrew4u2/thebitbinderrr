@@ -18,10 +18,13 @@ final class ImportReviewViewModel: ObservableObject {
     /// Set when the Gemini daily rate-limit is hit during import.
     @Published var rateLimitError: GeminiRateLimitError? = nil
 
-    // Gemini request stats (updated on load)
-    var geminiRequestsRemaining: Int { GeminiJokeExtractor.shared.remainingRequests() }
-    var geminiRequestsUsed: Int      { GeminiJokeExtractor.shared.todayRequestCount() }
+    // Gemini request stats (quota tracking - TODO: implement)
+    var geminiRequestsRemaining: Int { Int.max }
+    var geminiRequestsUsed: Int      { 0 }
 
+    /// Indices of items that were auto-accepted (from the high-confidence autoSavedJokes bucket)
+    private(set) var autoAcceptedIndices: Set<Int> = []
+    
     private let pipelineCoordinator = ImportPipelineCoordinator.shared
     
     var currentItem: ImportReviewItem? {
@@ -46,7 +49,10 @@ final class ImportReviewViewModel: ObservableObject {
     
     /// Load ALL jokes (auto-saved + review queue) so the user sees everything
     func loadAllItems(from result: ImportPipelineResult) {
-        let allJokes = result.autoSavedJokes + result.reviewQueueJokes
+        let autoSaved = result.autoSavedJokes
+        let review = result.reviewQueueJokes
+        let allJokes = autoSaved + review
+        
         self.reviewItems = allJokes.map { joke in
             ImportReviewItem(
                 id: joke.id,
@@ -59,7 +65,17 @@ final class ImportReviewViewModel: ObservableObject {
                 mergeWithNext: false
             )
         }
-        self.currentIndex = 0
+        
+        // Auto-approve the high-confidence items that came from autoSavedJokes
+        var indices = Set<Int>()
+        for i in 0..<autoSaved.count {
+            reviewItems[i].action = .approved
+            indices.insert(i)
+        }
+        autoAcceptedIndices = indices
+        
+        // Start the current index at the first pending (review queue) item
+        self.currentIndex = autoSaved.count < allJokes.count ? autoSaved.count : 0
     }
     
     /// Load only review-queue items (original behavior)
@@ -182,6 +198,27 @@ final class ImportReviewViewModel: ObservableObject {
         )
     }
     
+    // MARK: - Computed Counts
+    
+    /// Number of items that were auto-accepted (high confidence, pre-approved)
+    var autoAcceptedCount: Int {
+        autoAcceptedIndices.count
+    }
+    
+    /// Number of items still pending review
+    var pendingCount: Int {
+        reviewItems.filter { $0.action == .pending }.count
+    }
+    
+    /// GagGrabber daily budget status (quota tracking – unlimited for now)
+    var gagGrabberStatus: GagGrabberBudgetStatus {
+        GagGrabberBudgetStatus(
+            shortStatusText: "Unlimited",
+            statusIcon: "infinity",
+            statusColor: .green
+        )
+    }
+    
     var allItemsReviewed: Bool {
         return reviewItems.allSatisfy { $0.action != .pending }
     }
@@ -224,8 +261,14 @@ struct ImportReviewItem: Identifiable {
     }
     
     func createFinalJoke() -> ImportedJoke {
+        let finalTitle: String? = {
+            if !editedTitle.isEmpty { return editedTitle }
+            let generated = KeywordTitleGenerator.title(from: editedBody)
+            return generated.isEmpty ? nil : generated
+        }()
+        
         return ImportedJoke(
-            title: editedTitle.isEmpty ? nil : editedTitle,
+            title: finalTitle,
             body: editedBody,
             rawSourceText: originalJoke.rawSourceText,
             tags: editedTags,
@@ -233,7 +276,7 @@ struct ImportReviewItem: Identifiable {
             confidenceFactors: ConfidenceFactors(
                 extractionQuality: originalJoke.confidenceFactors.extractionQuality,
                 structuralCleanliness: 0.8,
-                titleDetection: editedTitle.isEmpty ? 0.3 : 0.9,
+                titleDetection: editedTitle.isEmpty ? 0.5 : 0.9,
                 boundaryClarity: originalJoke.confidenceFactors.boundaryClarity,
                 ocrConfidence: originalJoke.confidenceFactors.ocrConfidence
             ),
@@ -266,4 +309,24 @@ struct ImportReviewResults {
     var isComplete: Bool {
         pendingJokes.isEmpty
     }
+    
+    /// Status of the GagGrabber daily budget for extracted jokes
+    var gagGrabberStatus: GagGrabberBudgetStatus {
+        // For now, return "Unlimited" - quotas can be added later
+        GagGrabberBudgetStatus(
+            shortStatusText: "Unlimited",
+            statusIcon: "infinity",
+            statusColor: .green
+        )
+    }
+
+}
+
+
+// MARK: - Budget Status
+
+struct GagGrabberBudgetStatus {
+    let shortStatusText: String
+    let statusIcon: String
+    let statusColor: Color
 }

@@ -101,7 +101,7 @@ struct AddJokesToSetListView: View {
                                     Spacer()
                                     if selectedJokeIDs.contains(joke.id) {
                                         Image(systemName: "checkmark.circle.fill")
-                                            .foregroundColor(.blue)
+                                            .foregroundColor(AppTheme.Colors.primaryAction)
                                     }
                                 }
                             }
@@ -111,19 +111,17 @@ struct AddJokesToSetListView: View {
                     }
                 }
             }
-            .background(roastMode ? AppTheme.Colors.roastBackground : Color.clear)
+            .background(roastMode ? AppTheme.Colors.roastBackground : AppTheme.Colors.paperCream)
             .navigationTitle(roastMode ? "🔥 Add Jokes" : "Add Jokes")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbarBackground(roastMode ? AppTheme.Colors.roastSurface : AppTheme.Colors.paperCream, for: .navigationBar)
-            .toolbarBackground(.visible, for: .navigationBar)
-            .toolbarColorScheme(roastMode ? .dark : .light, for: .navigationBar)
+            .bitBinderToolbar(roastMode: roastMode)
             .searchable(text: $searchText, prompt: "Search jokes")
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") {
                         dismiss()
                     }
-                    .foregroundColor(roastMode ? AppTheme.Colors.roastAccent : nil)
+                    .foregroundColor(roastMode ? AppTheme.Colors.roastAccent : AppTheme.Colors.primaryAction)
                 }
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -131,11 +129,11 @@ struct AddJokesToSetListView: View {
                         addJokes()
                     }
                     .disabled(selectedJokeIDs.isEmpty)
-                    .foregroundColor(roastMode ? AppTheme.Colors.roastAccent : nil)
+                    .foregroundColor(roastMode ? AppTheme.Colors.roastAccent : AppTheme.Colors.primaryAction)
                 }
             }
         }
-        .tint(roastMode ? AppTheme.Colors.roastAccent : AppTheme.Colors.inkBlue)
+        .tint(roastMode ? AppTheme.Colors.roastAccent : AppTheme.Colors.primaryAction)
     }
     
     private func addJokes() {

@@ -74,7 +74,7 @@ struct AudioImportView: View {
                     VStack(alignment: .leading, spacing: 16) {
                         Label("How to Import Voice Memos", systemImage: "info.circle.fill")
                             .font(.headline)
-                            .foregroundColor(.blue)
+                            .foregroundColor(AppTheme.Colors.primaryAction)
                         
                         VStack(alignment: .leading, spacing: 12) {
                             ImportStepRow(number: 1, text: "Open the Voice Memos app")
@@ -87,7 +87,7 @@ struct AudioImportView: View {
                     }
                     .padding()
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(Color.blue.opacity(0.08))
+                    .background(AppTheme.Colors.primaryAction.opacity(0.08))
                     .cornerRadius(12)
                     .padding(.horizontal)
                     
@@ -109,7 +109,7 @@ struct AudioImportView: View {
                             .font(.headline)
                             .frame(maxWidth: .infinity)
                             .padding()
-                            .background(Color.blue)
+                            .background(AppTheme.Colors.primaryAction)
                             .foregroundColor(.white)
                             .cornerRadius(12)
                         }
@@ -119,7 +119,7 @@ struct AudioImportView: View {
                     // Info
                     HStack(alignment: .top, spacing: 10) {
                         Image(systemName: "info.circle.fill")
-                            .foregroundColor(.blue)
+                            .foregroundColor(AppTheme.Colors.primaryAction)
                         Text("Audio is transcribed to text and saved as a joke. The original audio file is not kept.")
                             .font(.caption)
                             .foregroundColor(.secondary)
@@ -132,7 +132,7 @@ struct AudioImportView: View {
                     if !authorizationStatus.isEmpty {
                         Text(authorizationStatus)
                             .font(.caption)
-                            .foregroundColor(.orange)
+                            .foregroundColor(AppTheme.Colors.warning)
                             .padding(.horizontal)
                     }
                 }
@@ -288,7 +288,7 @@ struct DropZoneView: View {
                 .strokeBorder(style: StrokeStyle(lineWidth: 2, dash: [8]))
                 .foregroundColor(isTargeted ? .blue : .gray.opacity(0.5))
         )
-        .background(isTargeted ? Color.blue.opacity(0.1) : Color.clear)
+        .background(isTargeted ? AppTheme.Colors.primaryAction.opacity(0.1) : Color.clear)
         .cornerRadius(16)
         .dropDestination(for: URL.self) { urls, _ in
             let audioURLs = urls.filter { url in
@@ -401,7 +401,7 @@ struct AudioImportResultsView: View {
                             Text("\(successCount)")
                                 .font(.largeTitle)
                                 .fontWeight(.bold)
-                                .foregroundColor(.green)
+                                .foregroundColor(AppTheme.Colors.success)
                             Text("Imported")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
@@ -412,7 +412,7 @@ struct AudioImportResultsView: View {
                                 Text("\(failureCount)")
                                     .font(.largeTitle)
                                     .fontWeight(.bold)
-                                    .foregroundColor(.red)
+                                    .foregroundColor(AppTheme.Colors.error)
                                 Text("Failed")
                                     .font(.caption)
                                     .foregroundColor(.secondary)
@@ -428,7 +428,7 @@ struct AudioImportResultsView: View {
                             VStack(alignment: .leading, spacing: 8) {
                                 HStack {
                                     Image(systemName: "checkmark.circle.fill")
-                                        .foregroundColor(.green)
+                                        .foregroundColor(AppTheme.Colors.success)
                                     Text(result.filename)
                                         .font(.subheadline)
                                         .fontWeight(.medium)
@@ -441,7 +441,7 @@ struct AudioImportResultsView: View {
                                 }
                                 Text("Confidence: \(result.confidenceDescription)")
                                     .font(.caption2)
-                                    .foregroundColor(.blue)
+                                    .foregroundColor(AppTheme.Colors.primaryAction)
                             }
                             .padding(.vertical, 4)
                         }
@@ -454,7 +454,7 @@ struct AudioImportResultsView: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 HStack {
                                     Image(systemName: "xmark.circle.fill")
-                                        .foregroundColor(.red)
+                                        .foregroundColor(AppTheme.Colors.error)
                                     Text(result.filename)
                                         .font(.subheadline)
                                 }
@@ -492,7 +492,7 @@ struct ImportStepRow: View {
                 .fontWeight(.bold)
                 .foregroundColor(.white)
                 .frame(width: 22, height: 22)
-                .background(Color.blue)
+                .background(AppTheme.Colors.primaryAction)
                 .clipShape(Circle())
             
             Text(text)

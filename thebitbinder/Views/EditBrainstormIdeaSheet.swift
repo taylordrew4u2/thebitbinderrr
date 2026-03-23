@@ -58,25 +58,26 @@ struct EditBrainstormIdeaSheet: View {
                     } label: {
                         Label("Delete Thought", systemImage: "trash")
                             .font(.system(size: 15, weight: .medium))
-                            .foregroundColor(.red)
+                            .foregroundColor(AppTheme.Colors.error)
                             .padding(.vertical, 12)
                             .padding(.horizontal, 24)
-                            .background(RoundedRectangle(cornerRadius: 10).fill(Color.red.opacity(0.1)))
+                            .background(RoundedRectangle(cornerRadius: AppTheme.Radius.medium).fill(AppTheme.Colors.error.opacity(0.1)))
                     }
                     .padding(.bottom, 20)
                 }
             }
             .navigationTitle(roastMode ? "🔥 Edit Thought" : "Edit Thought")
             .navigationBarTitleDisplayMode(.inline)
+            .bitBinderToolbar(roastMode: roastMode)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
-                        .foregroundColor(roastMode ? AppTheme.Colors.roastAccent : AppTheme.Colors.inkBlue)
+                        .foregroundColor(roastMode ? AppTheme.Colors.roastAccent : AppTheme.Colors.primaryAction)
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") { saveChanges() }
                         .fontWeight(.semibold)
-                        .foregroundColor(roastMode ? AppTheme.Colors.roastAccent : AppTheme.Colors.inkBlue)
+                        .foregroundColor(roastMode ? AppTheme.Colors.roastAccent : AppTheme.Colors.primaryAction)
                         .disabled(content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }

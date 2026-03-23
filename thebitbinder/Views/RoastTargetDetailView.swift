@@ -161,7 +161,13 @@ struct RoastTargetDetailView: View {
             Button("Cancel", role: .cancel) { }
             Button("Delete", role: .destructive) {
                 modelContext.delete(target)
-                try? modelContext.save()
+                do {
+                    try modelContext.save()
+                } catch {
+                    #if DEBUG
+                    print("❌ [RoastTargetDetailView] Failed to persist delete: \(error)")
+                    #endif
+                }
                 dismiss()
             }
         } message: {
@@ -190,7 +196,13 @@ struct RoastTargetDetailView: View {
             guard index < jokes.count else { continue }
             modelContext.delete(jokes[index])
         }
-        try? modelContext.save()
+        do {
+            try modelContext.save()
+        } catch {
+            #if DEBUG
+            print("❌ [RoastTargetDetailView] Failed to persist roast deletion: \(error)")
+            #endif
+        }
     }
 }
 
@@ -232,6 +244,9 @@ struct EditRoastJokeView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
     @Bindable var joke: RoastJoke
+    
+    @State private var showSaveError = false
+    @State private var saveErrorMessage = ""
 
     var body: some View {
         NavigationStack {
@@ -250,11 +265,24 @@ struct EditRoastJokeView: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {
                         joke.dateModified = Date()
-                        try? modelContext.save()
-                        dismiss()
+                        do {
+                            try modelContext.save()
+                            dismiss()
+                        } catch {
+                            #if DEBUG
+                            print("❌ [EditRoastJokeView] Failed to save: \(error)")
+                            #endif
+                            saveErrorMessage = "Could not save changes: \(error.localizedDescription)"
+                            showSaveError = true
+                        }
                     }
                     .disabled(joke.content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
+            }
+            .alert("Save Failed", isPresented: $showSaveError) {
+                Button("OK", role: .cancel) { }
+            } message: {
+                Text(saveErrorMessage)
             }
         }
     }
@@ -269,6 +297,8 @@ struct EditRoastTargetView: View {
 
     @State private var selectedPhoto: PhotosPickerItem?
     @State private var photoImage: UIImage?
+    @State private var showSaveError = false
+    @State private var saveErrorMessage = ""
 
     private let accentColor = AppTheme.Colors.roastAccent
 
@@ -337,12 +367,25 @@ struct EditRoastTargetView: View {
                             target.photoData = photoData
                         }
                         target.dateModified = Date()
-                        try? modelContext.save()
-                        dismiss()
+                        do {
+                            try modelContext.save()
+                            dismiss()
+                        } catch {
+                            #if DEBUG
+                            print("❌ [EditRoastTargetView] Failed to save: \(error)")
+                            #endif
+                            saveErrorMessage = "Could not save changes: \(error.localizedDescription)"
+                            showSaveError = true
+                        }
                     }
                     .fontWeight(.semibold)
                     .disabled(target.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
+            }
+            .alert("Save Failed", isPresented: $showSaveError) {
+                Button("OK", role: .cancel) { }
+            } message: {
+                Text(saveErrorMessage)
             }
             .onChange(of: selectedPhoto) { _, newValue in
                 Task {

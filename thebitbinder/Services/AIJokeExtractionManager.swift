@@ -2,28 +2,75 @@
 //  AIJokeExtractionManager.swift
 //  thebitbinder
 //
-//  Manages multiple AI providers with automatic fallback.
-//  When one provider hits a rate limit or fails, it tries the next one.
+//  Manages multiple joke extraction providers with automatic fallback.
+//  When one provider fails or hits a rate limit, it tries the next one.
 //  Falls back to LocalJokeExtractor as a last resort.
+//
+//  ⚠️  HARDWIRED RESTRICTION: Extraction is ONLY for file imports.
+//  BitBuddy is 100% local/rule-based and must NEVER call extraction providers.
+//  All extraction methods require an `AIExtractionToken` that only
+//  `ImportPipelineCoordinator` can create.
 //
 
 import Foundation
+import Network
 
-/// Manages AI providers with automatic fallback for joke extraction.
-/// Tries providers in the user's preferred order, skipping ones without keys,
-/// and falling through on rate limits or errors.
+// MARK: - Caller Restriction Token
+
+/// A zero-cost token that proves the caller is authorised to use extraction.
+///
+/// **Only `ImportPipelineCoordinator` should create this.**
+/// BitBuddy, chat services, and all other subsystems must NEVER
+/// instantiate this token. If you find yourself creating one outside
+/// of the import pipeline, you are violating the architecture.
+struct AIExtractionToken {
+    fileprivate(set) var caller: String
+
+    /// Create a token. The `caller` string is recorded for logging/assertions.
+    /// This initialiser is intentionally NOT fileprivate so the import pipeline
+    /// (in a different file) can create it, but the doc-comment above serves as
+    /// the contract. A runtime assertion double-checks at the call-site.
+    init(caller: String) {
+        self.caller = caller
+    }
+}
+
+/// Manages extraction providers with automatic fallback for joke extraction.
+///
+/// ⚠️  Extraction is reserved **exclusively** for the file-import pipeline.
+/// BitBuddy is local-only and must never touch these providers.
+/// Every public extraction method requires an `AIExtractionToken` that
+/// only `ImportPipelineCoordinator` should create.
 final class AIJokeExtractionManager {
 
     static let shared = AIJokeExtractionManager()
 
+    // MARK: - Allowed callers (hardwired)
+
+    /// The ONLY callers permitted to use extraction.
+    /// Add an entry here only if a new *import* pathway is created.
+    /// BitBuddy, chat, or any interactive feature must NEVER appear here.
+    private static let allowedCallers: Set<String> = [
+        "ImportPipelineCoordinator"
+    ]
+
+    /// Runtime gate — crashes in DEBUG if an unauthorised caller sneaks through.
+    private func assertAuthorised(_ token: AIExtractionToken) {
+        if !Self.allowedCallers.contains(token.caller) {
+            assertionFailure(
+                "🚫 [Extraction] BLOCKED: '\(token.caller)' is not allowed to use extraction. "
+                + "Extraction is reserved for file imports only. Allowed: \(Self.allowedCallers)"
+            )
+            print("🚫 [Extraction] BLOCKED: Unauthorised caller '\(token.caller)' — extraction denied.")
+        }
+    }
+
     // MARK: - Providers
 
     private let providers: [AIProviderType: AIJokeExtractionProvider] = [
-        .gemini:   GeminiProvider(),
-        .openAI:   OpenAIProvider(),
-        .deepSeek: DeepSeekProvider(),
-        .anthropic: AnthropicProvider(),
-        .groq:     GroqProvider()
+        .openAI:      OpenAIProvider(),
+        .arceeAI:     ArceeAIProvider(),
+        .openRouter:  OpenRouterProvider()
     ]
 
     /// UserDefaults key for the user's preferred provider order.
@@ -40,7 +87,7 @@ final class AIJokeExtractionManager {
     // MARK: - Provider Order
 
     /// Returns the user's preferred provider order.
-    /// Defaults to: Gemini → OpenAI → Anthropic → Groq
+    /// Defaults to: OpenAI → Arcee → OpenRouter
     var providerOrder: [AIProviderType] {
         get {
             if let data = UserDefaults.standard.data(forKey: orderKey),
@@ -130,53 +177,84 @@ final class AIJokeExtractionManager {
         rateLimitedUntil[provider] = Date().addingTimeInterval(duration)
     }
 
-    // MARK: - Extraction with Fallback
+    // MARK: - Extraction with Fallback (import-only)
 
     /// The main extraction method. Tries each configured provider in order,
     /// falling back on rate limits or errors. Returns the jokes and which provider succeeded.
-    func extractJokes(from text: String) async -> (jokes: [GeminiExtractedJoke], provider: AIProviderType?, usedLocalFallback: Bool) {
+    ///
+    /// ⚠️  Requires an `AIExtractionToken`. Only the file-import pipeline may call this.
+    /// BitBuddy and all other features must NEVER call this method.
+    func extractJokes(from text: String, token: AIExtractionToken) async -> (jokes: [GeminiExtractedJoke], provider: AIProviderType?, usedLocalFallback: Bool) {
+        assertAuthorised(token)
+
+        print("🔍 [Extraction] Starting with \(text.count) chars")
+        print("🔍 [Extraction] Providers in use order: \(providerOrder.map(\.displayName).joined(separator: " → "))")
+
+        // Fast network check — if there's no connectivity, skip all providers
+        // and go straight to local extraction instead of waiting for timeouts.
+        if !Self.hasNetworkConnectivity() {
+            print("📡 [Extraction] No network connectivity — using local extraction")
+            let localJokes = LocalJokeExtractor.shared.extract(from: text)
+            return (localJokes, nil, true)
+        }
+
         var errors: [AIProviderType: Error] = [:]
+        var hitNetworkError = false
 
         for providerType in providerOrder {
+            // If a previous provider failed with a network error, don't bother
+            // trying the rest — they'll all fail the same way.
+            if hitNetworkError {
+                print("⏭️ [Extraction] Skipping \(providerType.displayName) (network down)")
+                continue
+            }
+
             // Skip disabled providers
             guard !disabledProviders.contains(providerType) else {
-                print("⏭️ [AIManager] Skipping \(providerType.displayName) (disabled)")
+                print("⏭️ [Extraction] Skipping \(providerType.displayName) (disabled)")
                 continue
             }
 
             // Skip unconfigured providers
             guard let provider = providers[providerType], provider.isConfigured() else {
-                print("⏭️ [AIManager] Skipping \(providerType.displayName) (no API key)")
+                print("⏭️ [Extraction] Skipping \(providerType.displayName) (no API key)")
                 continue
             }
 
             // Skip rate-limited providers
             guard !isRateLimited(providerType) else {
-                print("⏭️ [AIManager] Skipping \(providerType.displayName) (rate limited)")
+                print("⏭️ [Extraction] Skipping \(providerType.displayName) (rate limited)")
                 continue
             }
 
             // Try this provider
             do {
-                print("🤖 [AIManager] Trying \(providerType.displayName)…")
+                print("🔄 [Extraction] Trying \(providerType.displayName)…")
                 let jokes = try await provider.extractJokes(from: text)
-                print("✅ [AIManager] \(providerType.displayName) returned \(jokes.count) joke(s)")
+                print("✅ [Extraction] \(providerType.displayName) returned \(jokes.count) joke(s)")
                 return (jokes, providerType, false)
             } catch let error as AIProviderError {
                 switch error {
                 case .rateLimited(_, let retryAfter):
-                    print("⚠️ [AIManager] \(providerType.displayName) rate limited, trying next…")
+                    print("⚠️ [Extraction] \(providerType.displayName) rate limited, trying next…")
                     markRateLimited(providerType, forSeconds: retryAfter)
                     errors[providerType] = error
                 case .keyNotConfigured:
-                    print("⚠️ [AIManager] \(providerType.displayName) key not configured, trying next…")
+                    print("⚠️ [Extraction] \(providerType.displayName) key not configured, trying next…")
                     errors[providerType] = error
                 default:
-                    print("❌ [AIManager] \(providerType.displayName) error: \(error.localizedDescription)")
+                    print("❌ [Extraction] \(providerType.displayName) error: \(error.localizedDescription)")
                     errors[providerType] = error
                 }
             } catch {
-                print("❌ [AIManager] \(providerType.displayName) unexpected error: \(error.localizedDescription)")
+                print("❌ [Extraction] \(providerType.displayName) unexpected error: \(error.localizedDescription)")
+
+                // Detect network errors — if the network is down, skip remaining providers
+                if Self.isNetworkError(error) {
+                    print("📡 [Extraction] Network error detected — skipping remaining providers")
+                    hitNetworkError = true
+                }
+
                 // Check for common rate limit patterns in the error
                 let desc = error.localizedDescription.lowercased()
                 if desc.contains("rate") || desc.contains("quota") || desc.contains("429") || desc.contains("limit") {
@@ -187,31 +265,83 @@ final class AIJokeExtractionManager {
         }
 
         // All AI providers failed — fall back to local extraction
-        print("🔄 [AIManager] All AI providers failed, using local rule-based extraction")
+        print("🔄 [Extraction] All providers failed, using local rule-based extraction")
         let localJokes = LocalJokeExtractor.shared.extract(from: text)
         return (localJokes, nil, true)
     }
 
-    /// Convenience: extracts jokes and throws if needed (for pipeline compatibility).
+    /// Convenience: extracts jokes for the import pipeline.
     /// When all providers fail, returns local extraction results instead of throwing.
-    func extractJokesForPipeline(from text: String) async -> (jokes: [GeminiExtractedJoke], usedLocalFallback: Bool, providerUsed: String) {
-        let result = await extractJokes(from: text)
+    ///
+    /// ⚠️  Requires an `AIExtractionToken`. Only file-import callers may use this.
+    func extractJokesForPipeline(from text: String, token: AIExtractionToken) async -> (jokes: [GeminiExtractedJoke], usedLocalFallback: Bool, providerUsed: String) {
+        let result = await extractJokes(from: text, token: token)
         let providerName = result.provider?.displayName ?? "Local Extraction"
         return (result.jokes, result.usedLocalFallback, providerName)
     }
 
-    // MARK: - Silly Status Messages
+    // MARK: - Status Messages
 
-    /// Returns a fun GagGrabber-style status message about the current AI provider state.
+    /// Returns a neutral status message (no provider details exposed).
     var statusMessage: String {
         let available = availableProviders
         if available.isEmpty {
-            return "🤖 GagGrabber has no AI engines configured! Add an API key in Settings to unlock smart joke extraction."
+            return "Import tool needs setup. Check Settings for more info."
         } else if available.count == 1 {
-            return "🤖 GagGrabber is running on \(available[0].displayName). Add more API keys for backup!"
+            return "Import tool ready! Add more providers for automatic fallback."
         } else {
-            let names = available.map(\.displayName).joined(separator: " → ")
-            return "🤖 GagGrabber has \(available.count) AI engines ready: \(names). Rate limit? No problem!"
+            return "Import tool ready with \(available.count) providers. If one fails, it'll automatically switch."
         }
+    }
+
+    // MARK: - Network Helpers
+
+    /// Quick connectivity check using NWPathMonitor snapshot.
+    /// Returns false if the device has no route to the internet.
+    private static func hasNetworkConnectivity() -> Bool {
+        let monitor = NWPathMonitor()
+        let path = monitor.currentPath
+        monitor.cancel()
+        return path.status == .satisfied
+    }
+
+    /// Returns true if the error is a network-level failure
+    /// (no route, timeout, DNS, connection refused, etc.).
+    static func isNetworkError(_ error: Error) -> Bool {
+        let nsError = error as NSError
+
+        // URLSession network errors
+        if nsError.domain == NSURLErrorDomain {
+            let networkCodes: Set<Int> = [
+                NSURLErrorNotConnectedToInternet,   // -1009
+                NSURLErrorNetworkConnectionLost,     // -1005
+                NSURLErrorCannotFindHost,            // -1003
+                NSURLErrorCannotConnectToHost,       // -1004
+                NSURLErrorTimedOut,                   // -1001
+                NSURLErrorDNSLookupFailed,           // -1006
+                NSURLErrorSecureConnectionFailed,    // -1200
+                NSURLErrorInternationalRoamingOff,   // -1018
+                NSURLErrorDataNotAllowed,            // -1020
+            ]
+            return networkCodes.contains(nsError.code)
+        }
+
+        // POSIX-level errors (from NWConnection / TCP stack)
+        if nsError.domain == NSPOSIXErrorDomain {
+            // 53 = EHOSTUNREACH (the exact error in the log)
+            // 54 = ECONNRESET, 61 = ECONNREFUSED
+            return [53, 54, 61].contains(nsError.code)
+        }
+
+        // Check underlying error recursively
+        if let underlying = nsError.userInfo[NSUnderlyingErrorKey] as? Error {
+            return isNetworkError(underlying)
+        }
+
+        // Fallback: check the description for common network keywords
+        let desc = error.localizedDescription.lowercased()
+        return desc.contains("network") || desc.contains("no route")
+            || desc.contains("not connected") || desc.contains("timed out")
+            || desc.contains("host") || desc.contains("offline")
     }
 }

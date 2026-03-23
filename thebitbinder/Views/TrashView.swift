@@ -22,25 +22,17 @@ struct TrashView: View {
     var body: some View {
         Group {
             if filteredTrash.isEmpty {
-                VStack(spacing: 14) {
-                    Image(systemName: "trash")
-                        .font(.system(size: 46))
-                        .foregroundStyle(.secondary)
-                    Text("Trash is empty")
-                        .font(.title3.bold())
-                    Text("Deleted jokes appear here until you empty trash.")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                }
-                .padding(30)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                BitBinderEmptyState(
+                    icon: "trash",
+                    title: "Trash is Empty",
+                    subtitle: "Deleted jokes appear here until you empty trash."
+                )
             } else {
                 List {
                     ForEach(filteredTrash) { joke in
                         NavigationLink(destination: JokeDetailView(joke: joke)) {
                             VStack(alignment: .leading, spacing: 6) {
-                                Text(joke.title.isEmpty ? "Untitled Joke" : joke.title)
+                                Text(joke.title.isEmpty ? KeywordTitleGenerator.displayTitle(from: joke.content) : joke.title)
                                     .font(.headline)
                                 Text(joke.content)
                                     .font(.subheadline)
@@ -66,7 +58,7 @@ struct TrashView: View {
                             } label: {
                                 Label("Restore", systemImage: "arrow.uturn.backward")
                             }
-                            .tint(.green)
+                            .tint(AppTheme.Colors.success)
                         }
                         .contextMenu {
                             Button {

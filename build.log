@@ -1,0 +1,101 @@
+Command line invocation:
+    /Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild -scheme thebitbinder -configuration Debug -derivedDataPath /tmp/xcode-build
+
+Resolve Package Graph
+
+Fetching from https://github.com/apple/swift-http-types (cached)
+
+Fetching from https://github.com/apple/swift-openapi-runtime (cached)
+
+Fetching from https://github.com/MacPaw/OpenAI.git (cached)
+
+Fetching from https://github.com/google/generative-ai-swift (cached)
+
+Creating working copy of package ‘OpenAI’
+
+Creating working copy of package ‘swift-openapi-runtime’
+
+Creating working copy of package ‘swift-http-types’
+
+Creating working copy of package ‘generative-ai-swift’
+
+Checking out 1.5.1 of package ‘swift-http-types’
+
+Checking out 0.5.6 of package ‘generative-ai-swift’
+
+Checking out 1.11.0 of package ‘swift-openapi-runtime’
+
+Checking out 0.4.7 of package ‘OpenAI’
+
+
+Resolved source packages:
+  generative-ai-swift: https://github.com/google/generative-ai-swift @ 0.5.6
+  swift-http-types: https://github.com/apple/swift-http-types @ 1.5.1
+  OpenAI: https://github.com/MacPaw/OpenAI.git @ 0.4.7
+  swift-openapi-runtime: https://github.com/apple/swift-openapi-runtime @ 1.11.0
+
+--- xcodebuild: WARNING: Using the first of multiple matching destinations:
+{ platform:macOS, arch:arm64, variant:Mac Catalyst, id:00008112-000238203AA3601E, name:My Mac }
+{ platform:macOS, arch:x86_64, variant:Mac Catalyst, id:00008112-000238203AA3601E, name:My Mac }
+{ platform:macOS, arch:arm64, variant:Designed for [iPad,iPhone], id:00008112-000238203AA3601E, name:My Mac }
+{ platform:iOS, id:dvtdevice-DVTiPhonePlaceholder-iphoneos:placeholder, name:Any iOS Device }
+{ platform:iOS Simulator, id:dvtdevice-DVTiOSDeviceSimulatorPlaceholder-iphonesimulator:placeholder, name:Any iOS Simulator Device }
+{ platform:macOS, variant:Mac Catalyst, name:Any Mac }
+{ platform:iOS Simulator, arch:arm64, id:712D8380-1F70-47D8-9736-60956C03383E, OS:26.1, name:13 }
+{ platform:iOS Simulator, arch:arm64, id:377F1F12-78C6-4D29-B68F-B90ACBB72DCC, OS:26.2, name:iPad (A16) }
+{ platform:iOS Simulator, arch:arm64, id:3BE09511-64D7-4D65-8AA4-F7DD14486B34, OS:26.2, name:iPad Air 11-inch (M3) }
+{ platform:iOS Simulator, arch:arm64, id:6630F043-6E0F-41C0-9F7B-8DFCAD495A04, OS:26.2, name:iPad Air 13-inch (M3) }
+{ platform:iOS Simulator, arch:arm64, id:A0BDCD16-13B9-4741-A094-D3B028D9B1E4, OS:26.2, name:iPad Pro 11-inch (M5) }
+{ platform:iOS Simulator, arch:arm64, id:02331D92-4B7D-4BD3-B97A-88E27D175394, OS:26.1, name:iPad Pro 13-inch (M4) }
+{ platform:iOS Simulator, arch:arm64, id:2723F0AF-E26F-4EAA-81CC-863FB53D3509, OS:26.2, name:iPad Pro 13-inch (M5) }
+{ platform:iOS Simulator, arch:arm64, id:0E880686-96AC-4644-877A-2A436CEA8F91, OS:26.2, name:iPad mini (A17 Pro) }
+{ platform:iOS Simulator, arch:arm64, id:EAC1780C-864F-4A2A-9CFD-98E409C68149, OS:17.0, name:iPhone 11 Pro Max }
+{ platform:iOS Simulator, arch:x86_64, id:EAC1780C-864F-4A2A-9CFD-98E409C68149, OS:17.0, name:iPhone 11 Pro Max }
+{ platform:iOS Simulator, arch:arm64, id:13960924-E37C-4512-8B94-6495EE1AEC24, OS:26.1, name:iPhone 11 Pro Max }
+{ platform:iOS Simulator, arch:arm64, id:03E37E99-A31F-4B2D-BF59-161791E56902, OS:26.2, name:iPhone 16e }
+{ platform:iOS Simulator, arch:arm64, id:CB0B98E6-3E7C-4A5B-B5BB-457708986DBF, OS:26.2, name:iPhone 17 }
+{ platform:iOS Simulator, arch:arm64, id:FAF6CD60-C4E3-4DA8-8B4C-4AF3D67A2E7C, OS:26.2, name:iPhone 17 Pro }
+{ platform:iOS Simulator, arch:arm64, id:D9E573EB-68B4-4AEC-AA11-F71F902D314E, OS:26.2, name:iPhone 17 Pro Max }
+{ platform:iOS Simulator, arch:arm64, id:DFEF1D40-1F75-46F7-A278-55B742CCC494, OS:26.2, name:iPhone Air }
+{ platform:iOS Simulator, arch:arm64, id:72DD335E-57EC-42F7-9D45-65361E3A2A8C, OS:26.2, name:p }
+{ platform:iOS Simulator, arch:arm64, id:161F7A6E-AAD1-4E03-8C0C-6918A47898AF, OS:26.1, name:sef }
+{ platform:iOS Simulator, arch:arm64, id:CC53EDE7-0A2E-4C51-A5DB-AE2CDF6991FF, OS:26.2, name:sim }
+{ platform:iOS, arch:arm64, id:00008140-0016799C0201801C, name:&$&$&TAYLOR DREW$$$ }
+ComputePackagePrebuildTargetDependencyGraph
+
+Prepare packages
+
+CreateBuildRequest
+
+SendProjectDescription
+
+CreateBuildOperation
+
+ComputeTargetDependencyGraph
+note: Building targets in dependency order
+note: Target dependency graph (10 targets)
+    Target 'thebitbinder' in project 'thebitbinder'
+        ➜ Explicit dependency on target 'bit' in project 'thebitbinder'
+        ➜ Explicit dependency on target 'OpenAI' in project 'OpenAI'
+        ➜ Explicit dependency on target 'GoogleGenerativeAI' in project 'generative-ai-swift'
+    Target 'GoogleGenerativeAI' in project 'generative-ai-swift'
+        ➜ Explicit dependency on target 'GoogleGenerativeAI' in project 'generative-ai-swift'
+    Target 'GoogleGenerativeAI' in project 'generative-ai-swift' (no dependencies)
+    Target 'OpenAI' in project 'OpenAI'
+        ➜ Explicit dependency on target 'OpenAI' in project 'OpenAI'
+        ➜ Explicit dependency on target 'OpenAPIRuntime' in project 'swift-openapi-runtime'
+    Target 'OpenAI' in project 'OpenAI'
+        ➜ Explicit dependency on target 'OpenAPIRuntime' in project 'swift-openapi-runtime'
+    Target 'OpenAPIRuntime' in project 'swift-openapi-runtime'
+        ➜ Explicit dependency on target 'OpenAPIRuntime' in project 'swift-openapi-runtime'
+        ➜ Explicit dependency on target 'HTTPTypes' in project 'swift-http-types'
+    Target 'OpenAPIRuntime' in project 'swift-openapi-runtime'
+        ➜ Explicit dependency on target 'HTTPTypes' in project 'swift-http-types'
+    Target 'HTTPTypes' in project 'swift-http-types'
+        ➜ Explicit dependency on target 'HTTPTypes' in project 'swift-http-types'
+    Target 'HTTPTypes' in project 'swift-http-types' (no dependencies)
+    Target 'bit' in project 'thebitbinder' (no dependencies)
+
+GatherProvisioningInputs
+
+CreateBuildDescription

@@ -44,24 +44,96 @@ struct SmartImportReviewView: View {
                     // Progress bar
                     progressSection
                     
-                    // Gemini rate-limit error banner (shown when daily limit is hit)
+                    // GagGrabber rate-limit banner
                     if let rateLimitErr = viewModel.rateLimitError {
                         HStack(spacing: 8) {
-                            Image(systemName: "exclamationmark.triangle.fill")
+                            Image(systemName: "moon.zzz.fill")
                                 .foregroundColor(.white)
                             Text(rateLimitErr.localizedDescription)
                                 .font(.caption)
                                 .foregroundColor(.white)
-                                .lineLimit(2)
+                                .lineLimit(3)
                         }
                         .padding(.horizontal, 16)
                         .padding(.vertical, 10)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(Color.orange)
+                        .background(
+                            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                .fill(Color.orange.opacity(0.9))
+                        )
+                        .padding(.horizontal, 12)
+                        .padding(.top, 4)
+                    }
+                    
+                    // AI asleep banner when local fallback was used
+                    if importResult.usedLocalFallback {
+                        HStack(spacing: 8) {
+                            Image(systemName: "moon.zzz.fill")
+                                .foregroundColor(.white)
+                            Text("AI is asleep — used local extraction. Results may be rough; please double-check.")
+                                .font(.caption.bold())
+                                .foregroundColor(.white)
+                                .lineLimit(3)
+                            Spacer()
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                        .background(
+                            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                .fill(Color.orange.opacity(0.9))
+                        )
+                        .padding(.horizontal, 12)
+                        .padding(.top, 4)
+                    }
+
+                    // Auto-accepted summary banner
+                    if viewModel.autoAcceptedCount > 0 {
+                        HStack(spacing: 8) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundColor(.white)
+                            Text("\(viewModel.autoAcceptedCount) joke\(viewModel.autoAcceptedCount == 1 ? "" : "s") auto-accepted (high confidence)")
+                                .font(.caption.bold())
+                                .foregroundColor(.white)
+                            Spacer()
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                        .background(
+                            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                .fill(AppTheme.Colors.success.opacity(0.85))
+                        )
+                        .padding(.horizontal, 12)
+                        .padding(.top, 4)
+                    }
+                    
+                    // Prominent "Accept All" when there are pending items
+                    if viewModel.pendingCount > 0 {
+                        Button {
+                            viewModel.approveAll()
+                        } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .font(.system(size: 16))
+                                Text("Accept All \(viewModel.pendingCount) Remaining")
+                                    .font(.subheadline.bold())
+                            }
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(
+                                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                    .fill(roastMode ? AppTheme.Colors.roastAccent : AppTheme.Colors.brand)
+                            )
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.top, 4)
                     }
                     
                     if viewModel.reviewItems.isEmpty {
                         emptyState
+                    } else if viewModel.allItemsReviewed {
+                        // All reviewed (including auto-accepted)
+                        allReviewedState
                     } else if let current = viewModel.currentItem {
                         // Card area
                         Spacer()
@@ -150,14 +222,10 @@ struct SmartImportReviewView: View {
                     .font(.caption)
                     .foregroundColor(roastMode ? .white.opacity(0.7) : AppTheme.Colors.textSecondary)
                 Spacer()
-                // Gemini daily budget indicator
-                Label("\(viewModel.geminiRequestsRemaining) AI left today", systemImage: "sparkles")
+                // GagGrabber daily budget indicator
+                Label(viewModel.gagGrabberStatus.shortStatusText, systemImage: viewModel.gagGrabberStatus.statusIcon)
                     .font(.caption2)
-                    .foregroundColor(
-                        viewModel.geminiRequestsRemaining < 50
-                            ? .orange
-                            : (roastMode ? .white.opacity(0.5) : AppTheme.Colors.textTertiary)
-                    )
+                    .foregroundColor(viewModel.gagGrabberStatus.statusColor)
                 Text(viewModel.progressText)
                     .font(.caption.bold())
                     .foregroundColor(roastMode ? .white : AppTheme.Colors.textPrimary)
@@ -206,14 +274,14 @@ struct SmartImportReviewView: View {
     
     private func dotColor(for item: ImportReviewItem, isActive: Bool) -> Color {
         if isActive {
-            return roastMode ? AppTheme.Colors.roastAccent : AppTheme.Colors.brand
+            return roastMode ? AppTheme.Colors.roastAccent : AppTheme.Colors.primaryAction
         }
         switch item.action {
-        case .approved: return .green
-        case .rejected: return .red.opacity(0.5)
-        case .sendToBrainstorm: return .yellow
-        case .needsSplitting: return .orange
-        case .pending: return roastMode ? .white.opacity(0.2) : .gray.opacity(0.3)
+        case .approved: return AppTheme.Colors.success
+        case .rejected: return AppTheme.Colors.error.opacity(0.5)
+        case .sendToBrainstorm: return AppTheme.Colors.brainstormAccent
+        case .needsSplitting: return AppTheme.Colors.warning
+        case .pending: return roastMode ? .white.opacity(0.2) : AppTheme.Colors.textTertiary.opacity(0.4)
         }
     }
     
@@ -302,15 +370,15 @@ struct SmartImportReviewView: View {
     }
     
     private var swipeColor: Color {
-        if dragOffset.width > 30 { return .green }
-        if dragOffset.width < -30 { return .red }
+        if dragOffset.width > 30 { return AppTheme.Colors.success }
+        if dragOffset.width < -30 { return AppTheme.Colors.error }
         return .clear
     }
     
     private var swipeBorderColor: Color {
         let opacity = min(Double(abs(dragOffset.width)) / 100.0, 0.8)
-        if dragOffset.width > 30 { return .green.opacity(opacity) }
-        if dragOffset.width < -30 { return .red.opacity(opacity) }
+        if dragOffset.width > 30 { return AppTheme.Colors.success.opacity(opacity) }
+        if dragOffset.width < -30 { return AppTheme.Colors.error.opacity(opacity) }
         return .clear
     }
     
@@ -353,93 +421,118 @@ struct SmartImportReviewView: View {
     }
     
     private func confidenceBadge(_ confidence: ImportConfidence) -> some View {
-        HStack(spacing: 4) {
-            Circle()
-                .fill(confidenceColor(confidence))
-                .frame(width: 8, height: 8)
-            Text(confidence.rawValue.capitalized)
-                .font(.caption2.bold())
-        }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 5)
-        .background(Capsule().fill(confidenceColor(confidence).opacity(0.15)))
-        .foregroundColor(confidenceColor(confidence))
+        let level: ConfidenceBadge.ConfidenceLevel = {
+            switch confidence {
+            case .high: return .high
+            case .medium: return .medium
+            case .low: return .low
+            }
+        }()
+        return ConfidenceBadge(level: level, roastMode: roastMode)
     }
     
     private func confidenceColor(_ confidence: ImportConfidence) -> Color {
         switch confidence {
-        case .high: return .green
-        case .medium: return .orange
-        case .low: return .red
+        case .high: return AppTheme.Colors.success
+        case .medium: return AppTheme.Colors.primaryAction
+        case .low: return AppTheme.Colors.warning
         }
     }
     
     // MARK: - Action Buttons
     
     private var actionButtonRow: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 16) {
             // Reject
             Button {
                 withAnimation { viewModel.rejectCurrentItem() }
             } label: {
-                VStack(spacing: 4) {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 32))
+                VStack(spacing: 6) {
+                    ZStack {
+                        Circle()
+                            .fill(AppTheme.Colors.error.opacity(0.12))
+                            .frame(width: 50, height: 50)
+                        Image(systemName: "xmark")
+                            .font(.system(size: 20, weight: .semibold))
+                            .foregroundColor(AppTheme.Colors.error)
+                    }
                     Text("Skip")
-                        .font(.caption2)
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(roastMode ? .white.opacity(0.6) : AppTheme.Colors.textSecondary)
                 }
-                .foregroundColor(.red)
             }
             .frame(maxWidth: .infinity)
+            .buttonStyle(TouchReactiveStyle(pressedScale: 0.9, hapticStyle: .light))
             
             // Send to Brainstorm
             Button {
                 withAnimation { viewModel.sendCurrentToBrainstorm() }
             } label: {
-                VStack(spacing: 4) {
-                    Image(systemName: "lightbulb.fill")
-                        .font(.system(size: 32))
-                    Text("Brainstorm")
-                        .font(.caption2)
+                VStack(spacing: 6) {
+                    ZStack {
+                        Circle()
+                            .fill(AppTheme.Colors.brainstormAccent.opacity(0.15))
+                            .frame(width: 50, height: 50)
+                        Image(systemName: "lightbulb.fill")
+                            .font(.system(size: 20, weight: .semibold))
+                            .foregroundColor(AppTheme.Colors.brainstormAccent)
+                    }
+                    Text("Idea")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(roastMode ? .white.opacity(0.6) : AppTheme.Colors.textSecondary)
                 }
-                .foregroundColor(.yellow)
             }
             .frame(maxWidth: .infinity)
+            .buttonStyle(TouchReactiveStyle(pressedScale: 0.9, hapticStyle: .light))
             
             // Edit
             Button {
                 showingEditSheet = true
             } label: {
-                VStack(spacing: 4) {
-                    Image(systemName: "pencil.circle.fill")
-                        .font(.system(size: 32))
+                VStack(spacing: 6) {
+                    ZStack {
+                        Circle()
+                            .fill(AppTheme.Colors.primaryAction.opacity(0.12))
+                            .frame(width: 50, height: 50)
+                        Image(systemName: "pencil")
+                            .font(.system(size: 20, weight: .semibold))
+                            .foregroundColor(AppTheme.Colors.primaryAction)
+                    }
                     Text("Edit")
-                        .font(.caption2)
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(roastMode ? .white.opacity(0.6) : AppTheme.Colors.textSecondary)
                 }
-                .foregroundColor(roastMode ? AppTheme.Colors.roastAccent : AppTheme.Colors.brand)
             }
             .frame(maxWidth: .infinity)
+            .buttonStyle(TouchReactiveStyle(pressedScale: 0.9, hapticStyle: .light))
             
-            // Accept
+            // Accept — primary action, largest/most prominent
             Button {
                 withAnimation { viewModel.approveCurrentItem() }
             } label: {
-                VStack(spacing: 4) {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 32))
+                VStack(spacing: 6) {
+                    ZStack {
+                        Circle()
+                            .fill(AppTheme.Colors.success)
+                            .frame(width: 54, height: 54)
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 22, weight: .bold))
+                            .foregroundColor(.white)
+                    }
                     Text("Accept")
-                        .font(.caption2)
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(AppTheme.Colors.success)
                 }
-                .foregroundColor(.green)
             }
             .frame(maxWidth: .infinity)
+            .buttonStyle(TouchReactiveStyle(pressedScale: 0.9, hapticStyle: .medium))
         }
-        .padding(.horizontal, 24)
-        .padding(.vertical, 12)
+        .padding(.horizontal, 20)
+        .padding(.vertical, 14)
         .background(
-            RoundedRectangle(cornerRadius: 16)
+            RoundedRectangle(cornerRadius: AppTheme.Radius.xl, style: .continuous)
                 .fill(roastMode ? AppTheme.Colors.roastSurface : AppTheme.Colors.surfaceElevated)
-                .shadow(color: .black.opacity(0.05), radius: 4, y: -2)
+                .shadow(color: .black.opacity(0.08), radius: 8, y: -3)
         )
         .padding(.horizontal, 16)
     }
@@ -484,42 +577,61 @@ struct SmartImportReviewView: View {
     // MARK: - States
     
     private var emptyState: some View {
-        VStack(spacing: 16) {
-            Spacer()
-            Image(systemName: "checkmark.seal.fill")
-                .font(.system(size: 60))
-                .foregroundColor(.green)
-            Text("Nothing to Review")
-                .font(.title2.bold())
-            Text("No jokes were detected in this file.")
-                .foregroundColor(.secondary)
-            Spacer()
-        }
+        BitBinderEmptyState(
+            icon: "doc.text.magnifyingglass",
+            title: "Nothing to Review",
+            subtitle: "No jokes were detected in this file. Try a different file format or check the content.",
+            roastMode: roastMode
+        )
     }
     
     private var allReviewedState: some View {
-        VStack(spacing: 20) {
+        VStack(spacing: 24) {
             Spacer()
-            Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 60))
-                .foregroundColor(.green)
-            Text("All Reviewed!")
-                .font(.title2.bold())
-            Text(viewModel.summaryText)
-                .font(.subheadline)
-                .foregroundColor(.secondary)
             
-            Button("Save & Finish") {
+            ZStack {
+                Circle()
+                    .fill(AppTheme.Colors.success.opacity(0.15))
+                    .frame(width: 110, height: 110)
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 50, weight: .medium))
+                    .foregroundColor(AppTheme.Colors.success)
+            }
+            
+            VStack(spacing: 8) {
+                Text("All Reviewed!")
+                    .font(.system(size: 22, weight: .bold, design: .serif))
+                    .foregroundColor(roastMode ? .white : AppTheme.Colors.inkBlack)
+                Text(viewModel.summaryText)
+                    .font(.system(size: 15))
+                    .foregroundColor(roastMode ? .white.opacity(0.6) : AppTheme.Colors.textSecondary)
+                    .multilineTextAlignment(.center)
+            }
+            
+            Button {
                 Task {
                     await finishAndSave()
                 }
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 18))
+                    Text("Save & Finish")
+                        .font(.system(size: 17, weight: .semibold))
+                }
+                .foregroundColor(.white)
+                .padding(.horizontal, 32)
+                .padding(.vertical, 14)
+                .background(
+                    RoundedRectangle(cornerRadius: AppTheme.Radius.large, style: .continuous)
+                        .fill(roastMode ? AppTheme.Colors.roastAccent : AppTheme.Colors.primaryAction)
+                )
             }
-            .buttonStyle(.borderedProminent)
-            .tint(roastMode ? AppTheme.Colors.roastAccent : AppTheme.Colors.brand)
-            .controlSize(.large)
+            .buttonStyle(TouchReactiveStyle(pressedScale: 0.95, hapticStyle: .medium))
             
             Spacer()
         }
+        .padding(.horizontal, 40)
     }
     
     // MARK: - Edit Sheet
@@ -616,12 +728,16 @@ struct SmartImportReviewView: View {
                 brainstormCount = results.brainstormItems.count
                 showingSaveConfirmation = true
                 
+                #if DEBUG
                 print("✅ [ImportReview] Successfully saved \(savedCount) joke(s) and \(brainstormCount) brainstorm idea(s) (attempt \(attempt))")
+                #endif
                 return // success — exit the function
             } catch {
                 lastError = error
                 let delay = UInt64(pow(2.0, Double(attempt - 1))) * 1_000_000_000 // 1s, 2s, 4s
+                #if DEBUG
                 print("⚠️ [ImportReview] Save attempt \(attempt)/\(maxSaveRetries) failed: \(error.localizedDescription) — retrying in \(Int(pow(2.0, Double(attempt - 1))))s")
+                #endif
                 try? await Task.sleep(nanoseconds: delay)
             }
         }
@@ -631,6 +747,7 @@ struct SmartImportReviewView: View {
         saveErrorMessage = "Could not save imported jokes after \(maxSaveRetries) attempts: \(errorDetail)"
         showingSaveError = true
         
+        #if DEBUG
         print("❌ [ImportReview] Failed to save after \(maxSaveRetries) attempts: \(errorDetail)")
         if let nsError = lastError as NSError? {
             print("   Domain: \(nsError.domain), Code: \(nsError.code)")
@@ -638,6 +755,7 @@ struct SmartImportReviewView: View {
                 print("   Underlying: \(underlyingError.localizedDescription)")
             }
         }
+        #endif
     }
 }
 
@@ -657,7 +775,9 @@ struct SmartImportReviewView: View {
                 extractionMethod: .documentText,
                 processingTimeSeconds: 0.5, averageConfidence: 0.7
             ),
-            debugInfo: nil
+            debugInfo: nil,
+            providerUsed: "Extraction",
+            usedLocalFallback: false
         )
     )
 }

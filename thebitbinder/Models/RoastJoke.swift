@@ -22,7 +22,7 @@ final class RoastJoke: Identifiable {
 
     init(content: String, title: String = "", target: RoastTarget? = nil) {
         self.content = content
-        self.title = title.isEmpty ? "Untitled Roast" : title
+        self.title = title.isEmpty ? KeywordTitleGenerator.title(from: content) : title
         self.target = target
     }
 }

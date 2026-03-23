@@ -65,7 +65,9 @@ struct JokesSheetsModifier: ViewModifier {
             .sheet(isPresented: $showingAddRoastTarget) {
                 AddRoastTargetView()
                     .onAppear {
+                        #if DEBUG
                         print("✅ [JokesViewModifiers] AddRoastTargetView sheet appeared")
+                        #endif
                     }
             }
             .sheet(isPresented: $showingMoveJokesSheet) {
@@ -203,72 +205,8 @@ struct MoveJokesSheet: View {
     }
 }
 
-// MARK: - Import Progress Card (extracted from overlay)
+// NOTE: ImportProgressCard has been moved to JokeComponents.swift
 
-struct ImportProgressCard: View {
-    let importFileCount: Int
-    let importFileIndex: Int
-    let importStatusMessage: String
-    let importedJokeNames: [String]
-
-    var body: some View {
-        VStack(spacing: 16) {
-            HStack(spacing: 10) {
-                ProgressView()
-                    .tint(.white)
-                Text("Importing Jokes...")
-                    .font(.headline)
-                    .foregroundColor(.white)
-            }
-            if importFileCount > 0 {
-                Text("File \(importFileIndex)/\(importFileCount)")
-                    .font(.caption)
-                    .foregroundColor(.white.opacity(0.8))
-            }
-            if !importStatusMessage.isEmpty {
-                Text(importStatusMessage)
-                    .font(.subheadline)
-                    .foregroundColor(.white.opacity(0.9))
-                    .multilineTextAlignment(.center)
-                    .lineLimit(2)
-            }
-            if !importedJokeNames.isEmpty {
-                importedJokesList
-            }
-        }
-        .padding(20)
-        .frame(maxWidth: 300)
-        .background(AppTheme.Colors.surfaceElevated.opacity(0.95))
-        .cornerRadius(16)
-        .shadow(color: .black.opacity(0.4), radius: 20)
-    }
-
-    @ViewBuilder
-    private var importedJokesList: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Divider().background(Color.white.opacity(0.3))
-            Text("\(importedJokeNames.count) joke\(importedJokeNames.count == 1 ? "" : "s") added")
-                .font(.caption.bold())
-                .foregroundColor(AppTheme.Colors.success)
-            ScrollView {
-                VStack(alignment: .leading, spacing: 4) {
-                    ForEach(importedJokeNames.suffix(8), id: \.self) { name in
-                        HStack(spacing: 6) {
-                            Image(systemName: "checkmark.circle.fill")
-                                .font(.system(size: 12))
-                                .foregroundColor(AppTheme.Colors.success)
-                            Text(name)
-                                .font(.caption)
-                                .foregroundColor(.white)
-                                .lineLimit(1)
-                        }
-                    }
-                }
-            }
-            .frame(maxHeight: 160)
-        }
-    }
-}
 // MARK: - Review Imports Sheet (extracted)
 
 struct ReviewImportsSheet: View {
@@ -286,7 +224,7 @@ struct ReviewImportsSheet: View {
                     Section("Possible Duplicates") {
                         ForEach(possibleDuplicates, id: \.self) { dup in
                             Label(dup, systemImage: "exclamationmark.triangle")
-                                .foregroundColor(.orange)
+                                .foregroundColor(AppTheme.Colors.warning)
                         }
                     }
                 }

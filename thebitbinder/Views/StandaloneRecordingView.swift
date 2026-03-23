@@ -34,7 +34,7 @@ struct StandaloneRecordingView: View {
                                 
                                 Text("Recording")
                                     .font(.headline)
-                                    .foregroundColor(.red)
+                                    .foregroundColor(AppTheme.Colors.recordingsAccent)
                                 
                                 Spacer()
                                 
@@ -80,7 +80,7 @@ struct StandaloneRecordingView: View {
                                             .frame(width: 80, height: 80)
                                         Image(systemName: "record.circle.fill")
                                             .font(.system(size: 50))
-                                            .foregroundColor(.red)
+                                            .foregroundColor(AppTheme.Colors.recordingsAccent)
                                     }
                                     Text("Start")
                                         .font(.subheadline)
@@ -96,7 +96,7 @@ struct StandaloneRecordingView: View {
                                             .frame(width: 70, height: 70)
                                         Image(systemName: audioService.isPaused ? "play.circle.fill" : "pause.circle.fill")
                                             .font(.system(size: 40))
-                                            .foregroundColor(.blue)
+                                            .foregroundColor(AppTheme.Colors.primaryAction)
                                     }
                                     Text(audioService.isPaused ? "Resume" : "Pause")
                                         .font(.caption)
@@ -112,7 +112,7 @@ struct StandaloneRecordingView: View {
                                             .frame(width: 70, height: 70)
                                         Image(systemName: "stop.circle.fill")
                                             .font(.system(size: 40))
-                                            .foregroundColor(.red)
+                                            .foregroundColor(AppTheme.Colors.recordingsAccent)
                                     }
                                     Text("Stop")
                                         .font(.caption)
@@ -209,14 +209,18 @@ struct StandaloneRecordingView: View {
     
     private func saveRecording() {
         guard let fileURL = audioService.recordingURL else {
+            #if DEBUG
             print("❌ No recording URL found")
+            #endif
             dismiss()
             return
         }
         
         // Verify file exists
         let fileExists = FileManager.default.fileExists(atPath: fileURL.path)
+        #if DEBUG
         print("📁 Recording file exists: \(fileExists) at \(fileURL.path)")
+        #endif
         
         // Store just the filename, not the full path (paths change between app launches)
         let fileName = fileURL.lastPathComponent
@@ -227,15 +231,21 @@ struct StandaloneRecordingView: View {
             duration: recordingDuration
         )
         
+        #if DEBUG
         print("✅ Saving standalone recording: \(fileName) with duration: \(recordingDuration)s")
+        #endif
         modelContext.insert(recording)
         
         // Save context explicitly
         do {
             try modelContext.save()
+            #if DEBUG
             print("✅ Recording saved to database")
+            #endif
         } catch {
+            #if DEBUG
             print("❌ Failed to save recording to database: \(error)")
+            #endif
         }
         
         dismiss()

@@ -2,8 +2,8 @@
 //  AIJokeExtractionProvider.swift
 //  thebitbinder
 //
-//  Protocol + concrete providers for multi-API joke extraction.
-//  Supports Gemini, OpenAI, Anthropic, and Groq with automatic fallback.
+//  Protocol + concrete providers for multi-provider joke extraction.
+//  Supports OpenAI, Arcee, and OpenRouter with automatic fallback.
 //
 
 import Foundation
@@ -11,90 +11,74 @@ import UIKit
 
 // MARK: - Provider Identity
 
-/// Every AI provider that GagGrabber can use for joke extraction.
+/// Every extraction provider available for joke extraction.
 enum AIProviderType: String, CaseIterable, Identifiable, Codable {
-    case gemini    = "Gemini"
-    case openAI    = "OpenAI"
-    case deepSeek  = "DeepSeek"
-    case anthropic = "Anthropic"
-    case groq      = "Groq"
+    case openAI      = "OpenAI"
+    case arceeAI     = "ArceeAI"
+    case openRouter  = "OpenRouter"
 
     var id: String { rawValue }
 
     /// Human-readable display name
     var displayName: String {
         switch self {
-        case .gemini:   return "Google Gemini"
-        case .openAI:   return "OpenAI (GPT)"
-        case .deepSeek: return "DeepSeek"
-        case .anthropic: return "Anthropic (Claude)"
-        case .groq:     return "Groq"
+        case .openAI:      return "OpenAI"
+        case .arceeAI:     return "Arcee"
+        case .openRouter:  return "OpenRouter"
         }
     }
 
     /// Model used by default for each provider
     var defaultModel: String {
         switch self {
-        case .gemini:   return "gemini-2.0-flash"
-        case .openAI:   return "gpt-4o-mini"
-        case .deepSeek: return "deepseek-chat"
-        case .anthropic: return "claude-3-5-haiku-20241022"
-        case .groq:     return "llama-3.1-70b-versatile"
+        case .openAI:      return "gpt-4o-mini"
+        case .arceeAI:     return "arcee-ai/trinity-large-preview:free"
+        case .openRouter:  return "mistralai/mistral-7b-instruct:free"
         }
     }
 
     /// Where users can get a free API key
     var keySignupURL: URL {
         switch self {
-        case .gemini:   return URL(string: "https://aistudio.google.com/app/apikey")!
-        case .openAI:   return URL(string: "https://platform.openai.com/api-keys")!
-        case .deepSeek: return URL(string: "https://platform.deepseek.com/api_keys")!
-        case .anthropic: return URL(string: "https://console.anthropic.com/settings/keys")!
-        case .groq:     return URL(string: "https://console.groq.com/keys")!
+        case .openAI:      return URL(string: "https://platform.openai.com/api-keys")!
+        case .arceeAI:     return URL(string: "https://openrouter.ai/keys")!
+        case .openRouter:  return URL(string: "https://openrouter.ai/keys")!
         }
     }
 
     /// SF Symbol for the provider
     var icon: String {
         switch self {
-        case .gemini:   return "sparkle"
-        case .openAI:   return "brain.head.profile"
-        case .deepSeek: return "magnifyingglass.circle.fill"
-        case .anthropic: return "bubble.left.and.text.bubble.right"
-        case .groq:     return "bolt.fill"
+        case .openAI:      return "brain.head.profile"
+        case .arceeAI:     return "triangle.fill"
+        case .openRouter:  return "arrow.triangle.branch"
         }
     }
 
     /// The plist key name for this provider's API key
     var plistKey: String {
         switch self {
-        case .gemini:   return "GEMINI_API_KEY"
-        case .openAI:   return "OPENAI_API_KEY"
-        case .deepSeek: return "DEEPSEEK_API_KEY"
-        case .anthropic: return "ANTHROPIC_API_KEY"
-        case .groq:     return "GROQ_API_KEY"
+        case .openAI:      return "OPENAI_API_KEY"
+        case .arceeAI:     return "ARCEEAI_API_KEY"
+        case .openRouter:  return "OPENROUTER_API_KEY"
         }
     }
 
     /// The per-provider plist file name (without extension)
     var secretsPlistName: String {
         switch self {
-        case .gemini:   return "Secrets"          // legacy — stays in Secrets.plist
-        case .openAI:   return "OpenAI-Secrets"
-        case .deepSeek: return "DeepSeek-Secrets"
-        case .anthropic: return "Anthropic-Secrets"
-        case .groq:     return "Groq-Secrets"
+        case .openAI:      return "OpenAI-Secrets"
+        case .arceeAI:     return "ArceeAI-Secrets"
+        case .openRouter:  return "OpenRouter-Secrets"
         }
     }
-    
+
     /// UserDefaults key for storing user-entered API keys
     var userDefaultsKey: String {
         switch self {
-        case .gemini:   return "ai_key_gemini"
-        case .openAI:   return "ai_key_openai"
-        case .deepSeek: return "ai_key_deepseek"
-        case .anthropic: return "ai_key_anthropic"
-        case .groq:     return "ai_key_groq"
+        case .openAI:      return "ai_key_openai"
+        case .arceeAI:     return "ai_key_arceeai"
+        case .openRouter:  return "ai_key_openrouter"
         }
     }
 }
@@ -121,7 +105,7 @@ enum AIProviderError: LocalizedError {
             return "\(provider.displayName) found no jokes in the provided content."
         case .allProvidersFailed(let errors):
             let names = errors.keys.map(\.displayName).joined(separator: ", ")
-            return "All AI providers failed (\(names)). Falling back to local extraction."
+            return "All providers failed (\(names)). Falling back to local extraction."
         }
     }
 }
@@ -189,7 +173,7 @@ enum JokeExtractionPrompt {
         }
 
         guard let data = jsonString.data(using: .utf8) else {
-            throw AIProviderError.apiError(.gemini, "Response is not valid UTF-8")
+            throw AIProviderError.apiError(.openAI, "Response is not valid UTF-8")
         }
 
         return try JSONDecoder().decode([GeminiExtractedJoke].self, from: data)
@@ -208,7 +192,7 @@ enum AIKeyLoader {
             return key
         }
 
-        // 2. Per-provider plist (e.g., OpenAI-Secrets.plist, DeepSeek-Secrets.plist)
+        // 2. Per-provider plist (e.g., OpenAI-Secrets.plist, ArceeAI-Secrets.plist)
         if let url = Bundle.main.url(forResource: provider.secretsPlistName, withExtension: "plist"),
            let dict = NSDictionary(contentsOf: url),
            let key = dict[provider.plistKey] as? String,
@@ -253,5 +237,140 @@ enum AIKeyLoader {
     /// Returns all providers that have a configured key.
     static func configuredProviders() -> [AIProviderType] {
         AIProviderType.allCases.filter { loadKey(for: $0) != nil }
+    }
+}
+
+// MARK: - AI Extracted Joke Model
+
+/// Represents a joke extracted by an AI provider (OpenAI, Arcee, OpenRouter, etc.)
+struct GeminiExtractedJoke: Codable, Identifiable, Equatable {
+    let id: UUID
+    let jokeText: String
+    let humorMechanism: String?
+    let confidence: Float
+    let explanation: String?
+    let title: String?
+    let tags: [String]
+    
+    enum CodingKeys: String, CodingKey {
+        case jokeText
+        case humorMechanism
+        case confidence
+        case explanation
+        case title
+        case tags
+    }
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.id = UUID()
+        self.jokeText = try container.decode(String.self, forKey: .jokeText)
+        self.humorMechanism = try container.decodeIfPresent(String.self, forKey: .humorMechanism)
+        self.confidence = try container.decode(Float.self, forKey: .confidence)
+        self.explanation = try container.decodeIfPresent(String.self, forKey: .explanation)
+        self.title = try container.decodeIfPresent(String.self, forKey: .title)
+        self.tags = try container.decodeIfPresent([String].self, forKey: .tags) ?? []
+    }
+    
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(jokeText, forKey: .jokeText)
+        try container.encodeIfPresent(humorMechanism, forKey: .humorMechanism)
+        try container.encode(confidence, forKey: .confidence)
+        try container.encodeIfPresent(explanation, forKey: .explanation)
+        try container.encodeIfPresent(title, forKey: .title)
+        try container.encode(tags, forKey: .tags)
+    }
+    
+    init(jokeText: String, humorMechanism: String? = nil, confidence: Float = 0.5, explanation: String? = nil, title: String? = nil, tags: [String] = []) {
+        self.id = UUID()
+        self.jokeText = jokeText
+        self.humorMechanism = humorMechanism
+        self.confidence = confidence
+        self.explanation = explanation
+        self.title = title
+        self.tags = tags
+    }
+    
+    static func == (lhs: GeminiExtractedJoke, rhs: GeminiExtractedJoke) -> Bool {
+        lhs.jokeText == rhs.jokeText &&
+        lhs.humorMechanism == rhs.humorMechanism &&
+        abs(lhs.confidence - rhs.confidence) < 0.01 &&
+        lhs.explanation == rhs.explanation &&
+        lhs.title == rhs.title &&
+        lhs.tags == rhs.tags
+    }
+    
+    /// Convert this AI-extracted joke to an ImportedJoke for the pipeline
+    func toImportedJoke(
+        sourceFile: String,
+        pageNumber: Int,
+        orderInFile: Int,
+        importTimestamp: Date
+    ) -> ImportedJoke {
+        // Map confidence from Float (0.0-1.0) to ImportConfidence
+        let importConfidence: ImportConfidence = {
+            if confidence >= 0.8 {
+                return .high
+            } else if confidence >= 0.6 {
+                return .medium
+            } else {
+                return .low
+            }
+        }()
+        
+        // Create confidence factors from the joke's confidence
+        let factors = ConfidenceFactors(
+            extractionQuality: confidence,
+            structuralCleanliness: 0.7,
+            titleDetection: (title != nil) ? 0.8 : 0.3,
+            boundaryClarity: 0.75,
+            ocrConfidence: 1.0
+        )
+        
+        // Create metadata
+        let metadata = ImportSourceMetadata(
+            fileName: sourceFile,
+            pageNumber: pageNumber,
+            orderInPage: orderInFile,
+            orderInFile: orderInFile,
+            boundingBox: nil,
+            importTimestamp: importTimestamp
+        )
+        
+        // Determine validation result (assume single joke for now)
+        let validationResult: ValidationResult = {
+            if confidence >= 0.8 {
+                return .singleJoke
+            } else if confidence >= 0.6 {
+                return .singleJoke
+            } else {
+                return .requiresReview(reasons: ["Low confidence from AI extraction"])
+            }
+        }()
+        
+        return ImportedJoke(
+            title: title,
+            body: jokeText,
+            rawSourceText: jokeText,
+            tags: tags,
+            confidence: importConfidence,
+            confidenceFactors: factors,
+            sourceMetadata: metadata,
+            validationResult: validationResult,
+            extractionMethod: .imageOCR
+        )
+    }
+}
+
+// MARK: - Rate Limit Error
+
+struct GeminiRateLimitError: Error {
+    let provider: AIProviderType
+    let retryAfterSeconds: Int?
+    
+    var localizedDescription: String {
+        let retryStr = retryAfterSeconds.map { " Try again in \($0 / 60) minutes." } ?? ""
+        return "\(provider.displayName) rate limit reached.\(retryStr)"
     }
 }

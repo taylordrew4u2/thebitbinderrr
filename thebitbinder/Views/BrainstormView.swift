@@ -53,12 +53,7 @@ struct BrainstormView: View {
             }
             .navigationTitle(roastMode ? "🔥 Fire Ideas" : "Brainstorm")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbarBackground(
-                roastMode ? AnyShapeStyle(AppTheme.Colors.roastSurface) : AnyShapeStyle(AppTheme.Colors.paperCream),
-                for: .navigationBar
-            )
-            .toolbarBackground(.visible, for: .navigationBar)
-            .toolbarColorScheme(roastMode ? .dark : .light, for: .navigationBar)
+            .bitBinderToolbar(roastMode: roastMode)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     if !ideas.isEmpty {
@@ -83,7 +78,7 @@ struct BrainstormView: View {
                                 // Pulsing ring — only while recording
                                 if isRecording {
                                     Circle()
-                                        .stroke(Color.red.opacity(0.4), lineWidth: 3)
+                                        .stroke(AppTheme.Colors.recordingsAccent.opacity(0.4), lineWidth: 3)
                                         .frame(width: 66, height: 66)
                                         .scaleEffect(isRecording ? 1.2 : 1.0)
                                         .opacity(isRecording ? 0 : 1)
@@ -101,7 +96,7 @@ struct BrainstormView: View {
                                     .font(.system(size: 20, weight: .semibold))
                                     .foregroundColor(.white)
                             }
-                            .shadow(color: (isRecording ? Color.red : (roastMode ? AppTheme.Colors.roastAccent : .blue)).opacity(0.35), radius: 10, y: 5)
+                            .shadow(color: (isRecording ? AppTheme.Colors.recordingsAccent : (roastMode ? AppTheme.Colors.roastAccent : AppTheme.Colors.primaryAction)).opacity(0.35), radius: 10, y: 5)
                         }
                         .buttonStyle(FABButtonStyle())
 
@@ -179,37 +174,10 @@ struct BrainstormView: View {
     
     // MARK: - Empty State
     private var emptyState: some View {
-        VStack(spacing: 20) {
-            Spacer()
-            
-            ZStack {
-                Circle()
-                    .fill(roastMode ? AppTheme.Colors.roastCard : AppTheme.Colors.surfaceElevated)
-                    .frame(width: 120, height: 120)
-                
-                Image(systemName: roastMode ? "flame.fill" : "lightbulb.fill")
-                    .font(.system(size: 50))
-                    .foregroundStyle(
-                        roastMode
-                        ? AppTheme.Colors.roastEmberGradient
-                        : LinearGradient(colors: [.yellow, .orange], startPoint: .top, endPoint: .bottom)
-                    )
-            }
-            
-            VStack(spacing: 8) {
-                Text(roastMode ? "No Fire Ideas Yet" : "No Ideas Yet")
-                    .font(.system(size: 24, weight: .bold, design: .serif))
-                    .foregroundColor(roastMode ? .white : AppTheme.Colors.inkBlack)
-                
-                Text("Tap the + button or use voice to capture your thoughts quickly")
-                    .font(.system(size: 15))
-                    .foregroundColor(roastMode ? .white.opacity(0.6) : AppTheme.Colors.textSecondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 40)
-            }
-            
-            Spacer()
-        }
+        BrainstormEmptyState(
+            roastMode: roastMode,
+            onAddIdea: { showAddSheet = true }
+        )
     }
     
     // MARK: - Idea Grid
@@ -230,11 +198,19 @@ struct BrainstormView: View {
                             .cardPress()
                             .contextMenu {
                                 Button {
+                                    promoteToJoke(idea)
+                                } label: {
+                                    Label("Promote to Joke", systemImage: "arrow.up.doc.fill")
+                                }
+                                
+                                Button {
                                     selectedIdea = idea
                                     showEditSheet = true
                                 } label: {
                                     Label("Edit", systemImage: "pencil")
                                 }
+                                
+                                Divider()
                                 
                                 Button(role: .destructive) {
                                     withAnimation {
@@ -303,7 +279,7 @@ struct BrainstormView: View {
                     .font(.subheadline.bold())
             }
             .disabled(selectedIdeaIDs.isEmpty)
-            .tint(.red)
+            .tint(AppTheme.Colors.error)
             
             Button {
                 isSelectMode = false
@@ -408,6 +384,28 @@ struct BrainstormView: View {
             isRecording = false
         }
     }
+    
+    // MARK: - Promote to Joke
+    
+    private func promoteToJoke(_ idea: BrainstormIdea) {
+        // Create a new joke from the brainstorm idea
+        let title = String(idea.content.prefix(60))
+        let joke = Joke(content: idea.content, title: title, folder: nil)
+        joke.importSource = "Brainstorm"
+        
+        modelContext.insert(joke)
+        
+        // Optionally delete the original idea
+        withAnimation {
+            modelContext.delete(idea)
+        }
+        
+        try? modelContext.save()
+        
+        // Notify user with haptic feedback
+        let generator = UINotificationFeedbackGenerator()
+        generator.notificationOccurred(.success)
+    }
 }
 
 // MARK: - Speech Recognition Manager
@@ -432,14 +430,18 @@ class SpeechRecognitionManager: ObservableObject {
             try audioSession.setCategory(.record, mode: .measurement, options: .duckOthers)
             try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
         } catch {
+            #if DEBUG
             print("Audio session setup failed: \(error)")
+            #endif
             return
         }
         
         recognitionRequest = SFSpeechAudioBufferRecognitionRequest()
         
         guard let recognitionRequest = recognitionRequest else {
+            #if DEBUG
             print("Unable to create recognition request")
+            #endif
             return
         }
         
@@ -480,7 +482,9 @@ class SpeechRecognitionManager: ObservableObject {
                 self.isRecording = true
             }
         } catch {
+            #if DEBUG
             print("Audio engine start failed: \(error)")
+            #endif
         }
     }
     
@@ -507,50 +511,110 @@ struct IdeaCard: View {
     let scale: CGFloat
     let roastMode: Bool
     
+    // Refined 5-color palette (less rainbow, more cohesive)
+    private static let refinedColors: [String: Color] = [
+        "FFF9C4": Color(red: 1.0, green: 0.97, blue: 0.77),      // Soft yellow
+        "FFECB3": Color(red: 1.0, green: 0.92, blue: 0.70),      // Warm amber
+        "E3F2FD": Color(red: 0.89, green: 0.95, blue: 0.99),     // Light blue
+        "F3E5F5": Color(red: 0.95, green: 0.90, blue: 0.96),     // Soft lavender
+        "E8F5E9": Color(red: 0.91, green: 0.96, blue: 0.91),     // Mint green
+    ]
+    
     private var cardColor: Color {
-        Color(hex: idea.colorHex) ?? Color.yellow.opacity(0.3)
+        // Map old colors to refined palette, or use default
+        if let color = Self.refinedColors[idea.colorHex] {
+            return color
+        }
+        // Default to warm cream
+        return Color(red: 0.99, green: 0.96, blue: 0.90)
     }
     
     private var cardHeight: CGFloat {
-        max(80, 120 * scale)
+        max(90, 130 * scale)
     }
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            // Voice indicator
-            if idea.isVoiceNote {
-                HStack {
-                    Image(systemName: "mic.fill")
-                        .font(.system(size: max(8, 9 * scale)))
-                        .foregroundColor(roastMode ? .white.opacity(0.5) : .black.opacity(0.4))
-                    Spacer()
+        VStack(alignment: .leading, spacing: 6) {
+            // Header with voice indicator
+            HStack(spacing: 6) {
+                if idea.isVoiceNote {
+                    HStack(spacing: 3) {
+                        Image(systemName: "mic.fill")
+                            .font(.system(size: max(9, 10 * scale), weight: .medium))
+                        Text("Voice")
+                            .font(.system(size: max(8, 9 * scale), weight: .medium))
+                    }
+                    .foregroundColor(roastMode ? AppTheme.Colors.roastAccent.opacity(0.7) : AppTheme.Colors.primaryAction.opacity(0.7))
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(
+                        Capsule()
+                            .fill(roastMode ? AppTheme.Colors.roastAccent.opacity(0.15) : AppTheme.Colors.primaryAction.opacity(0.1))
+                    )
                 }
+                Spacer()
             }
             
+            // Content
             Text(idea.content)
-                .font(.system(size: max(10, 12 * scale), weight: .medium))
-                .foregroundColor(roastMode ? .white.opacity(0.9) : .black.opacity(0.85))
-                .lineLimit(Int(max(3, 5 * scale)))
+                .font(.system(size: max(11, 13 * scale), weight: .regular, design: .serif))
+                .foregroundColor(roastMode ? .white.opacity(0.92) : AppTheme.Colors.inkBlack.opacity(0.9))
+                .lineLimit(Int(max(3, 6 * scale)))
+                .lineSpacing(2)
                 .multilineTextAlignment(.leading)
+                .frame(maxWidth: .infinity, alignment: .leading)
             
-            Spacer()
+            Spacer(minLength: 4)
             
-            // Timestamp
-            Text(idea.dateCreated.formatted(date: .abbreviated, time: .shortened))
-                .font(.system(size: max(7, 8 * scale)))
-                .foregroundColor(roastMode ? .white.opacity(0.4) : .black.opacity(0.4))
+            // Footer with timestamp
+            HStack {
+                Spacer()
+                Text(idea.dateCreated.formatted(.dateTime.month(.abbreviated).day().hour(.defaultDigits(amPM: .abbreviated)).minute()))
+                    .font(.system(size: max(8, 9 * scale)))
+                    .foregroundColor(roastMode ? .white.opacity(0.35) : AppTheme.Colors.textTertiary)
+            }
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
         .frame(height: cardHeight)
         .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
+            RoundedRectangle(cornerRadius: AppTheme.Radius.large, style: .continuous)
                 .fill(roastMode ? AppTheme.Colors.roastCard : cardColor)
-                .shadow(color: .black.opacity(roastMode ? 0.3 : 0.08), radius: 4, y: 2)
+                .shadow(color: roastMode ? .black.opacity(0.25) : .black.opacity(0.06), radius: 5, y: 2)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .stroke(roastMode ? AppTheme.Colors.roastAccent.opacity(0.2) : .clear, lineWidth: 1)
+            RoundedRectangle(cornerRadius: AppTheme.Radius.large, style: .continuous)
+                .strokeBorder(
+                    roastMode
+                        ? AppTheme.Colors.roastAccent.opacity(0.2)
+                        : Color.black.opacity(0.04),
+                    lineWidth: 1
+                )
+        )
+    }
+}
+
+// MARK: - Brainstorm Empty State
+
+struct BrainstormEmptyState: View {
+    var roastMode: Bool = false
+    var onAddIdea: (() -> Void)? = nil
+    
+    var body: some View {
+        BitBinderEmptyState(
+            icon: roastMode ? "flame.fill" : "lightbulb.fill",
+            title: roastMode ? "No Fire Ideas Yet" : "No Ideas Yet",
+            subtitle: "Tap + to write or use the mic to capture thoughts by voice",
+            actionTitle: "Add Idea",
+            action: onAddIdea,
+            roastMode: roastMode,
+            iconGradient: roastMode
+                ? AppTheme.Colors.roastEmberGradient
+                : LinearGradient(
+                    colors: [AppTheme.Colors.brainstormAccent, AppTheme.Colors.brainstormAccent.opacity(0.6)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
         )
     }
 }

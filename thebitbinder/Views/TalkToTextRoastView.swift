@@ -46,7 +46,7 @@ struct TalkToTextRoastView: View {
                 VStack(spacing: 12) {
                     ZStack {
                         Circle()
-                            .fill(isRecording ? Color.red.opacity(0.15) : accentColor.opacity(0.1))
+                            .fill(isRecording ? AppTheme.Colors.recordingsAccent.opacity(0.15) : accentColor.opacity(0.1))
                             .frame(width: 100, height: 100)
                             .scaleEffect(isRecording ? 1.1 : 1.0)
                             .animation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true), value: isRecording)
@@ -86,7 +86,7 @@ struct TalkToTextRoastView: View {
                     
                     ZStack(alignment: .topLeading) {
                         RoundedRectangle(cornerRadius: 12)
-                            .fill(Color(.systemGray6))
+                            .fill(AppTheme.Colors.surfaceElevated)
                         
                         if transcribedText.isEmpty && !isRecording {
                             Text("Your transcription will appear here...")
@@ -110,7 +110,7 @@ struct TalkToTextRoastView: View {
                 if let error = errorMessage {
                     Text(error)
                         .font(.caption)
-                        .foregroundColor(.red)
+                        .foregroundColor(AppTheme.Colors.recordingsAccent)
                         .padding(.horizontal, 20)
                 }
                 
@@ -134,7 +134,7 @@ struct TalkToTextRoastView: View {
                         }
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 16)
-                        .background(isRecording ? Color.red : accentColor)
+                        .background(isRecording ? AppTheme.Colors.recordingsAccent : accentColor)
                         .foregroundColor(.white)
                         .clipShape(RoundedRectangle(cornerRadius: 14))
                     }
@@ -153,7 +153,7 @@ struct TalkToTextRoastView: View {
                             }
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 16)
-                            .background(Color.green)
+                            .background(AppTheme.Colors.success)
                             .foregroundColor(.white)
                             .clipShape(RoundedRectangle(cornerRadius: 14))
                         }
@@ -303,8 +303,19 @@ struct TalkToTextRoastView: View {
         )
         
         modelContext.insert(newJoke)
-        try? modelContext.save()
+        target.dateModified = Date()
         
-        dismiss()
+        do {
+            try modelContext.save()
+            #if DEBUG
+            print("✅ [TalkToTextRoastView] Roast saved for '\(target.name)' (id: \(newJoke.id))")
+            #endif
+            dismiss()
+        } catch {
+            #if DEBUG
+            print("❌ [TalkToTextRoastView] Failed to save: \(error)")
+            #endif
+            errorMessage = "Could not save roast: \(error.localizedDescription)"
+        }
     }
 }

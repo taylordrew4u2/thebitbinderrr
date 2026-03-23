@@ -13,24 +13,9 @@ import UniformTypeIdentifiers
 struct SettingsView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var jokes: [Joke]
-    @Query private var recordings: [Recording]
-    @Query private var roastTargets: [RoastTarget]
     @EnvironmentObject private var userPreferences: UserPreferences
     
     
-    @State private var isExportingJokes = false
-    @State private var isExportingAudio = false
-    @State private var showExportOptions = false
-    @State private var showAudioExportOptions = false
-    @State private var showRoastExportOptions = false
-    @State private var exportedFileURL: URL?
-    @State private var showShareSheet = false
-    @State private var showSavedAlert = false
-    @State private var savedAlertMessage = ""
-    @State private var showMailComposer = false
-    @State private var mailAttachmentURL: URL?
-    @State private var mailSubject = ""
-    @State private var showMailUnavailableAlert = false
     @State private var showReorderSheet = false
     
     // Layout reorder
@@ -153,29 +138,6 @@ struct SettingsView: View {
                     Text("iCloud backs up jokes, roasts, recordings, and photos. Background sync runs periodically when the app is closed, but iOS may delay it to save battery.")
                 }
                 
-                // MARK: - AI API Keys
-                Section {
-                    NavigationLink(destination: AIProviderSettingsView()) {
-                        Label {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("AI API Keys")
-                                    .foregroundColor(.primary)
-                                let count = AIJokeExtractionManager.shared.availableProviders.count
-                                Text(count > 0 ? "\(count) provider\(count == 1 ? "" : "s") configured" : "Set up smart joke import")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
-                        } icon: {
-                            Image(systemName: "brain.head.profile")
-                                .foregroundColor(.purple)
-                        }
-                    }
-                } header: {
-                    Text("GagGrabber AI")
-                } footer: {
-                    Text("Add multiple AI API keys so GagGrabber can fall back to another provider when one runs out of free-tier requests.")
-                }
-                
                 // MARK: - Data Safety
                 Section {
                     NavigationLink(destination: DataSafetyView()) {
@@ -195,75 +157,12 @@ struct SettingsView: View {
                 } header: {
                     Text("Data Protection")
                 } footer: {
-                    Text("Automatic backups, data validation, and recovery tools to ensure your data is never lost during app updates.")
+                    Text("Backups, data validation, export, and recovery tools to keep your data safe.")
                 }
                 
                 // MARK: - Daily Notifications
                 DailyNotificationSection()
                 
-                // MARK: - Export Jokes
-                Section {
-                    Button {
-                        showExportOptions = true
-                    } label: {
-                        Label {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("Export All Jokes")
-                                    .foregroundColor(.primary)
-                                Text("\(jokes.count) jokes available")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
-                        } icon: {
-                            Image(systemName: "doc.text")
-                                .foregroundColor(.orange)
-                        }
-                    }
-                    .disabled(jokes.isEmpty)
-                    
-                    Button {
-                        showAudioExportOptions = true
-                    } label: {
-                        Label {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("Export All Audio Files")
-                                    .foregroundColor(.primary)
-                                Text("\(recordings.count) recordings available")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
-                        } icon: {
-                            Image(systemName: "waveform")
-                                .foregroundColor(.red)
-                        }
-                    }
-                    .disabled(recordings.isEmpty)
-                    
-                    if roastMode {
-                        Button {
-                            showRoastExportOptions = true
-                        } label: {
-                            Label {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text("Export Roasts")
-                                        .foregroundColor(.primary)
-                                    let roastCount = roastTargets.reduce(0) { $0 + $1.jokeCount }
-                                    Text("\(roastTargets.count) targets · \(roastCount) roasts")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                }
-                            } icon: {
-                                Image(systemName: "flame.fill")
-                                    .foregroundColor(AppTheme.Colors.roastAccent)
-                            }
-                        }
-                        .disabled(roastTargets.isEmpty)
-                    }
-                } header: {
-                    Text("Export")
-                } footer: {
-                    Text("Export your jokes as a PDF or your audio recordings as a zip archive.")
-                }
                 
                 // MARK: - Trash
                 Section {
@@ -329,252 +228,12 @@ struct SettingsView: View {
             }
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
-            .confirmationDialog("Export Jokes", isPresented: $showExportOptions) {
-                Button("Save PDF to Device") {
-                    exportJokesAndSave()
-                }
-                Button("Send via Email") {
-                    exportJokesAndEmail()
-                }
-                Button("Share...") {
-                    exportJokesAndShare()
-                }
-                Button("Cancel", role: .cancel) { }
-            } message: {
-                Text("How would you like to export your \(jokes.count) jokes?")
-            }
-            .confirmationDialog("Export Audio", isPresented: $showAudioExportOptions) {
-                Button("Save to Device") {
-                    exportAudioAndSave()
-                }
-                Button("Send via Email") {
-                    exportAudioAndEmail()
-                }
-                Button("Share...") {
-                    exportAudioAndShare()
-                }
-                Button("Cancel", role: .cancel) { }
-            } message: {
-                Text("How would you like to export your \(recordings.count) audio files?")
-            }
-            .confirmationDialog("Export Roasts", isPresented: $showRoastExportOptions) {
-                Button("Save PDF to Device") {
-                    exportRoastsAndSave()
-                }
-                Button("Send via Email") {
-                    exportRoastsAndEmail()
-                }
-                Button("Share...") {
-                    exportRoastsAndShare()
-                }
-                Button("Cancel", role: .cancel) { }
-            } message: {
-                let roastCount = roastTargets.reduce(0) { $0 + $1.jokeCount }
-                Text("Export \(roastCount) roasts across \(roastTargets.count) targets as a PDF?")
-            }
-            .alert("Saved", isPresented: $showSavedAlert) {
-                Button("OK") { }
-            } message: {
-                Text(savedAlertMessage)
-            }
-            .alert("Email Unavailable", isPresented: $showMailUnavailableAlert) {
-                Button("OK") { }
-            } message: {
-                Text("Mail is not configured on this device. Please set up a mail account in Settings, or use the Share option instead.")
-            }
-            .sheet(isPresented: $showShareSheet) {
-                if let url = exportedFileURL {
-                    ShareSheet(activityItems: [url])
-                }
-            }
-            .sheet(isPresented: $showMailComposer) {
-                if let url = mailAttachmentURL {
-                    MailComposerView(
-                        subject: mailSubject,
-                        attachmentURL: url,
-                        isPresented: $showMailComposer
-                    )
-                }
-            }
             .sheet(isPresented: $showReorderSheet) {
                 ReorderLayoutView()
             }
         }
     }
     
-    // MARK: - Joke Export
-    
-    private func exportJokesAndSave() {
-        guard let url = PDFExportService.exportJokesToPDF(jokes: Array(jokes), fileName: "BitBinder_AllJokes") else { return }
-        savedAlertMessage = "PDF saved to your device's Documents folder."
-        showSavedAlert = true
-        exportedFileURL = url
-    }
-    
-    private func exportJokesAndEmail() {
-        guard let url = PDFExportService.exportJokesToPDF(jokes: Array(jokes), fileName: "BitBinder_AllJokes") else { return }
-#if !targetEnvironment(macCatalyst)
-        if MFMailComposeViewController.canSendMail() {
-            mailAttachmentURL = url
-            mailSubject = "My BitBinder Jokes"
-            showMailComposer = true
-        } else {
-            showMailUnavailableAlert = true
-        }
-#else
-        exportedFileURL = url
-        showShareSheet = true
-#endif
-    }
-    
-    private func exportJokesAndShare() {
-        guard let url = PDFExportService.exportJokesToPDF(jokes: Array(jokes), fileName: "BitBinder_AllJokes") else { return }
-        exportedFileURL = url
-        showShareSheet = true
-    }
-    
-    // MARK: - Roast Export
-    
-    private func exportRoastsAndSave() {
-        guard let url = PDFExportService.exportRoastsToPDF(targets: Array(roastTargets), fileName: "BitBinder_Roasts") else { return }
-        savedAlertMessage = "Roast PDF saved to your device's Documents folder."
-        showSavedAlert = true
-        exportedFileURL = url
-    }
-    
-    private func exportRoastsAndEmail() {
-        guard let url = PDFExportService.exportRoastsToPDF(targets: Array(roastTargets), fileName: "BitBinder_Roasts") else { return }
-#if !targetEnvironment(macCatalyst)
-        if MFMailComposeViewController.canSendMail() {
-            mailAttachmentURL = url
-            mailSubject = "My BitBinder Roasts 🔥"
-            showMailComposer = true
-        } else {
-            showMailUnavailableAlert = true
-        }
-#else
-        exportedFileURL = url
-        showShareSheet = true
-#endif
-    }
-    
-    private func exportRoastsAndShare() {
-        guard let url = PDFExportService.exportRoastsToPDF(targets: Array(roastTargets), fileName: "BitBinder_Roasts") else { return }
-        exportedFileURL = url
-        showShareSheet = true
-    }
-    
-    // MARK: - Audio Export
-    
-    private func exportAudioAndSave() {
-        Task {
-            let url = await createAudioArchive()
-            guard let url else { return }
-            await MainActor.run {
-                savedAlertMessage = "Audio archive saved to your device's Documents folder."
-                showSavedAlert = true
-                exportedFileURL = url
-            }
-        }
-    }
-    
-    private func exportAudioAndEmail() {
-        Task {
-            let url = await createAudioArchive()
-            guard let url else { return }
-            await MainActor.run {
-#if !targetEnvironment(macCatalyst)
-                if MFMailComposeViewController.canSendMail() {
-                    mailAttachmentURL = url
-                    mailSubject = "My BitBinder Audio Recordings"
-                    showMailComposer = true
-                } else {
-                    showMailUnavailableAlert = true
-                }
-#else
-                exportedFileURL = url
-                showShareSheet = true
-#endif
-            }
-        }
-    }
-    
-    private func exportAudioAndShare() {
-        Task {
-            let url = await createAudioArchive()
-            guard let url else { return }
-            await MainActor.run {
-                exportedFileURL = url
-                showShareSheet = true
-            }
-        }
-    }
-    
-    /// Copies all audio recordings into a folder and creates a zip archive
-    private func createAudioArchive() async -> URL? {
-        let fm = FileManager.default
-        let documentsURL = fm.urls(for: .documentDirectory, in: .userDomainMask)[0]
-        let exportFolder = documentsURL.appendingPathComponent("BitBinder_Audio_Export", isDirectory: true)
-        let zipURL = documentsURL.appendingPathComponent("BitBinder_Audio.zip")
-        
-        // Clean up previous exports
-        try? fm.removeItem(at: exportFolder)
-        try? fm.removeItem(at: zipURL)
-        
-        do {
-            try fm.createDirectory(at: exportFolder, withIntermediateDirectories: true)
-            
-            var copiedCount = 0
-            for recording in recordings {
-                let sourceURL = URL(fileURLWithPath: recording.fileURL)
-                guard fm.fileExists(atPath: sourceURL.path) else { continue }
-                
-                let safeName = recording.title
-                    .replacingOccurrences(of: "/", with: "-")
-                    .replacingOccurrences(of: ":", with: "-")
-                let ext = sourceURL.pathExtension.isEmpty ? "m4a" : sourceURL.pathExtension
-                let destURL = exportFolder.appendingPathComponent("\(safeName).\(ext)")
-                
-                try fm.copyItem(at: sourceURL, to: destURL)
-                copiedCount += 1
-            }
-            
-            guard copiedCount > 0 else {
-                await MainActor.run {
-                    savedAlertMessage = "No audio files found on device."
-                    showSavedAlert = true
-                }
-                return nil
-            }
-            
-            // Create zip archive
-            let coordinator = NSFileCoordinator()
-            var archiveError: NSError?
-            var resultURL: URL?
-            
-            coordinator.coordinate(readingItemAt: exportFolder, options: .forUploading, error: &archiveError) { tempZipURL in
-                try? fm.copyItem(at: tempZipURL, to: zipURL)
-                resultURL = zipURL
-            }
-            
-            // Clean up export folder
-            try? fm.removeItem(at: exportFolder)
-            
-            if let error = archiveError {
-                    #if DEBUG
-                    print("❌ Audio archive error: \(error)")
-                    #endif
-                return nil
-            }
-            
-            return resultURL
-        } catch {
-            #if DEBUG
-            print("❌ Audio export error: \(error)")
-            #endif
-            return nil
-        }
-    }
 }
 
 // MARK: - Share Sheet

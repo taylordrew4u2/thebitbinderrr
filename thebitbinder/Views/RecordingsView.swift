@@ -29,38 +29,19 @@ struct RecordingsView: View {
         NavigationStack {
             Group {
                 if filteredRecordings.isEmpty {
-                    VStack(spacing: 24) {
-                        ZStack {
-                            Circle()
-                                .fill(
-                                    LinearGradient(
-                                        colors: [AppTheme.Colors.recordingsAccent.opacity(0.12), AppTheme.Colors.recordingsAccent.opacity(0.08)],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
-                                )
-                                .frame(width: 100, height: 100)
-                            Image(systemName: "mic.circle.fill")
-                                .font(.system(size: 50))
-                                .foregroundStyle(
-                                    LinearGradient(
-                                        colors: [AppTheme.Colors.recordingsAccent, AppTheme.Colors.recordingsAccent.opacity(0.8)],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
-                                )
-                        }
-                        
-                        VStack(spacing: 8) {
-                            Text("No recordings yet")
-                                .font(.title3)
-                                .fontWeight(.semibold)
-                            Text("Tap the mic button to start recording")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    BitBinderEmptyState(
+                        icon: "mic.circle.fill",
+                        title: roastMode ? "No Burn Recordings" : "No Recordings Yet",
+                        subtitle: "Record your sets to review and improve your delivery",
+                        actionTitle: "Start Recording",
+                        action: { showingQuickRecord = true },
+                        roastMode: roastMode,
+                        iconGradient: LinearGradient(
+                            colors: [AppTheme.Colors.recordingsAccent, AppTheme.Colors.recordingsAccent.opacity(0.7)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
                 } else {
                     List {
                         ForEach(filteredRecordings) { recording in
@@ -76,12 +57,7 @@ struct RecordingsView: View {
             .navigationTitle(roastMode ? "🔥 Burn Recordings" : "Recordings")
             .navigationBarTitleDisplayMode(.inline)
             .searchable(text: $searchText, prompt: roastMode ? "Search recordings" : "Search recordings")
-            .toolbarBackground(
-                roastMode ? AnyShapeStyle(AppTheme.Colors.roastSurface) : AnyShapeStyle(AppTheme.Colors.paperCream),
-                for: .navigationBar
-            )
-            .toolbarBackground(.visible, for: .navigationBar)
-            .toolbarColorScheme(roastMode ? .dark : .light, for: .navigationBar)
+            .bitBinderToolbar(roastMode: roastMode)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
@@ -121,15 +97,24 @@ struct RecordingsView: View {
 struct RecordingRowView: View {
     let recording: Recording
     @AppStorage("roastModeEnabled") private var roastMode = false
-    private let accent = AppTheme.Colors.recordingsAccent
 
     var body: some View {
-        HStack(alignment: .top, spacing: 0) {
-            Text("•")
-                .font(.system(size: 18, weight: .bold))
-                .foregroundColor(accent)
-                .frame(width: 32, alignment: .center)
-                .padding(.top, 1)
+        HStack(alignment: .center, spacing: 14) {
+            // Play button icon
+            ZStack {
+                Circle()
+                    .fill(
+                        roastMode
+                            ? AppTheme.Colors.roastAccent.opacity(0.15)
+                            : AppTheme.Colors.recordingsAccent.opacity(0.12)
+                    )
+                    .frame(width: 48, height: 48)
+                
+                Image(systemName: "play.fill")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(roastMode ? AppTheme.Colors.roastAccent : AppTheme.Colors.recordingsAccent)
+                    .offset(x: 2) // Optical centering
+            }
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(recording.title)
@@ -137,25 +122,45 @@ struct RecordingRowView: View {
                     .foregroundColor(roastMode ? .white : AppTheme.Colors.inkBlack)
                     .lineLimit(1)
 
-                HStack(spacing: 10) {
-                    Label(durationString(from: recording.duration), systemImage: "clock")
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundColor(accent.opacity(0.85))
+                HStack(spacing: 12) {
+                    // Duration
+                    HStack(spacing: 4) {
+                        Image(systemName: "waveform")
+                            .font(.system(size: 10))
+                        Text(durationString(from: recording.duration))
+                            .font(.system(size: 12, weight: .medium))
+                    }
+                    .foregroundColor(roastMode ? AppTheme.Colors.roastAccent.opacity(0.8) : AppTheme.Colors.recordingsAccent.opacity(0.85))
+                    
+                    // Processing indicator
+                    if !recording.isProcessed && recording.transcription == nil {
+                        HStack(spacing: 3) {
+                            ProgressView()
+                                .scaleEffect(0.6)
+                            Text("Processing")
+                                .font(.system(size: 10))
+                        }
+                        .foregroundColor(roastMode ? .white.opacity(0.5) : AppTheme.Colors.textTertiary)
+                    } else if recording.transcription != nil {
+                        HStack(spacing: 3) {
+                            Image(systemName: "doc.text.fill")
+                                .font(.system(size: 9))
+                            Text("Transcript")
+                                .font(.system(size: 10))
+                        }
+                        .foregroundColor(AppTheme.Colors.success.opacity(0.8))
+                    }
+                    
                     Spacer()
+                    
+                    // Date
                     Text(recording.dateCreated.formatted(.dateTime.month(.abbreviated).day()))
                         .font(.system(size: 11))
-                        .foregroundColor(roastMode ? Color.white.opacity(0.45) : AppTheme.Colors.textTertiary)
+                        .foregroundColor(roastMode ? Color.white.opacity(0.4) : AppTheme.Colors.textTertiary)
                 }
             }
-
-            Spacer()
-
-            Image(systemName: "play.circle.fill")
-                .font(.system(size: 28))
-                .foregroundColor(accent.opacity(0.7))
-                .padding(.leading, 12)
         }
-        .padding(.vertical, 12)
+        .padding(.vertical, 10)
     }
     
     private func durationString(from duration: TimeInterval) -> String {

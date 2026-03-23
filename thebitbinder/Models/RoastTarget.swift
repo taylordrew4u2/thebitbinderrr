@@ -20,7 +20,7 @@ final class RoastTarget: Identifiable {
     var dateModified: Date = Date()
 
     @Relationship(deleteRule: .cascade, inverse: \RoastJoke.target)
-    var jokes: [RoastJoke]?
+    var jokes: [RoastJoke]? = []
 
     /// Convenience: sorted jokes, newest first
     @Transient
@@ -40,5 +40,6 @@ final class RoastTarget: Identifiable {
         self.photoData = photoData
         self.dateCreated = Date()
         self.dateModified = Date()
+        self.jokes = []
     }
 }

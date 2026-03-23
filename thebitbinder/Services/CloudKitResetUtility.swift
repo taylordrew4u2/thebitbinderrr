@@ -33,16 +33,17 @@ class CloudKitResetUtility {
 
     /// Version key for the cleanup. Bump this whenever a new round of
     /// schema-mismatch fixes is needed so the one-time guard re-fires.
-    static let cleanupVersionKey = "cloudkit_schema_cleanup_v2"
+    static let cleanupVersionKey = "cloudkit_schema_cleanup_v3"
 
     // MARK: - Public Entry Point
 
     /// One-time cleanup that fixes **all** STRING-vs-REFERENCE mismatches.
     ///
     /// Affected fields (all should be REFERENCE in CloudKit):
-    ///  - `CD_Joke.CD_folder`              → `JokeFolder`
-    ///  - `CD_ImportedJokeMetadata.CD_batch`→ `ImportBatch`
-    ///  - `CD_UnresolvedImportFragment.CD_batch` → `ImportBatch`
+    ///  - `CD_Joke.CD_folder`                       → `JokeFolder`
+    ///  - `CD_RoastJoke.CD_target`                  → `RoastTarget`
+    ///  - `CD_ImportedJokeMetadata.CD_batch`         → `ImportBatch`
+    ///  - `CD_UnresolvedImportFragment.CD_batch`     → `ImportBatch`
     ///
     /// Strategy:
     ///  1. Try deleting every **known** corrupted record by ID.
@@ -54,7 +55,7 @@ class CloudKitResetUtility {
     ///  - After zone deletion CoreData re-exports every local record
     ///    with correct REFERENCE types on its next export cycle.
     static func repairCorruptedZone() async throws {
-        print("🔧 [CloudKit] Starting schema-mismatch repair (v2)...")
+        print("🔧 [CloudKit] Starting schema-mismatch repair (v3 — includes CD_RoastJoke.CD_target)...")
 
         let container = CKContainer(identifier: containerID)
         let database  = container.privateCloudDatabase
@@ -168,6 +169,8 @@ extension CloudKitResetUtility {
         print("🔍 SwiftData → CloudKit field mapping:")
         print("   ✓ Joke.folder                         → CD_Joke.CD_folder (REFERENCE)")
         print("   ✓ JokeFolder.jokes                    → inverse of CD_folder")
+        print("   ✓ RoastJoke.target                    → CD_RoastJoke.CD_target (REFERENCE)")
+        print("   ✓ RoastTarget.jokes                   → inverse of CD_target (cascade)")
         print("   ✓ ImportedJokeMetadata.batch           → CD_ImportedJokeMetadata.CD_batch (REFERENCE)")
         print("   ✓ UnresolvedImportFragment.batch       → CD_UnresolvedImportFragment.CD_batch (REFERENCE)")
         print("   ✓ ImportBatch.importedRecords          → cascade, inverse of CD_batch")

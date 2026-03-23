@@ -29,40 +29,14 @@ struct SetListsView: View {
         NavigationStack {
             Group {
                 if filteredSetLists.isEmpty {
-                    VStack(spacing: 24) {
-                        ZStack {
-                            Circle()
-                                .fill(
-                                    LinearGradient(
-                                        colors: [AppTheme.Colors.setsAccent.opacity(0.12), AppTheme.Colors.setsAccent.opacity(0.08)],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
-                                )
-                                .frame(width: 100, height: 100)
-                            Image(systemName: "list.bullet.clipboard.fill")
-                                .font(.system(size: 44))
-                                .foregroundStyle(
-                                    LinearGradient(
-                                        colors: [AppTheme.Colors.setsAccent, AppTheme.Colors.setsAccent.opacity(0.8)],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
-                                )
-                        }
-                        
-                        VStack(spacing: 8) {
-                            Text("No set lists yet")
-                                .font(.title3)
-                                .fontWeight(.semibold)
-                            Text("Create your first set list using the + button")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                                .multilineTextAlignment(.center)
-                        }
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .padding(.horizontal, 40)
+                    BitBinderEmptyState(
+                        icon: "list.bullet.clipboard.fill",
+                        title: roastMode ? "No Roast Sets Yet" : "No Set Lists Yet",
+                        subtitle: "Create a set list to organize jokes for your performances",
+                        actionTitle: "Create Set List",
+                        action: { showingCreateSetList = true },
+                        roastMode: roastMode
+                    )
                 } else {
                     List {
                         ForEach(filteredSetLists) { setList in
@@ -81,12 +55,7 @@ struct SetListsView: View {
                 SetListDetailView(setList: setList)
             }
             .searchable(text: $searchText, prompt: roastMode ? "Search roast sets" : "Search set lists")
-            .toolbarBackground(
-                roastMode ? AnyShapeStyle(AppTheme.Colors.roastSurface) : AnyShapeStyle(AppTheme.Colors.paperCream),
-                for: .navigationBar
-            )
-            .toolbarBackground(.visible, for: .navigationBar)
-            .toolbarColorScheme(roastMode ? .dark : .light, for: .navigationBar)
+            .bitBinderToolbar(roastMode: roastMode)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(action: { showingCreateSetList = true }) {
@@ -111,15 +80,27 @@ struct SetListsView: View {
 struct SetListRowView: View {
     let setList: SetList
     @AppStorage("roastModeEnabled") private var roastMode = false
-    private let accent = AppTheme.Colors.setsAccent
+    
+    private var jokeCount: Int {
+        roastMode ? setList.roastJokeIDs.count : setList.jokeIDs.count
+    }
 
     var body: some View {
-        HStack(alignment: .top, spacing: 0) {
-            Text("•")
-                .font(.system(size: 18, weight: .bold))
-                .foregroundColor(accent)
-                .frame(width: 32, alignment: .center)
-                .padding(.top, 1)
+        HStack(alignment: .center, spacing: 14) {
+            // Icon
+            ZStack {
+                RoundedRectangle(cornerRadius: AppTheme.Radius.medium, style: .continuous)
+                    .fill(
+                        roastMode
+                            ? AppTheme.Colors.roastAccent.opacity(0.15)
+                            : AppTheme.Colors.primaryAction.opacity(0.1)
+                    )
+                    .frame(width: 44, height: 44)
+                
+                Image(systemName: "list.bullet.rectangle.portrait.fill")
+                    .font(.system(size: 18, weight: .medium))
+                    .foregroundColor(roastMode ? AppTheme.Colors.roastAccent : AppTheme.Colors.primaryAction)
+            }
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(setList.name)
@@ -127,17 +108,31 @@ struct SetListRowView: View {
                     .foregroundColor(roastMode ? .white : AppTheme.Colors.inkBlack)
                     .lineLimit(1)
 
-                HStack(spacing: 10) {
-                    Label(roastMode ? "\(setList.roastJokeIDs.count) roasts" : "\(setList.jokeIDs.count) jokes", systemImage: roastMode ? "flame.fill" : "text.quote")
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundColor(accent.opacity(0.85))
-                    Spacer()
+                HStack(spacing: 12) {
+                    // Joke count with icon
+                    HStack(spacing: 4) {
+                        Image(systemName: roastMode ? "flame.fill" : "text.quote")
+                            .font(.system(size: 10))
+                        Text("\(jokeCount) \(roastMode ? "roasts" : "jokes")")
+                            .font(.system(size: 12, weight: .medium))
+                    }
+                    .foregroundColor(roastMode ? AppTheme.Colors.roastAccent.opacity(0.8) : AppTheme.Colors.primaryAction.opacity(0.8))
+                    
+                    // Date
                     Text(setList.dateModified.formatted(.dateTime.month(.abbreviated).day()))
                         .font(.system(size: 11))
-                        .foregroundColor(roastMode ? Color.white.opacity(0.45) : AppTheme.Colors.textTertiary)
+                        .foregroundColor(roastMode ? Color.white.opacity(0.4) : AppTheme.Colors.textTertiary)
                 }
             }
+            
+            Spacer()
+            
+            // Chevron
+            Image(systemName: "chevron.right")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundColor(roastMode ? .white.opacity(0.3) : AppTheme.Colors.textTertiary)
         }
         .padding(.vertical, 12)
+        .padding(.horizontal, 4)
     }
 }

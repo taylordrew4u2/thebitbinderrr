@@ -14,6 +14,8 @@ struct AddRoastJokeView: View {
     let target: RoastTarget
 
     @State private var content = ""
+    @State private var showSaveError = false
+    @State private var saveErrorMessage = ""
 
     private let accentColor = AppTheme.Colors.roastAccent
 
@@ -55,19 +57,29 @@ struct AddRoastJokeView: View {
                         .frame(minHeight: 150)
                 }
             }
-            .navigationTitle("New Roast")
+            .scrollContentBackground(.hidden)
+            .background(AppTheme.Colors.roastBackground)
+            .navigationTitle("🔥 New Roast")
             .navigationBarTitleDisplayMode(.inline)
+            .bitBinderToolbar(roastMode: true)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
+                        .foregroundColor(accentColor)
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {
                         saveRoast()
                     }
                     .fontWeight(.semibold)
+                    .foregroundColor(accentColor)
                     .disabled(content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
+            }
+            .alert("Save Failed", isPresented: $showSaveError) {
+                Button("OK", role: .cancel) { }
+            } message: {
+                Text(saveErrorMessage)
             }
         }
     }
@@ -82,7 +94,19 @@ struct AddRoastJokeView: View {
         )
         modelContext.insert(joke)
         target.dateModified = Date()
-        try? modelContext.save()
-        dismiss()
+        
+        do {
+            try modelContext.save()
+            #if DEBUG
+            print("✅ [AddRoastJokeView] Roast saved for '\(target.name)' (id: \(joke.id))")
+            #endif
+            dismiss()
+        } catch {
+            #if DEBUG
+            print("❌ [AddRoastJokeView] Failed to save: \(error)")
+            #endif
+            saveErrorMessage = "Could not save roast: \(error.localizedDescription)"
+            showSaveError = true
+        }
     }
 }

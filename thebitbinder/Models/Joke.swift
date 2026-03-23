@@ -117,7 +117,7 @@ final class Joke: Identifiable {
     init(content: String, title: String = "", folder: JokeFolder? = nil) {
         self.id = UUID()
         self.content = content
-        self.title = title.isEmpty ? "Untitled Joke" : title
+        self.title = title.isEmpty ? KeywordTitleGenerator.title(from: content) : title
         self.dateCreated = Date()
         self.dateModified = Date()
         self.folder = folder

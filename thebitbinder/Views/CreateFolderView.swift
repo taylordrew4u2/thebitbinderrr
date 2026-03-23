@@ -26,15 +26,13 @@ struct CreateFolderView: View {
             .background(roastMode ? AppTheme.Colors.roastBackground : Color.clear)
             .navigationTitle(roastMode ? "🔥 New Folder" : "New Folder")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbarBackground(roastMode ? AppTheme.Colors.roastSurface : AppTheme.Colors.paperCream, for: .navigationBar)
-            .toolbarBackground(.visible, for: .navigationBar)
-            .toolbarColorScheme(roastMode ? .dark : .light, for: .navigationBar)
+            .bitBinderToolbar(roastMode: roastMode)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") {
                         dismiss()
                     }
-                    .foregroundColor(roastMode ? AppTheme.Colors.roastAccent : nil)
+                    .foregroundColor(roastMode ? AppTheme.Colors.roastAccent : AppTheme.Colors.primaryAction)
                 }
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -42,11 +40,11 @@ struct CreateFolderView: View {
                         createFolder()
                     }
                     .disabled(folderName.isEmpty)
-                    .foregroundColor(roastMode ? AppTheme.Colors.roastAccent : nil)
+                    .foregroundColor(roastMode ? AppTheme.Colors.roastAccent : AppTheme.Colors.primaryAction)
                 }
             }
         }
-        .tint(roastMode ? AppTheme.Colors.roastAccent : AppTheme.Colors.inkBlue)
+        .tint(roastMode ? AppTheme.Colors.roastAccent : AppTheme.Colors.primaryAction)
     }
     
     private func createFolder() {

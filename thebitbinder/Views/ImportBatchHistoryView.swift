@@ -98,7 +98,7 @@ struct ImportBatchDetailView: View {
                                         .font(.caption2)
                                         .padding(.horizontal, 8)
                                         .padding(.vertical, 4)
-                                        .background(Color.blue.opacity(0.12))
+                                        .background(AppTheme.Colors.primaryAction.opacity(0.12))
                                         .cornerRadius(6)
                                     if let page = record.sourcePage {
                                         Text("Page \(page)")

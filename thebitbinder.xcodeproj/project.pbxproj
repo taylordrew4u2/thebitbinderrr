@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		BAD6B2CE2F6F753E00A09B53 /* bit.appex in Embed ExtensionKit Extensions */ = {isa = PBXBuildFile; fileRef = BAD6B2C62F6F753E00A09B53 /* bit.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		BAD6B5562F6FCBB600A09B53 /* GoogleGenerativeAI in Frameworks */ = {isa = PBXBuildFile; productRef = BAD6B5552F6FCBB600A09B53 /* GoogleGenerativeAI */; };
+		BAD6B5912F716B2400A09B53 /* OpenAI in Frameworks */ = {isa = PBXBuildFile; productRef = BAD6B5902F716B2400A09B53 /* OpenAI */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -81,6 +82,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				BAD6B5912F716B2400A09B53 /* OpenAI in Frameworks */,
 				BAD6B5562F6FCBB600A09B53 /* GoogleGenerativeAI in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -136,6 +138,7 @@
 			name = thebitbinder;
 			packageProductDependencies = (
 				BAD6B5552F6FCBB600A09B53 /* GoogleGenerativeAI */,
+				BAD6B5902F716B2400A09B53 /* OpenAI */,
 			);
 			productName = thebitbinder;
 			productReference = BAB3D0522EDF80F5007295C1 /* thebitbinder.app */;
@@ -192,6 +195,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				BAD6B5542F6FCBB600A09B53 /* XCRemoteSwiftPackageReference "generative-ai-swift" */,
+				BAD6B58F2F716B2400A09B53 /* XCRemoteSwiftPackageReference "OpenAI" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = BAB3D0532EDF80F5007295C1 /* Products */;
@@ -579,6 +583,14 @@
 				minimumVersion = 0.5.0;
 			};
 		};
+		BAD6B58F2F716B2400A09B53 /* XCRemoteSwiftPackageReference "OpenAI" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/MacPaw/OpenAI.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.4.7;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -586,6 +598,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = BAD6B5542F6FCBB600A09B53 /* XCRemoteSwiftPackageReference "generative-ai-swift" */;
 			productName = GoogleGenerativeAI;
+		};
+		BAD6B5902F716B2400A09B53 /* OpenAI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = BAD6B58F2F716B2400A09B53 /* XCRemoteSwiftPackageReference "OpenAI" */;
+			productName = OpenAI;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

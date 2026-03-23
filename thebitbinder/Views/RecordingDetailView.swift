@@ -29,11 +29,11 @@ struct RecordingDetailView: View {
                         VStack(spacing: 16) {
                             ZStack {
                                 Circle()
-                                    .fill(Color.red.opacity(0.1))
+                                    .fill(AppTheme.Colors.error.opacity(0.1))
                                     .frame(width: 100, height: 100)
                                 Image(systemName: "exclamationmark.triangle.fill")
                                     .font(.system(size: 40))
-                                    .foregroundColor(.red)
+                                    .foregroundColor(AppTheme.Colors.error)
                             }
                             
                             Text("Unable to Play")
@@ -53,18 +53,18 @@ struct RecordingDetailView: View {
                     } else {
                         ZStack {
                             Circle()
-                                .stroke(Color.blue, lineWidth: 8)
+                                .stroke(AppTheme.Colors.primaryAction, lineWidth: 8)
                                 .frame(width: 200, height: 200)
                             
                             if audioPlayer.isPlaying {
                                 Circle()
-                                    .fill(Color.blue.opacity(0.3))
+                                    .fill(AppTheme.Colors.primaryAction.opacity(0.3))
                                     .frame(width: 180, height: 180)
                             }
                             
                             Image(systemName: audioPlayer.isPlaying ? "pause.circle.fill" : "play.circle.fill")
                                 .font(.system(size: 80))
-                                .foregroundColor(.blue)
+                                .foregroundColor(AppTheme.Colors.primaryAction)
                         }
                         
                         // Progress bar
@@ -74,7 +74,7 @@ struct RecordingDetailView: View {
                                     audioPlayer.seek(to: audioPlayer.currentTime)
                                 }
                             })
-                            .tint(.blue)
+                            .tint(AppTheme.Colors.primaryAction)
                             
                             HStack {
                                 Text(timeString(from: audioPlayer.currentTime))
@@ -105,7 +105,7 @@ struct RecordingDetailView: View {
                                     .font(.system(size: 30))
                             }
                         }
-                        .foregroundColor(.blue)
+                        .foregroundColor(AppTheme.Colors.primaryAction)
                     }
                 }
                 .padding()
@@ -140,8 +140,8 @@ struct RecordingDetailView: View {
                             .foregroundColor(.primary)
                             .padding()
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(Color(UIColor.systemGray6))
-                            .cornerRadius(10)
+                            .background(AppTheme.Colors.surfaceElevated)
+                            .cornerRadius(AppTheme.Radius.medium)
                     } else if isTranscribing {
                         HStack {
                             Spacer()
@@ -154,8 +154,8 @@ struct RecordingDetailView: View {
                             Spacer()
                         }
                         .padding()
-                        .background(Color(UIColor.systemGray6))
-                        .cornerRadius(10)
+                        .background(AppTheme.Colors.surfaceElevated)
+                        .cornerRadius(AppTheme.Radius.medium)
                     } else {
                         Text("Tap 'Transcribe' to convert this recording to text")
                             .font(.subheadline)
@@ -163,8 +163,8 @@ struct RecordingDetailView: View {
                             .italic()
                             .padding()
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(Color(UIColor.systemGray6))
-                            .cornerRadius(10)
+                            .background(AppTheme.Colors.surfaceElevated)
+                            .cornerRadius(AppTheme.Radius.medium)
                     }
                 }
                 .padding(.horizontal)
@@ -178,20 +178,23 @@ struct RecordingDetailView: View {
                     InfoRow(label: "Date", value: recording.dateCreated.formatted(date: .long, time: .shortened))
                 }
                 .padding()
-                .background(Color(UIColor.systemGray6))
-                .cornerRadius(10)
+                .background(AppTheme.Colors.surfaceElevated)
+                .cornerRadius(AppTheme.Radius.medium)
                 .padding(.horizontal)
                 
                 // Share button
                 Button(action: shareRecording) {
                     Label("Share Recording", systemImage: "square.and.arrow.up")
-                        .font(.headline)
+                        .font(.system(size: 17, weight: .semibold))
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.blue)
-                        .cornerRadius(10)
+                        .padding(.vertical, 14)
+                        .background(
+                            RoundedRectangle(cornerRadius: AppTheme.Radius.large, style: .continuous)
+                                .fill(AppTheme.Colors.primaryAction)
+                        )
                 }
+                .buttonStyle(TouchReactiveStyle(pressedScale: 0.97, hapticStyle: .light))
                 .padding(.horizontal)
             }
             .padding(.vertical)

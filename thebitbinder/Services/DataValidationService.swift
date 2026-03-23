@@ -340,7 +340,60 @@ final class DataValidationService: ObservableObject {
                 print("✅ [DataValidation] Repaired \(repairedCount) broken folder relationships")
             }
             
-            return repairedCount > 0
+            // Repair RoastJoke → RoastTarget relationships
+            let roastJokes = try context.fetch(FetchDescriptor<RoastJoke>())
+            let roastTargets = try context.fetch(FetchDescriptor<RoastTarget>())
+            
+            var roastRepaired = 0
+            var orphanedRoastJokes: [RoastJoke] = []
+            
+            for roastJoke in roastJokes {
+                if let target = roastJoke.target {
+                    // Check if the target still exists
+                    if !roastTargets.contains(where: { $0.id == target.id }) {
+                        // Target reference is broken — null it out so it doesn't crash
+                        roastJoke.target = nil
+                        orphanedRoastJokes.append(roastJoke)
+                        roastRepaired += 1
+                    }
+                } else {
+                    // Roast joke has no target at all — it's an orphan
+                    orphanedRoastJokes.append(roastJoke)
+                }
+            }
+            
+            // Try to re-home orphaned roast jokes to a target if there's exactly one,
+            // or to the most recently modified target as a recovery bucket
+            if !orphanedRoastJokes.isEmpty && !roastTargets.isEmpty {
+                // Sort targets by most recent modification
+                let sortedTargets = roastTargets.sorted { $0.dateModified > $1.dateModified }
+                
+                if roastTargets.count == 1 {
+                    // Only one target — clearly they all belong there
+                    let onlyTarget = roastTargets[0]
+                    for roastJoke in orphanedRoastJokes {
+                        roastJoke.target = onlyTarget
+                        roastRepaired += 1
+                    }
+                    print("✅ [DataValidation] Re-assigned \(orphanedRoastJokes.count) orphaned roast jokes to '\(onlyTarget.name)'")
+                } else {
+                    // Multiple targets — assign to most recently modified as recovery
+                    // User can manually move them later
+                    let recoveryTarget = sortedTargets[0]
+                    for roastJoke in orphanedRoastJokes where roastJoke.target == nil {
+                        roastJoke.target = recoveryTarget
+                        roastRepaired += 1
+                    }
+                    print("⚠️ [DataValidation] Re-assigned \(orphanedRoastJokes.count) orphaned roast jokes to '\(recoveryTarget.name)' for recovery — user should verify")
+                }
+            }
+            
+            if roastRepaired > 0 {
+                try context.save()
+                print("✅ [DataValidation] Repaired \(roastRepaired) broken roast relationships")
+            }
+            
+            return (repairedCount + roastRepaired) > 0
         } catch {
             print("❌ [DataValidation] Failed to repair relationships: \(error)")
             return false

@@ -34,41 +34,19 @@ struct HitsView: View {
     var body: some View {
         Group {
             if filteredHits.isEmpty {
-                VStack(spacing: 20) {
-                    ZStack {
-                        Circle()
-                            .fill(
-                                RadialGradient(
-                                    colors: [roastMode ? AppTheme.Colors.roastAccent.opacity(0.3) : Color.yellow.opacity(0.3),
-                                             roastMode ? AppTheme.Colors.roastAccent.opacity(0) : Color.yellow.opacity(0)],
-                                    center: .center,
-                                    startRadius: 20,
-                                    endRadius: 60
-                                )
-                            )
-                            .frame(width: 120, height: 120)
-                        Image(systemName: roastMode ? "flame" : "star")
-                            .font(.system(size: 48))
-                            .foregroundStyle(
-                                roastMode
-                                ? AppTheme.Colors.roastEmberGradient
-                                : LinearGradient(colors: [.orange, .yellow],
-                                               startPoint: .top, endPoint: .bottom)
-                            )
-                    }
-                    
-                    VStack(spacing: 8) {
-                        Text(roastMode ? "No Fire Hits Yet" : "No Hits Yet")
-                            .font(.title3.bold())
-                            .foregroundColor(roastMode ? .white : .primary)
-                        Text("Mark your best jokes as Hits from the joke detail page and they'll show up here.")
-                            .font(.subheadline)
-                            .foregroundColor(roastMode ? .white.opacity(0.6) : .secondary)
-                            .multilineTextAlignment(.center)
-                    }
-                }
-                .padding(40)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                BitBinderEmptyState(
+                    icon: roastMode ? "flame" : "star.fill",
+                    title: roastMode ? "No Fire Hits Yet" : "No Hits Yet",
+                    subtitle: "Mark your best jokes as Hits and they'll appear here — your perfected material, ready to perform.",
+                    roastMode: roastMode,
+                    iconGradient: roastMode
+                        ? AppTheme.Colors.roastEmberGradient
+                        : LinearGradient(
+                            colors: [AppTheme.Colors.hitsGold, AppTheme.Colors.hitsGoldLight],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                )
             } else {
                 ScrollView {
                     LazyVGrid(columns: [
@@ -77,20 +55,23 @@ struct HitsView: View {
                     ], spacing: 12) {
                         ForEach(filteredHits) { joke in
                             NavigationLink(destination: JokeDetailView(joke: joke)) {
-                                JokeCardView(joke: joke)
+                                JokeCardView(joke: joke, roastMode: roastMode)
                             }
-                            .aspectRatio(1, contentMode: .fit) // Ensure square cells
+                            .aspectRatio(1, contentMode: .fit)
                             .contextMenu {
                                 Button {
                                     joke.isHit = false
+                                    joke.dateModified = Date()
                                 } label: {
                                     Label("Remove from Hits", systemImage: "star.slash")
                                 }
+                                
+                                Divider()
+                                
                                 Button(role: .destructive) {
-                                    // Soft-delete into trash
                                     joke.moveToTrash()
                                 } label: {
-                                    Label("Delete Joke", systemImage: "trash")
+                                    Label("Move to Trash", systemImage: "trash")
                                 }
                             }
                         }
@@ -100,22 +81,20 @@ struct HitsView: View {
                 .scrollContentBackground(.hidden)
             }
         }
-        .background(roastMode ? AppTheme.Colors.roastBackground : Color.clear)
+        .background(roastMode ? AppTheme.Colors.roastBackground : AppTheme.Colors.paperCream)
         .navigationTitle(roastMode ? "🔥 The Hits" : "⭐ The Hits")
         .navigationBarTitleDisplayMode(.large)
-        .toolbarBackground(roastMode ? AppTheme.Colors.roastSurface : AppTheme.Colors.paperCream, for: .navigationBar)
-        .toolbarBackground(.visible, for: .navigationBar)
-        .toolbarColorScheme(roastMode ? .dark : .light, for: .navigationBar)
+        .bitBinderToolbar(roastMode: roastMode)
         .searchable(text: $searchText, prompt: "Search hits")
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button(action: { expandAllJokes.toggle() }) {
                     Label(expandAllJokes ? "Collapse" : "Expand", systemImage: expandAllJokes ? "arrow.up.left.and.arrow.down.right" : "arrow.down.right.and.arrow.up.left")
                 }
-                .foregroundColor(roastMode ? AppTheme.Colors.roastAccent : nil)
+                .foregroundColor(roastMode ? AppTheme.Colors.roastAccent : AppTheme.Colors.primaryAction)
             }
         }
-        .tint(roastMode ? AppTheme.Colors.roastAccent : AppTheme.Colors.inkBlue)
+        .tint(roastMode ? AppTheme.Colors.roastAccent : AppTheme.Colors.primaryAction)
     }
 }
 

@@ -29,6 +29,37 @@ struct BitBuddyDataContext: Sendable {
     var userName: String = "Comedian"
     var recentJokes: [BitBuddyJokeSummary] = []
     var focusedJoke: BitBuddyJokeSummary?
+
+    // Intent routing context (populated by BitBuddyIntentRouter)
+    var routedIntent: BitBuddyRouteResult?
+    var activeSection: BitBuddySection?
+    var isRoastMode: Bool = false
+}
+
+// MARK: - Structured Action Response
+
+/// An action BitBuddy wants the app to perform.
+struct BitBuddyAction: Sendable, Codable {
+    let type: String              // matches a BitBuddyIntent.id
+    let parameters: [String: String]
+
+    init(type: String, parameters: [String: String] = [:]) {
+        self.type = type
+        self.parameters = parameters
+    }
+}
+
+/// The full structured response from any backend.
+struct BitBuddyStructuredResponse: Sendable {
+    let text: String
+    let actions: [BitBuddyAction]
+    let routedSection: BitBuddySection?
+
+    init(text: String, actions: [BitBuddyAction] = [], routedSection: BitBuddySection? = nil) {
+        self.text = text
+        self.actions = actions
+        self.routedSection = routedSection
+    }
 }
 
 protocol BitBuddyBackend: Sendable {

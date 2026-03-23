@@ -32,40 +32,17 @@ struct NotebookView: View {
         NavigationStack {
             Group {
                 if photos.isEmpty {
-                    VStack(spacing: 24) {
-                        ZStack {
-                            Circle()
-                                .fill(
-                                    LinearGradient(
-                                        colors: [AppTheme.Colors.notebookAccent.opacity(0.15), AppTheme.Colors.notebookAccent.opacity(0.1)],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
-                                )
-                                .frame(width: 100, height: 100)
-                            Image(systemName: "book.fill")
-                                .font(.system(size: 44))
-                                .foregroundStyle(
-                                    LinearGradient(
-                                        colors: [AppTheme.Colors.notebookAccent, AppTheme.Colors.notebookAccent.opacity(0.8)],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
-                                )
-                        }
-                        
-                        VStack(spacing: 8) {
-                            Text("No pages saved yet")
-                                .font(.title3)
-                                .fontWeight(.semibold)
-                            Text("Take photos of your physical joke notebook pages to keep a backup in the app")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                                .multilineTextAlignment(.center)
-                        }
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .padding(.horizontal, 40)
+                    BitBinderEmptyState(
+                        icon: "book.fill",
+                        title: roastMode ? "No Fire Notebook Pages" : "No Pages Saved Yet",
+                        subtitle: "Take photos of your physical notebook pages to back them up in the app",
+                        roastMode: roastMode,
+                        iconGradient: LinearGradient(
+                            colors: [AppTheme.Colors.notebookAccent, AppTheme.Colors.notebookAccent.opacity(0.7)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
                 } else {
                     ScrollView {
                         LazyVGrid(columns: columns, spacing: 16) {
@@ -100,12 +77,7 @@ struct NotebookView: View {
             }
             .navigationTitle(roastMode ? "🔥 Fire Notebook" : "Notebook Saver")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbarBackground(
-                roastMode ? AnyShapeStyle(AppTheme.Colors.roastSurface) : AnyShapeStyle(AppTheme.Colors.paperCream),
-                for: .navigationBar
-            )
-            .toolbarBackground(.visible, for: .navigationBar)
-            .toolbarColorScheme(roastMode ? .dark : .light, for: .navigationBar)
+            .bitBinderToolbar(roastMode: roastMode)
             .toolbar {
                 ToolbarItemGroup(placement: .navigationBarTrailing) {
                     PhotosPicker(selection: $pickedPhotoItem,

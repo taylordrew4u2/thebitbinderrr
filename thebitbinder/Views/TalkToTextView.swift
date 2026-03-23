@@ -43,14 +43,14 @@ struct TalkToTextView: View {
                 VStack(spacing: 12) {
                     ZStack {
                         Circle()
-                            .fill(isRecording ? Color.red.opacity(0.15) : Color.blue.opacity(0.1))
+                            .fill(isRecording ? AppTheme.Colors.recordingsAccent.opacity(0.15) : AppTheme.Colors.primaryAction.opacity(0.1))
                             .frame(width: 100, height: 100)
                             .scaleEffect(isRecording ? 1.1 : 1.0)
                             .animation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true), value: isRecording)
                         
                         Image(systemName: isRecording ? "waveform" : "mic.fill")
                             .font(.system(size: 40))
-                            .foregroundColor(isRecording ? .red : .blue)
+                            .foregroundColor(isRecording ? AppTheme.Colors.recordingsAccent : AppTheme.Colors.primaryAction)
                             .symbolEffect(.variableColor, isActive: isRecording)
                     }
                     
@@ -77,13 +77,13 @@ struct TalkToTextView: View {
                                 transcribedText = ""
                             }
                             .font(.caption)
-                            .foregroundColor(.blue)
+                            .foregroundColor(AppTheme.Colors.primaryAction)
                         }
                     }
                     
                     ZStack(alignment: .topLeading) {
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(Color(.systemGray6))
+                        RoundedRectangle(cornerRadius: AppTheme.Radius.large)
+                            .fill(AppTheme.Colors.surfaceElevated)
                         
                         if transcribedText.isEmpty && !isRecording {
                             Text("Your transcription will appear here...")
@@ -107,7 +107,7 @@ struct TalkToTextView: View {
                 if let error = errorMessage {
                     Text(error)
                         .font(.caption)
-                        .foregroundColor(.red)
+                        .foregroundColor(AppTheme.Colors.error)
                         .padding(.horizontal, 20)
                 }
                 
@@ -131,7 +131,7 @@ struct TalkToTextView: View {
                         }
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 16)
-                        .background(isRecording ? Color.red : Color.blue)
+                        .background(isRecording ? AppTheme.Colors.recordingsAccent : AppTheme.Colors.primaryAction)
                         .foregroundColor(.white)
                         .clipShape(RoundedRectangle(cornerRadius: 14))
                     }
@@ -326,56 +326,80 @@ struct TalkToTextView: View {
 class SpeechRecognizer: ObservableObject {
     @Published var transcribedText = ""
     @Published var error: String?
+    @Published var isTranscribing = false
     
     private var audioEngine: AVAudioEngine?
     private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
     private var recognitionTask: SFSpeechRecognitionTask?
     private let speechRecognizer = SFSpeechRecognizer(locale: Locale(identifier: "en-US"))
     
+    /// Whether the recognizer should keep restarting (true while user wants to record)
+    private var shouldBeRunning = false
+    /// Accumulated text from previous recognition segments (auto-restart appends here)
+    private var accumulatedText = ""
+    
     func startTranscribing() {
-        // Reset
-        transcribedText = ""
+        // Don't reset text — preserve anything already transcribed
         error = nil
+        shouldBeRunning = true
+        accumulatedText = transcribedText
+        
+        startRecognitionSession()
+    }
+    
+    /// Internal: starts or restarts one speech recognition session.
+    private func startRecognitionSession() {
+        // Clean up any previous session without clearing state
+        tearDownAudioPipeline()
+        
+        guard shouldBeRunning else { return }
         
         // Check if speech recognizer is available
         guard let speechRecognizer = speechRecognizer, speechRecognizer.isAvailable else {
-            error = "Speech recognition is not available"
+            DispatchQueue.main.async {
+                self.error = "Speech recognition is not available"
+                self.isTranscribing = false
+            }
             return
         }
         
-        // Configure audio session for recording
+        // Configure audio session — use playAndRecord to avoid conflicts with
+        // AudioRecordingService which also uses playAndRecord.
         let audioSession = AVAudioSession.sharedInstance()
         do {
-            try audioSession.setCategory(.record, mode: .measurement, options: .duckOthers)
+            try audioSession.setCategory(
+                .playAndRecord,
+                mode: .measurement,
+                options: [.defaultToSpeaker, .duckOthers, .allowBluetoothA2DP]
+            )
             try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
         } catch {
-            self.error = "Failed to configure audio session: \(error.localizedDescription)"
+            DispatchQueue.main.async {
+                self.error = "Failed to configure audio session: \(error.localizedDescription)"
+                self.isTranscribing = false
+            }
             return
         }
         
         // Create recognition request
-        recognitionRequest = SFSpeechAudioBufferRecognitionRequest()
-        guard let recognitionRequest = recognitionRequest else {
-            error = "Unable to create recognition request"
-            return
-        }
-        
-        recognitionRequest.shouldReportPartialResults = true
-        recognitionRequest.addsPunctuation = true
+        let request = SFSpeechAudioBufferRecognitionRequest()
+        request.shouldReportPartialResults = true
+        request.addsPunctuation = true
+        recognitionRequest = request
         
         // Set up audio engine
-        audioEngine = AVAudioEngine()
-        guard let audioEngine = audioEngine else {
-            error = "Unable to create audio engine"
-            return
-        }
+        let engine = AVAudioEngine()
+        audioEngine = engine
         
-        let inputNode = audioEngine.inputNode
+        let inputNode = engine.inputNode
         let recordingFormat = inputNode.outputFormat(forBus: 0)
         
         // Guard against invalid format (sample rate of 0 on some devices)
-        guard recordingFormat.sampleRate > 0 else {
-            self.error = "Audio input format is invalid. Please check your microphone."
+        guard recordingFormat.sampleRate > 0, recordingFormat.channelCount > 0 else {
+            DispatchQueue.main.async {
+                self.error = "Audio input format is invalid. Please check your microphone."
+                self.isTranscribing = false
+            }
             return
         }
         
@@ -384,36 +408,98 @@ class SpeechRecognizer: ObservableObject {
         }
         
         // Start recognition task
-        recognitionTask = speechRecognizer.recognitionTask(with: recognitionRequest) { [weak self] result, error in
+        recognitionTask = speechRecognizer.recognitionTask(with: request) { [weak self] result, error in
+            guard let self = self else { return }
+            
+            var isFinal = false
+            
             if let result = result {
+                isFinal = result.isFinal
+                let newText = result.bestTranscription.formattedString
                 DispatchQueue.main.async {
-                    self?.transcribedText = result.bestTranscription.formattedString
+                    // Combine accumulated text from prior segments with current partial result
+                    if self.accumulatedText.isEmpty {
+                        self.transcribedText = newText
+                    } else {
+                        self.transcribedText = self.accumulatedText + " " + newText
+                    }
                 }
             }
             
             if let error = error {
                 let nsError = error as NSError
-                // Ignore cancellation errors (code 216 = user stopped, code 1110 = no speech detected)
-                if nsError.domain == "kAFAssistantErrorDomain" && (nsError.code == 216 || nsError.code == 1110) {
+                // Code 216 = user cancelled, code 1110 = no speech detected (timeout)
+                let isTimeout = nsError.domain == "kAFAssistantErrorDomain" && nsError.code == 1110
+                let isCancelled = nsError.domain == "kAFAssistantErrorDomain" && nsError.code == 216
+                
+                if isCancelled {
+                    // User explicitly stopped — do nothing
                     return
                 }
+                
+                if isTimeout || isFinal {
+                    // Speech recognition timed out (~60s) or finished —
+                    // save what we have and restart automatically
+                    DispatchQueue.main.async {
+                        self.accumulatedText = self.transcribedText
+                        if self.shouldBeRunning {
+                            // Brief delay then restart to keep listening
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                                self.startRecognitionSession()
+                            }
+                        }
+                    }
+                    return
+                }
+                
+                // Real error — show it
                 DispatchQueue.main.async {
-                    self?.error = error.localizedDescription
+                    self.error = error.localizedDescription
+                    self.isTranscribing = false
+                }
+                return
+            }
+            
+            // If result is final (e.g. recognizer decided speech ended), auto-restart
+            if isFinal {
+                DispatchQueue.main.async {
+                    self.accumulatedText = self.transcribedText
+                    if self.shouldBeRunning {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                            self.startRecognitionSession()
+                        }
+                    }
                 }
             }
         }
         
         // Start audio engine
         do {
-            audioEngine.prepare()
-            try audioEngine.start()
+            engine.prepare()
+            try engine.start()
+            DispatchQueue.main.async {
+                self.isTranscribing = true
+            }
         } catch {
-            self.error = "Failed to start audio engine"
+            DispatchQueue.main.async {
+                self.error = "Failed to start audio engine: \(error.localizedDescription)"
+                self.isTranscribing = false
+            }
         }
     }
     
     func stopTranscribing() {
-        recognitionTask?.finish()
+        shouldBeRunning = false
+        tearDownAudioPipeline()
+        accumulatedText = ""
+        DispatchQueue.main.async {
+            self.isTranscribing = false
+        }
+    }
+    
+    /// Tears down audio engine and recognition without resetting user-facing state.
+    private func tearDownAudioPipeline() {
+        recognitionTask?.cancel()
         recognitionRequest?.endAudio()
         
         audioEngine?.stop()
@@ -422,7 +508,11 @@ class SpeechRecognizer: ObservableObject {
         audioEngine = nil
         recognitionRequest = nil
         recognitionTask = nil
-        
+    }
+    
+    deinit {
+        shouldBeRunning = false
+        tearDownAudioPipeline()
         // Deactivate audio session safely
         try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
     }

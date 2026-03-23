@@ -92,69 +92,76 @@ struct JokesView: View {
 
     // MARK: - The Hits Button
     
-    @ViewBuilder
-    private var theHitsButton: some View {
-        VStack(spacing: 8) {
-            NavigationLink(destination: HitsView()) {
-                ZStack {
-                    // Main circle
-                    Circle()
-                        .fill(
-                            LinearGradient(
-                                colors: [Color.yellow.opacity(0.3), Color.orange.opacity(0.2)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .frame(width: 60, height: 60)
-                    
-                    // Star icon
-                    Image(systemName: "star")
-                        .font(.system(size: 28, weight: .semibold))
-                        .foregroundStyle(
-                            LinearGradient(colors: [.orange, .yellow], startPoint: .top, endPoint: .bottom)
-                        )
-                }
-            }
-            .buttonStyle(ChipStyle())
-            
-            Text("The Hits")
-                .font(.caption)
-                .fontWeight(.medium)
-                .foregroundColor(.secondary)
-            
-            // Count badge
-            let hitsCount = jokes.filter { $0.isHit && !$0.isDeleted }.count
-            if hitsCount > 0 {
-                Text("\(hitsCount) perfected")
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
-            }
-        }
-        .padding(.top, 16)
-        .padding(.bottom, 8)
+    // NOTE: The Hits is now integrated into the filter chips row
+    // This computed property returns the count for the chips
+    private var hitsCount: Int {
+        jokes.filter { $0.isHit && !$0.isDeleted }.count
     }
+    
+    // State for showing The Hits filter
+    @State private var showingHitsFilter = false
 
 
     private var folderChips: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 12) {
-                FolderChip(
-                    name: "All Jokes",
-                    isSelected: selectedFolder == nil && !showRecentlyAdded,
-                    action: { selectedFolder = nil; showRecentlyAdded = false }
+            HStack(spacing: 10) {
+                // The Hits chip (prominent, first position)
+                TheHitsChip(
+                    count: hitsCount,
+                    isSelected: showingHitsFilter,
+                    roastMode: roastMode,
+                    action: {
+                        showingHitsFilter.toggle()
+                        if showingHitsFilter {
+                            selectedFolder = nil
+                            showRecentlyAdded = false
+                        }
+                    }
                 )
+                
+                // Divider
+                Rectangle()
+                    .fill(roastMode ? Color.white.opacity(0.15) : AppTheme.Colors.divider)
+                    .frame(width: 1, height: 24)
+                    .padding(.horizontal, 4)
+                
+                // All Jokes
                 FolderChip(
-                    name: "Recently Added",
+                    name: "All",
+                    icon: "tray.full.fill",
+                    isSelected: selectedFolder == nil && !showRecentlyAdded && !showingHitsFilter,
+                    roastMode: roastMode,
+                    action: {
+                        selectedFolder = nil
+                        showRecentlyAdded = false
+                        showingHitsFilter = false
+                    }
+                )
+                
+                // Recently Added
+                FolderChip(
+                    name: "Recent",
                     icon: "clock.fill",
-                    isSelected: showRecentlyAdded,
-                    action: { showRecentlyAdded = true; selectedFolder = nil }
+                    isSelected: showRecentlyAdded && !showingHitsFilter,
+                    roastMode: roastMode,
+                    action: {
+                        showRecentlyAdded = true
+                        selectedFolder = nil
+                        showingHitsFilter = false
+                    }
                 )
+                
+                // Folder chips
                 ForEach(folders) { folder in
                     FolderChip(
                         name: folder.name,
-                        isSelected: selectedFolder?.id == folder.id && !showRecentlyAdded,
-                        action: { selectedFolder = folder; showRecentlyAdded = false }
+                        isSelected: selectedFolder?.id == folder.id && !showRecentlyAdded && !showingHitsFilter,
+                        roastMode: roastMode,
+                        action: {
+                            selectedFolder = folder
+                            showRecentlyAdded = false
+                            showingHitsFilter = false
+                        }
                     )
                     .contextMenu {
                         Button(role: .destructive) {
@@ -166,50 +173,19 @@ struct JokesView: View {
                     }
                 }
             }
-            .padding(.horizontal)
+            .padding(.horizontal, 16)
         }
-        .padding(.vertical, 10)
-        .background(AppTheme.Colors.paperAged)
+        .padding(.vertical, 12)
+        .background(roastMode ? AppTheme.Colors.roastSurface.opacity(0.5) : AppTheme.Colors.paperAged.opacity(0.7))
     }
 
     @ViewBuilder
     private var emptyState: some View {
-        VStack(spacing: 24) {
-            ZStack {
-                Circle()
-                    .fill(
-                        RadialGradient(
-                            colors: [AppTheme.Colors.jokesAccent.opacity(0.2), AppTheme.Colors.jokesAccent.opacity(0.05)],
-                            center: .center,
-                            startRadius: 20,
-                            endRadius: 60
-                        )
-                    )
-                    .frame(width: 110, height: 110)
-                
-                Image(systemName: "theatermask.and.paintbrush.fill")
-                    .font(.system(size: 48, weight: .medium))
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: [AppTheme.Colors.jokesAccent, AppTheme.Colors.jokesAccent.opacity(0.7)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-            }
-            
-            VStack(spacing: 8) {
-                Text("No jokes yet")
-                    .font(.title3)
-                    .fontWeight(.semibold)
-                Text("Add your first joke using the + button")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-            }
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding(.horizontal, 40)
+        JokesEmptyState(
+            roastMode: roastMode,
+            hasFilter: selectedFolder != nil || showRecentlyAdded || showingHitsFilter || !searchText.isEmpty,
+            onAddJoke: { showingAddJoke = true }
+        )
     }
 
     // MARK: - Roast Section
@@ -218,42 +194,15 @@ struct JokesView: View {
     private var roastSection: some View {
         if roastTargets.isEmpty {
             // Empty roast state
-            VStack(spacing: 20) {
-                ZStack {
-                    Circle()
-                        .fill(AppTheme.Colors.roastAccent.opacity(0.12))
-                        .frame(width: 110, height: 110)
-                    Image(systemName: "flame.fill")
-                        .font(.system(size: 48))
-                        .foregroundStyle(
-                            LinearGradient(
-                                colors: [AppTheme.Colors.roastAccent, .orange],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                }
-                VStack(spacing: 8) {
-                    Text("No roast targets yet")
-                        .font(.title3.bold())
-                    Text("Add someone you want to roast and start writing jokes just for them")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                        .multilineTextAlignment(.center)
-                }
-                Button {
-                    showingAddRoastTarget = true
-                } label: {
-                    Label("Add First Target", systemImage: "person.badge.plus")
-                        .fontWeight(.semibold)
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 10)
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(AppTheme.Colors.roastAccent)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .padding(40)
+            BitBinderEmptyState(
+                icon: "flame.fill",
+                title: "No Roast Targets Yet",
+                subtitle: "Add someone you want to roast and start writing jokes just for them",
+                actionTitle: "Add First Target",
+                action: { showingAddRoastTarget = true },
+                roastMode: true,
+                iconGradient: AppTheme.Colors.roastEmberGradient
+            )
         } else {
             if roastViewMode == .grid {
                 VStack(spacing: 0) {
@@ -333,7 +282,10 @@ struct JokesView: View {
         
         // Start with base jokes depending on selected filter
         let base: [Joke]
-        if showRecentlyAdded {
+        if showingHitsFilter {
+            // Show only hits
+            base = jokes.filter { $0.isHit }
+        } else if showRecentlyAdded {
             let sevenDaysAgo = Calendar.current.date(byAdding: .day, value: -7, to: Date()) ?? Date()
             base = jokes.filter { $0.dateCreated >= sevenDaysAgo }
         } else if let folder = selectedFolder {
@@ -356,8 +308,8 @@ struct JokesView: View {
             filtered = active.filter { matchesSearch($0, lower: lower) }
         }
         
-        // Sort by dateCreated descending (newest first)
-        return filtered.sorted { $0.dateCreated > $1.dateCreated }
+        // Sort by dateModified descending (most recently touched first)
+        return filtered.sorted { $0.dateModified > $1.dateModified }
     }
     
     var body: some View {
@@ -370,12 +322,7 @@ struct JokesView: View {
                 .navigationTitle(roastMode ? "🔥 Roasts" : "Jokes")
                 .navigationBarTitleDisplayMode(.inline)
                 .searchable(text: $searchText, prompt: roastMode ? "Search targets" : "Search jokes")
-                .toolbarBackground(
-                    roastMode ? AnyShapeStyle(AppTheme.Colors.roastSurface) : AnyShapeStyle(AppTheme.Colors.paperCream),
-                    for: .navigationBar
-                )
-                .toolbarBackground(.visible, for: .navigationBar)
-                .toolbarColorScheme(roastMode ? .dark : .light, for: .navigationBar)
+                .bitBinderToolbar(roastMode: roastMode)
                 .onAppear { checkPendingVoiceMemoImports() }
                 .toolbar { combinedToolbarContent }
                 .photosPicker(isPresented: $showingImagePicker, selection: $selectedPhotos, matching: .images, preferredItemEncoding: .automatic)
@@ -450,6 +397,7 @@ struct JokesView: View {
                 // Invalidate cache when filter criteria change
                 .onChange(of: selectedFolder) { _, _ in needsFilterRefresh = true }
                 .onChange(of: showRecentlyAdded) { _, _ in needsFilterRefresh = true }
+                .onChange(of: showingHitsFilter) { _, _ in needsFilterRefresh = true }
                 .onChange(of: jokes.count) { _, _ in needsFilterRefresh = true }
         }
     }
@@ -462,12 +410,12 @@ struct JokesView: View {
             roastSection
         } else {
             VStack(spacing: 0) {
-                // The Hits circle at the top
-                theHitsButton
-                
+                // Filter chips (includes The Hits)
                 folderChips
 
                 Divider()
+                    .opacity(0.5)
+                
                 if filteredJokes.isEmpty {
                     emptyState
                 } else {
@@ -502,14 +450,32 @@ struct JokesView: View {
                                             jokeGridSelectableCard(joke: joke)
                                         } else {
                                             NavigationLink(destination: JokeDetailView(joke: joke)) {
-                                                JokeCardView(joke: joke, scale: CGFloat(jokesGridScale))
+                                                JokeCardView(joke: joke, scale: CGFloat(jokesGridScale), roastMode: roastMode)
                                             }
                                             .aspectRatio(1, contentMode: .fit)
                                             .contextMenu {
+                                                if joke.isHit {
+                                                    Button {
+                                                        joke.isHit = false
+                                                        joke.dateModified = Date()
+                                                    } label: {
+                                                        Label("Remove from Hits", systemImage: "star.slash")
+                                                    }
+                                                } else {
+                                                    Button {
+                                                        joke.isHit = true
+                                                        joke.dateModified = Date()
+                                                    } label: {
+                                                        Label("Add to Hits", systemImage: "star.fill")
+                                                    }
+                                                }
+                                                
+                                                Divider()
+                                                
                                                 Button(role: .destructive) {
                                                     joke.moveToTrash()
                                                 } label: {
-                                                    Label("Delete Joke", systemImage: "trash")
+                                                    Label("Move to Trash", systemImage: "trash")
                                                 }
                                             }
                                         }
@@ -527,16 +493,33 @@ struct JokesView: View {
                                     jokeListSelectableRow(joke: joke)
                                 } else {
                                     NavigationLink(destination: JokeDetailView(joke: joke)) {
-                                        JokeRowView(joke: joke)
+                                        JokeRowView(joke: joke, roastMode: roastMode)
                                             .id(joke.id)
                                     }
                                     .listRowSeparator(.hidden)
+                                    .listRowBackground(Color.clear)
+                                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                        Button(role: .destructive) {
+                                            joke.moveToTrash()
+                                        } label: {
+                                            Label("Trash", systemImage: "trash")
+                                        }
+                                        
+                                        Button {
+                                            joke.isHit.toggle()
+                                            joke.dateModified = Date()
+                                        } label: {
+                                            Label(joke.isHit ? "Remove Hit" : "Add Hit", systemImage: joke.isHit ? "star.slash" : "star.fill")
+                                        }
+                                        .tint(AppTheme.Colors.hitsGold)
+                                    }
                                 }
                             }
                             .onDelete(perform: deleteJokes)
                         }
                         .listStyle(.plain)
                         .scrollContentBackground(.hidden)
+                        .background(roastMode ? AppTheme.Colors.roastBackground : Color.clear)
                     }
                 }
                 
@@ -821,7 +804,7 @@ struct JokesView: View {
                     let text = try await TextRecognitionService.recognizeText(from: image)
                     
                     await MainActor.run {
-                        importStatusMessage = "🤖 AI extracting jokes..."
+                        importStatusMessage = "🤖 Extracting jokes..."
                     }
                     
                     let extractedJokes = try await extractionService.extractJokes(from: text)
@@ -913,7 +896,7 @@ struct JokesView: View {
                     let text = try await TextRecognitionService.recognizeText(from: image)
                     
                     await MainActor.run {
-                        importStatusMessage = "🤖 AI extracting jokes..."
+                        importStatusMessage = "🤖 Extracting jokes..."
                     }
                     
                     let extractedJokes = try await extractionService.extractJokes(from: text)
@@ -1001,6 +984,8 @@ struct JokesView: View {
             var combinedReview: [ImportedJoke] = []
             var combinedRejected: [LayoutBlock] = []
             var sourceFile = ""
+            var anyLocalFallback = false
+            var providersUsed = Set<String>()
             
             for url in urls {
                 await MainActor.run {
@@ -1014,9 +999,15 @@ struct JokesView: View {
                     combinedReview.append(contentsOf: result.reviewQueueJokes)
                     combinedRejected.append(contentsOf: result.rejectedBlocks)
                     sourceFile = result.sourceFile
+                    providersUsed.insert(result.providerUsed)
+                    if result.usedLocalFallback { anyLocalFallback = true }
                     
                     await MainActor.run {
-                        importStatusMessage = "Found \(result.autoSavedJokes.count + result.reviewQueueJokes.count) potential jokes..."
+                        if result.usedLocalFallback {
+                            importStatusMessage = "AI is asleep — using local extraction (may be rough)"
+                        } else {
+                            importStatusMessage = "Found \(result.autoSavedJokes.count + result.reviewQueueJokes.count) potential jokes..."
+                        }
                     }
                 } catch {
                     print("❌ IMPORT: Pipeline failed for \(url.lastPathComponent): \(error)")
@@ -1051,9 +1042,18 @@ struct JokesView: View {
                             combinedReview.append(joke)
                         }
                         sourceFile = url.lastPathComponent
+                        anyLocalFallback = true
+                        providersUsed.insert("Local Extraction")
                     }
                 }
             }
+            
+            let providerSummary: String = {
+                let unique = Array(providersUsed)
+                if unique.isEmpty { return "Unknown" }
+                if unique.count == 1 { return unique[0] }
+                return "Multiple"
+            }()
             
             // Build combined result
             let combinedResult = ImportPipelineResult(
@@ -1072,12 +1072,14 @@ struct JokesView: View {
                     processingTimeSeconds: 0,
                     averageConfidence: 0.7
                 ),
-                debugInfo: nil
+                debugInfo: nil,
+                providerUsed: providerSummary,
+                usedLocalFallback: anyLocalFallback
             )
             
             await MainActor.run {
                 self.isProcessingImages = false
-                self.importStatusMessage = ""
+                self.importStatusMessage = anyLocalFallback ? "AI is asleep — used local extraction" : ""
                 self.importedJokeNames = []
                 self.importFileCount = 0
                 self.importFileIndex = 0
@@ -1392,74 +1394,9 @@ private extension JokesView {
     }
 }
 
-struct FolderChip: View {
-    let name: String
-    var icon: String = "folder.fill"
-    let isSelected: Bool
-    let action: () -> Void
-
-    private let accent = AppTheme.Colors.jokesAccent
-
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: 4) {
-                if isSelected {
-                    Image(systemName: icon)
-                        .font(.system(size: 9, weight: .bold))
-                }
-                Text(name)
-                    .font(.system(size: 12, weight: isSelected ? .semibold : .regular, design: .serif))
-                    .lineLimit(1)
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
-            .background(isSelected ? Capsule().fill(accent) : Capsule().fill(AppTheme.Colors.paperAged))
-            .foregroundColor(isSelected ? .white : AppTheme.Colors.textSecondary)
-        }
-        .buttonStyle(ChipStyle())
-    }
-}
-
-struct JokeRowView: View {
-    let joke: Joke
-    @AppStorage("expandAllJokes") private var expandAllJokes = false
-
-    var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            Text("•")
-                .font(.system(size: 18, weight: .bold))
-                .foregroundColor(AppTheme.Colors.jokesAccent)
-                .frame(width: 20)
-
-            VStack(alignment: .leading, spacing: 3) {
-                Text(joke.title)
-                    .font(.system(size: 15, weight: .semibold, design: .serif))
-                    .foregroundColor(AppTheme.Colors.inkBlack)
-                    .lineLimit(1)
-
-                Text(joke.content)
-                    .font(.system(size: 13))
-                    .foregroundColor(AppTheme.Colors.textSecondary)
-                    .lineLimit(expandAllJokes ? nil : 2)
-
-                HStack(spacing: 8) {
-                    if let folder = joke.folder {
-                        Text(folder.name)
-                            .font(.system(size: 10, weight: .medium))
-                            .foregroundColor(AppTheme.Colors.jokesAccent)
-                    }
-                    Spacer()
-                    Text(joke.dateCreated.formatted(.dateTime.month(.abbreviated).day()))
-                        .font(.system(size: 10))
-                        .foregroundColor(AppTheme.Colors.textTertiary)
-                }
-                .padding(.top, 2)
-            }
-        }
-        .padding(.vertical, 10)
-        .padding(.horizontal, 12)
-    }
-}
+// MARK: - Roast Target Components
+// Note: FolderChip, JokeRowView, JokeCardView, TheHitsChip, JokesViewMode
+// are now in JokeComponents.swift
 
 struct RoastTargetCard: View {
     let target: RoastTarget
@@ -1513,87 +1450,6 @@ struct RoastTargetCard: View {
         .shadow(color: .black.opacity(0.15), radius: 4, y: 2)
     }
 }
-
-// MARK: - View Mode
-
-enum JokesViewMode: String, CaseIterable {
-    case list = "List"
-    case grid = "Grid"
-    
-    var icon: String {
-        switch self {
-        case .list: return "list.bullet"
-        case .grid: return "square.grid.2x2"
-        }
-    }
-}
-
-// MARK: - Grid Card View
-
-struct JokeCardView: View {
-    let joke: Joke
-    var scale: CGFloat = 1.0
-    @AppStorage("expandAllJokes") private var expandAllJokes = false
-
-    var body: some View {
-        GeometryReader { geometry in
-            let size = geometry.size.width // Square: use width for both dimensions
-            let padding = max(8, size * 0.08)
-            let titleSize = max(10, size * 0.09)
-            let bodySize = max(9, size * 0.075)
-            let metaSize = max(7, size * 0.055)
-            let spacing = max(4, size * 0.04)
-            
-            VStack(alignment: .leading, spacing: spacing) {
-                // Title - auto-scales with card size
-                Text(joke.title)
-                    .font(.system(size: titleSize, weight: .bold, design: .serif))
-                    .foregroundColor(AppTheme.Colors.inkBlack)
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.7)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                // Content preview - fills available space
-                Text(joke.content)
-                    .font(.system(size: bodySize))
-                    .foregroundColor(AppTheme.Colors.textSecondary)
-                    .lineLimit(expandAllJokes ? nil : max(3, Int(size / 25)))
-                    .minimumScaleFactor(0.6)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-
-                Spacer(minLength: 0)
-
-                // Footer - compact at bottom
-                HStack(spacing: 4) {
-                    if let folder = joke.folder {
-                        HStack(spacing: 2) {
-                            Image(systemName: "folder.fill")
-                                .font(.system(size: max(6, metaSize * 0.8)))
-                            Text(folder.name)
-                                .font(.system(size: metaSize, weight: .medium))
-                                .lineLimit(1)
-                        }
-                        .foregroundColor(AppTheme.Colors.jokesAccent)
-                        .padding(.horizontal, max(4, padding * 0.5))
-                        .padding(.vertical, max(2, padding * 0.25))
-                        .background(Capsule().fill(AppTheme.Colors.jokesAccent.opacity(0.1)))
-                    }
-                    Spacer()
-                    Text(joke.dateCreated.formatted(.dateTime.month(.abbreviated).day()))
-                        .font(.system(size: metaSize))
-                        .foregroundColor(AppTheme.Colors.textTertiary)
-                }
-            }
-            .padding(padding)
-            .frame(width: size, height: size) // Force square
-            .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(AppTheme.Colors.surfaceElevated))
-            .shadow(color: .black.opacity(0.04), radius: 3, y: 1)
-        }
-        .aspectRatio(1, contentMode: .fit) // Ensure square aspect ratio
-    }
-}
-
-// MARK: - Roast Target List Row
 
 struct RoastTargetGridCard: View {
     let target: RoastTarget

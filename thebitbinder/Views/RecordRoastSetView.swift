@@ -38,7 +38,7 @@ struct RecordRoastSetView: View {
                 VStack(spacing: 12) {
                     ZStack {
                         Circle()
-                            .fill(isRecording ? Color.red.opacity(0.15) : accentColor.opacity(0.1))
+                            .fill(isRecording ? AppTheme.Colors.recordingsAccent.opacity(0.15) : accentColor.opacity(0.1))
                             .frame(width: 100, height: 100)
                             .scaleEffect(isRecording ? 1.1 : 1.0)
                             .animation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true), value: isRecording)
@@ -62,7 +62,7 @@ struct RecordRoastSetView: View {
                         .font(.system(size: 36, weight: .bold, design: .monospaced))
                         .foregroundColor(isRecording ? .red : accentColor)
                         .padding()
-                        .background(Color(.systemGray6))
+                        .background(AppTheme.Colors.surfaceElevated)
                         .cornerRadius(12)
                 }
                 .padding(.top, 20)
@@ -86,7 +86,7 @@ struct RecordRoastSetView: View {
                 if let error = errorMessage {
                     Text(error)
                         .font(.caption)
-                        .foregroundColor(.red)
+                        .foregroundColor(AppTheme.Colors.recordingsAccent)
                         .padding(.horizontal, 20)
                 }
                 
@@ -107,7 +107,7 @@ struct RecordRoastSetView: View {
                         }
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 16)
-                        .background(isRecording ? Color.red : accentColor)
+                        .background(isRecording ? AppTheme.Colors.recordingsAccent : accentColor)
                         .foregroundColor(.white)
                         .clipShape(RoundedRectangle(cornerRadius: 14))
                     }
@@ -126,7 +126,7 @@ struct RecordRoastSetView: View {
                             }
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 16)
-                            .background(Color.green)
+                            .background(AppTheme.Colors.success)
                             .foregroundColor(.white)
                             .clipShape(RoundedRectangle(cornerRadius: 14))
                         }

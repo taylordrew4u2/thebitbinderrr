@@ -46,15 +46,13 @@ struct AddJokeView: View {
             .background(roastMode ? AppTheme.Colors.roastBackground : Color.clear)
             .navigationTitle("New Joke")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbarBackground(roastMode ? AppTheme.Colors.roastSurface : AppTheme.Colors.paperCream, for: .navigationBar)
-            .toolbarBackground(.visible, for: .navigationBar)
-            .toolbarColorScheme(roastMode ? .dark : .light, for: .navigationBar)
+            .bitBinderToolbar(roastMode: roastMode)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") {
                         dismiss()
                     }
-                    .foregroundColor(roastMode ? AppTheme.Colors.roastAccent : nil)
+                    .foregroundColor(roastMode ? AppTheme.Colors.roastAccent : AppTheme.Colors.primaryAction)
                 }
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -62,15 +60,15 @@ struct AddJokeView: View {
                         saveJoke()
                     }
                     .disabled(content.isEmpty)
-                    .foregroundColor(roastMode ? AppTheme.Colors.roastAccent : nil)
+                    .foregroundColor(roastMode ? AppTheme.Colors.roastAccent : AppTheme.Colors.primaryAction)
                 }
             }
         }
-        .tint(roastMode ? AppTheme.Colors.roastAccent : AppTheme.Colors.inkBlue)
+        .tint(roastMode ? AppTheme.Colors.roastAccent : AppTheme.Colors.primaryAction)
     }
     
     private func saveJoke() {
-        let joke = Joke(content: content, title: title.isEmpty ? "Untitled Joke" : title, folder: selectedFolder)
+        let joke = Joke(content: content, title: title, folder: selectedFolder)
         modelContext.insert(joke)
         try? modelContext.save()
         

@@ -46,10 +46,10 @@ struct SetListDetailView: View {
             VStack(spacing: 12) {
                 HStack {
                     if audioService.isRecording {
-                        Circle().fill(Color.red).frame(width: 12, height: 12)
+                        Circle().fill(AppTheme.Colors.recordingsAccent).frame(width: 12, height: 12)
                             .opacity(0.8)
                             .animation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true), value: audioService.isRecording)
-                        Text("Recording").font(.headline).foregroundColor(.red)
+                        Text("Recording").font(.headline).foregroundColor(AppTheme.Colors.recordingsAccent)
                         Spacer()
                         Text(timeString(from: recordingDuration))
                             .font(.system(.title3, design: .monospaced))
@@ -66,21 +66,21 @@ struct SetListDetailView: View {
                             Label("Start Recording", systemImage: "record.circle.fill")
                                 .labelStyle(.iconOnly)
                                 .font(.system(size: 44))
-                                .foregroundColor(.red)
+                                .foregroundColor(AppTheme.Colors.recordingsAccent)
                         }
                         .accessibilityLabel("Start Recording")
                     } else {
                         Button(action: pauseResumeRecording) {
                             Image(systemName: audioService.isPaused ? "play.circle.fill" : "pause.circle.fill")
                                 .font(.system(size: 40))
-                                .foregroundColor(.blue)
+                                .foregroundColor(AppTheme.Colors.primaryAction)
                         }
                         .accessibilityLabel(audioService.isPaused ? "Resume" : "Pause")
                         
                         Button(action: stopRecording) {
                             Image(systemName: "stop.circle.fill")
                                 .font(.system(size: 40))
-                                .foregroundColor(.red)
+                                .foregroundColor(AppTheme.Colors.recordingsAccent)
                         }
                         .accessibilityLabel("Stop Recording")
                     }
@@ -131,9 +131,9 @@ struct SetListDetailView: View {
                         Button(action: { showingAddJokes = true }) {
                             Label("Add Jokes", systemImage: "plus")
                                 .padding()
-                                .background(Color.blue)
+                                .background(AppTheme.Colors.primaryAction)
                                 .foregroundColor(.white)
-                                .cornerRadius(10)
+                                .cornerRadius(AppTheme.Radius.medium)
                         }
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -226,7 +226,9 @@ struct SetListDetailView: View {
     
     private func saveRecording() {
         guard let fileURL = lastRecordingURL else {
+            #if DEBUG
             print("Error: No recording URL available")
+            #endif
             return
         }
         let recording = Recording(
@@ -239,9 +241,13 @@ struct SetListDetailView: View {
         // Try to save the context
         do {
             try modelContext.save()
+            #if DEBUG
             print("✅ Recording saved successfully: \(recording.title)")
+            #endif
         } catch {
+            #if DEBUG
             print("❌ Failed to save recording: \(error)")
+            #endif
         }
         
         // Reset state

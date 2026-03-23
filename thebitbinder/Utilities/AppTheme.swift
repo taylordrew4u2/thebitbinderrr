@@ -2,7 +2,12 @@
 //  AppTheme.swift
 //  thebitbinder
 //
-//  Created on 2/18/26.
+//  Centralized design system for BitBinder
+//  Evidence-based visual design following research principles:
+//  - Blue for primary actions (trust, calm confidence)
+//  - Green for success/completion/synced states
+//  - Red reserved for destructive/error/urgent only
+//  - Strong contrast, rounded geometry, restrained palette
 //
 
 import SwiftUI
@@ -14,14 +19,19 @@ struct AppTheme {
 
     // MARK: - Colors
     struct Colors {
-        // ── Core brand ───────────────────────────────────────
-        static let brand      = Color(red: 0.18, green: 0.32, blue: 0.62)
-        static let brandDeep  = Color(red: 0.12, green: 0.22, blue: 0.48)
-        static let brandLight = Color(red: 0.55, green: 0.68, blue: 0.88)
+        // ── Primary Action (Blue - trust, confidence, primary interactions) ──
+        static let primaryAction     = Color(red: 0.20, green: 0.40, blue: 0.70)  // Trustworthy blue
+        static let primaryActionDeep = Color(red: 0.14, green: 0.30, blue: 0.55)
+        static let primaryActionLight = Color(red: 0.45, green: 0.62, blue: 0.85)
+        
+        // ── Core brand (legacy compatibility) ───────────────────────────────
+        static let brand      = primaryAction
+        static let brandDeep  = primaryActionDeep
+        static let brandLight = primaryActionLight
 
         // ── Ink ──────────────────────────────────────────────
         static let inkBlack = Color(red: 0.11, green: 0.09, blue: 0.09)
-        static let inkBlue  = Color(red: 0.18, green: 0.32, blue: 0.62)
+        static let inkBlue  = primaryAction
         static let inkRed   = Color(red: 0.72, green: 0.20, blue: 0.16)
 
         // ── Paper ────────────────────────────────────────────
@@ -43,22 +53,28 @@ struct AppTheme {
         static let textSecondary = Color(red: 0.36, green: 0.33, blue: 0.30)
         static let textTertiary  = Color(red: 0.55, green: 0.52, blue: 0.47)
 
-        // ── Semantic ─────────────────────────────────────────
-        static let success = Color(red: 0.22, green: 0.58, blue: 0.35)      // Green ink
-        static let warning = Color(red: 0.82, green: 0.58, blue: 0.12)      // Orange highlighter
-        static let error   = inkRed                                          // Red pen
-        static let info    = inkBlue                                         // Blue pen
+        // ── Semantic (evidence-based color roles) ────────────
+        static let success = Color(red: 0.18, green: 0.55, blue: 0.34)      // Green - completion, synced, ready
+        static let warning = Color(red: 0.82, green: 0.58, blue: 0.12)      // Amber - attention needed
+        static let error   = inkRed                                          // Red - destructive, errors only
+        static let info    = primaryAction                                   // Blue - informational
+        
+        // ── The Hits (gold/star - perfected jokes) ───────────
+        static let hitsGold      = Color(red: 0.90, green: 0.72, blue: 0.20)
+        static let hitsGoldLight = Color(red: 0.95, green: 0.85, blue: 0.50)
 
-        // ── Section accents ──────────────────────────────────
-        static let notepadAccent   = inkBlue
-        static let brainstormAccent = Color(red: 0.95, green: 0.70, blue: 0.15)  // Warm yellow/gold for ideas
-        static let jokesAccent     = Color(red: 0.84, green: 0.50, blue: 0.12)
-        static let setsAccent      = Color(red: 0.48, green: 0.36, blue: 0.68)
-        static let recordingsAccent = inkRed
-        static let notebookAccent  = Color(red: 0.52, green: 0.38, blue: 0.24)
-        static let settingsAccent  = Color(red: 0.42, green: 0.42, blue: 0.45)
-        static let aiAccent        = Color(red: 0.40, green: 0.33, blue: 0.72)
-        static let roastAccent     = Color(red: 0.92, green: 0.28, blue: 0.12)
+        // ── Unified Section Accent (use primary blue consistently) ──
+        // All sections now use primaryAction for consistency
+        // Legacy names maintained for compatibility but map to unified colors
+        static let notepadAccent    = primaryAction
+        static let brainstormAccent = Color(red: 0.85, green: 0.65, blue: 0.18)  // Warm gold for ideas
+        static let jokesAccent      = primaryAction  // Changed from orange to blue
+        static let setsAccent       = primaryAction  // Unified
+        static let recordingsAccent = Color(red: 0.65, green: 0.25, blue: 0.20)  // Subtle red for recordings
+        static let notebookAccent   = Color(red: 0.52, green: 0.38, blue: 0.24)  // Leather brown
+        static let settingsAccent   = Color(red: 0.42, green: 0.42, blue: 0.45)
+        static let aiAccent         = primaryAction
+        static let roastAccent      = Color(red: 0.92, green: 0.28, blue: 0.12)
 
         // ── Roast mode surfaces ──────────────────────────────
         static let roastBackground = Color(red: 0.09, green: 0.07, blue: 0.07)

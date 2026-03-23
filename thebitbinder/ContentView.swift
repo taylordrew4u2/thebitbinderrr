@@ -37,7 +37,7 @@ struct ContentView: View {
 // MARK: - App Screens
 
 enum AppScreen: String, CaseIterable {
-    case notepad = "Notepad"
+    case home = "Home"
     case brainstorm = "Brainstorm"
     case jokes = "Jokes"
     case sets = "Set Lists"
@@ -52,7 +52,7 @@ enum AppScreen: String, CaseIterable {
 
     var icon: String {
         switch self {
-        case .notepad:       return "pencil.line"
+        case .home:          return "house.fill"
         case .brainstorm:    return "lightbulb.fill"
         case .jokes:         return "theatermask.and.paintbrush.fill"
         case .sets:          return "list.bullet.rectangle.portrait.fill"
@@ -65,7 +65,7 @@ enum AppScreen: String, CaseIterable {
     // Roast-mode display name
     var roastName: String {
         switch self {
-        case .notepad:       return "Fire Notepad"
+        case .home:          return "Fire Home"
         case .brainstorm:    return "Fire Ideas"
         case .jokes:         return "Roasts"
         case .sets:          return "Roast Sets"
@@ -78,7 +78,7 @@ enum AppScreen: String, CaseIterable {
     // Roast-mode icon
     var roastIcon: String {
         switch self {
-        case .notepad:       return "flame.fill"
+        case .home:          return "flame.fill"
         case .brainstorm:    return "flame.circle.fill"
         case .jokes:         return "flame.circle.fill"
         case .sets:          return "list.bullet.rectangle.portrait.fill"
@@ -90,7 +90,7 @@ enum AppScreen: String, CaseIterable {
 
     var color: Color {
         switch self {
-        case .notepad:       return AppTheme.Colors.notepadAccent
+        case .home:          return AppTheme.Colors.primaryAction
         case .brainstorm:    return AppTheme.Colors.brainstormAccent
         case .jokes:         return AppTheme.Colors.jokesAccent
         case .sets:          return AppTheme.Colors.setsAccent
@@ -103,7 +103,7 @@ enum AppScreen: String, CaseIterable {
     // Roast-mode accent (all ember/fire tones)
     var roastColor: Color {
         switch self {
-        case .notepad:       return AppTheme.Colors.roastAccent
+        case .home:          return AppTheme.Colors.roastAccent
         case .brainstorm:    return Color(red: 1.0, green: 0.65, blue: 0.08)
         case .jokes:         return AppTheme.Colors.roastAccent
         case .sets:          return Color(red: 1.0, green: 0.55, blue: 0.10)
@@ -117,7 +117,7 @@ enum AppScreen: String, CaseIterable {
 // MARK: - Main Tab View
 
 struct MainTabView: View {
-    @State private var selectedScreen: AppScreen = .notepad
+    @State private var selectedScreen: AppScreen = .home
     @State private var screenHistory: [AppScreen] = []
     @State private var showMenu = false
     @State private var showAIChat = false
@@ -164,7 +164,7 @@ struct MainTabView: View {
             if let restored = preRoastScreen, !AppScreen.roastScreens.contains(restored) || restored == .settings {
                 selectedScreen = restored
             } else {
-                selectedScreen = .notepad
+                selectedScreen = .home
             }
             preRoastScreen = nil
         }
@@ -187,9 +187,9 @@ struct MainTabView: View {
                         }
                 } else {
                     switch selectedScreen {
-                    case .notepad:
+                    case .home:
                         if roastMode {
-                            // Roast mode should never show notepad - redirect to roasts
+                            // Roast mode should never show home - redirect to roasts
                             EmptyView()
                                 .onAppear {
                                     selectedScreen = .jokes
@@ -288,6 +288,12 @@ struct MainTabView: View {
         .onChange(of: roastMode) { _, newValue in
             handleRoastModeChange(isRoast: newValue)
         }
+        .onReceive(NotificationCenter.default.publisher(for: .navigateToScreen)) { notification in
+            if let screenRaw = notification.userInfo?["screen"] as? String,
+               let screen = AppScreen(rawValue: screenRaw) {
+                navigate(to: screen)
+            }
+        }
         .onAppear {
             // Fix initial screen selection if roast mode is already enabled
             if roastMode && !AppScreen.roastScreens.contains(selectedScreen) {
@@ -348,7 +354,7 @@ struct ModernSideMenu: View {
                         HStack(spacing: 14) {
                             Image(systemName: "bubble.left.and.bubble.right.fill")
                                 .font(.system(size: 18, weight: .semibold))
-                                .foregroundColor(AppTheme.Colors.brand)
+                                .foregroundColor(roastMode ? AppTheme.Colors.roastAccent : AppTheme.Colors.primaryAction)
                                 .frame(width: 24)
                             
                             Text("BitBuddy")
@@ -488,14 +494,16 @@ struct ModernMenuItem: View {
 
     private var label: String   { roastMode ? screen.roastName  : screen.rawValue }
     private var icon: String    { roastMode ? screen.roastIcon  : screen.icon }
-    private var accent: Color   { roastMode ? screen.roastColor : screen.color }
+    // Use unified primary action for selected, per-screen accent for icon only
+    private var iconAccent: Color { roastMode ? screen.roastColor : screen.color }
+    private var selectedAccent: Color { roastMode ? AppTheme.Colors.roastAccent : AppTheme.Colors.primaryAction }
 
     var body: some View {
         Button(action: action) {
             HStack(spacing: 14) {
                 Image(systemName: icon)
                     .font(.system(size: 18, weight: .semibold))
-                    .foregroundColor(accent)
+                    .foregroundColor(isSelected ? selectedAccent : iconAccent)
                     .frame(width: 24)
 
                 Text(label)
@@ -508,7 +516,7 @@ struct ModernMenuItem: View {
 
                 if isSelected {
                     Circle()
-                        .fill(accent.opacity(0.25))
+                        .fill(selectedAccent)
                         .frame(width: 6, height: 6)
                 }
             }
@@ -517,7 +525,7 @@ struct ModernMenuItem: View {
             .background(
                 RoundedRectangle(cornerRadius: AppTheme.Radius.medium, style: .continuous)
                     .fill(isSelected
-                        ? accent.opacity(roastMode ? 0.15 : 0.10)
+                        ? selectedAccent.opacity(roastMode ? 0.15 : 0.10)
                         : Color.clear)
             )
         }

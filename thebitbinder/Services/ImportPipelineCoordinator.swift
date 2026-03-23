@@ -3,7 +3,7 @@
 //  thebitbinder
 //
 //  Main coordinator for the multi-stage import pipeline.
-//  Stage 6 (joke extraction) now uses GeminiJokeExtractor.
+//  Handles file type detection, text extraction, and joke extraction.
 //
 
 import Foundation
@@ -80,22 +80,22 @@ final class ImportPipelineCoordinator {
         }
         debugInfo.append("Clean lines: \(cleanedPages.flatMap(\.lines).count)")
 
-        // ── Stage 4: Reassemble plain text for Gemini ─────────────────────────
-        // We merge all clean pages back into one text string so Gemini sees the
-        // full document context rather than fragmented chunks.
+        // ── Stage 4: Reassemble plain text for extraction ─────────────────────────
+        // We merge all clean pages back into one text string so extraction providers
+        // can see the full document context rather than fragmented chunks.
         let fullText = cleanedPages
             .flatMap(\.lines)
             .map(\.normalizedText)
             .joined(separator: "\n")
 
-        debugInfo.append("\n=== Stage 4: AI Joke Extraction (Multi-Provider) ===")
+        debugInfo.append("\n=== Stage 4: Joke Extraction (Multi-Provider) ===")
         let availableAI = AIJokeExtractionManager.shared.availableProviders
-        debugInfo.append("Sending \(fullText.count) chars to AI extraction")
+        debugInfo.append("Sending \(fullText.count) chars to extraction")
         debugInfo.append("Available providers: \(availableAI.map(\.displayName).joined(separator: " → "))")
-        debugInfo.append("Remaining Gemini requests today: \(GeminiJokeExtractor.shared.remainingRequests())")
 
         // ── Stage 5: Multi-provider extraction (with local fallback) ──────
-        let extractionResult = await AIJokeExtractionManager.shared.extractJokesForPipeline(from: fullText)
+        let importToken = AIExtractionToken(caller: "ImportPipelineCoordinator")
+        let extractionResult = await AIJokeExtractionManager.shared.extractJokesForPipeline(from: fullText, token: importToken)
         let geminiJokes = extractionResult.jokes
         let usedLocalFallback = extractionResult.usedLocalFallback
         let providerUsed = extractionResult.providerUsed
@@ -151,7 +151,7 @@ final class ImportPipelineCoordinator {
             extractionDetails:      "Pages: \(extractedPages.count), Lines: \(totalLines)",
             blockSplittingDecisions: [],
             validationDecisions:    [],
-            confidenceCalculations: geminiJokes.map { "AI confidence: \($0.confidence)" }
+            confidenceCalculations: geminiJokes.map { "Confidence: \($0.confidence)" }
         )
 
         print("📊 IMPORT (\(providerUsed)): \(autoSavedJokes.count + reviewQueueJokes.count) jokes processed from \(url.lastPathComponent)")
@@ -160,9 +160,11 @@ final class ImportPipelineCoordinator {
             sourceFile:       url.lastPathComponent,
             autoSavedJokes:   autoSavedJokes,
             reviewQueueJokes: reviewQueueJokes,
-            rejectedBlocks:   [],          // Gemini discards non-jokes; no raw blocks to track
+            rejectedBlocks:   [],          // Providers discard non-jokes; no raw blocks to track
             pipelineStats:    stats,
-            debugInfo:        pipelineDebugInfo
+            debugInfo:        pipelineDebugInfo,
+            providerUsed:     providerUsed,
+            usedLocalFallback: usedLocalFallback
         )
     }
 

@@ -59,9 +59,7 @@ struct BitBuddyChatView: View {
         .background(roastMode ? AppTheme.Colors.roastBackground : AppTheme.Colors.paperCream)
         .navigationTitle(roastMode ? "🔥 BitBuddy" : "BitBuddy")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(roastMode ? AppTheme.Colors.roastSurface : AppTheme.Colors.paperCream, for: .navigationBar)
-        .toolbarBackground(.visible, for: .navigationBar)
-        .toolbarColorScheme(roastMode ? .dark : .light, for: .navigationBar)
+        .bitBinderToolbar(roastMode: roastMode)
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
                 Button("Done") {
@@ -128,19 +126,27 @@ struct BitBuddyChatView: View {
                     .font(.system(size: 22, weight: .bold, design: .serif))
                     .foregroundColor(roastMode ? .white : AppTheme.Colors.inkBlack)
                 
-                Text("Ask me anything about your comedy routine, joke ideas, or how to organize your material.")
+                Text("I can help with your jokes, set lists, brainstorms, recordings, imports, and more — all on-device.")
                     .font(.system(size: 15, design: .serif))
                     .foregroundColor(roastMode ? .white.opacity(0.7) : AppTheme.Colors.textSecondary)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 32)
             }
             
-            // Suggestion chips
+            // Suggestion chips — one per major section
             VStack(spacing: 8) {
-                suggestionChip("analyze: Why do programmers prefer dark mode? Because light attracts bugs.")
-                suggestionChip("improve: I’m on a whiskey diet. I’ve lost three days already.")
-                suggestionChip("premise dating")
-                suggestionChip("style")
+                if roastMode {
+                    suggestionChip("🔥 Give me roast lines for a finance bro")
+                    suggestionChip("🎯 Create a roast target")
+                    suggestionChip("📋 Build a roast set for battle night")
+                    suggestionChip("✂️ Shorten this burn")
+                } else {
+                    suggestionChip("🎭 Analyze this joke: I told my therapist I feel invisible. She said 'Next!'")
+                    suggestionChip("📋 Create a set list for tonight")
+                    suggestionChip("💡 Give me a premise about dating apps")
+                    suggestionChip("⭐ Show me The Hits")
+                    suggestionChip("🎙️ How do recordings work?")
+                }
             }
             .padding(.top, 16)
             
@@ -154,18 +160,22 @@ struct BitBuddyChatView: View {
             inputText = text
         } label: {
             Text(text)
-                .font(.system(size: 14, weight: .medium, design: .serif))
-                .foregroundColor(roastMode ? .white.opacity(0.9) : AppTheme.Colors.inkBlack)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundColor(roastMode ? .white : AppTheme.Colors.inkBlack)
                 .padding(.horizontal, 16)
-                .padding(.vertical, 10)
+                .padding(.vertical, 12)
+                .frame(maxWidth: 280, alignment: .leading)
                 .background(
-                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    RoundedRectangle(cornerRadius: AppTheme.Radius.large, style: .continuous)
                         .fill(roastMode ? AppTheme.Colors.roastCard : AppTheme.Colors.surfaceElevated)
-                        .shadow(color: .black.opacity(0.05), radius: 2, y: 1)
+                        .shadow(color: .black.opacity(0.04), radius: 3, y: 1)
                 )
                 .overlay(
-                    RoundedRectangle(cornerRadius: 20, style: .continuous)
-                        .strokeBorder(roastMode ? AppTheme.Colors.roastAccent.opacity(0.3) : AppTheme.Colors.inkBlue.opacity(0.2), lineWidth: 1)
+                    RoundedRectangle(cornerRadius: AppTheme.Radius.large, style: .continuous)
+                        .strokeBorder(
+                            roastMode ? AppTheme.Colors.roastAccent.opacity(0.25) : AppTheme.Colors.primaryAction.opacity(0.15),
+                            lineWidth: 1
+                        )
                 )
         }
         .buttonStyle(ChipStyle())

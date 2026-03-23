@@ -1,33 +1,33 @@
 //
-//  GroqProvider.swift
+//  ArceeAIProvider.swift
 //  thebitbinder
 //
-//  Groq provider — uses the OpenAI-compatible Chat Completions API.
-//  Groq offers fast inference with generous free tier.
+//  Arcee AI provider — uses Trinity Large Preview (free) via OpenRouter's
+//  OpenAI-compatible Chat Completions API.
 //  No external SDK required.
 //
 
 import Foundation
 
-/// Groq provider using the OpenAI-compatible Chat Completions API.
-final class GroqProvider: AIJokeExtractionProvider {
-    let providerType: AIProviderType = .groq
+/// Arcee AI provider using Trinity Large Preview via OpenRouter.
+final class ArceeAIProvider: AIJokeExtractionProvider {
+    let providerType: AIProviderType = .arceeAI
 
-    private let baseURL = "https://api.groq.com/openai/v1/chat/completions"
+    private let baseURL = "https://openrouter.ai/api/v1/chat/completions"
 
     func isConfigured() -> Bool {
-        AIKeyLoader.loadKey(for: .groq) != nil
+        AIKeyLoader.loadKey(for: .arceeAI) != nil
     }
 
     func extractJokes(from text: String) async throws -> [GeminiExtractedJoke] {
-        guard let apiKey = AIKeyLoader.loadKey(for: .groq) else {
-            throw AIProviderError.keyNotConfigured(.groq)
+        guard let apiKey = AIKeyLoader.loadKey(for: .arceeAI) else {
+            throw AIProviderError.keyNotConfigured(.arceeAI)
         }
 
         let prompt = JokeExtractionPrompt.textPrompt(for: text)
 
         let requestBody: [String: Any] = [
-            "model": AIProviderType.groq.defaultModel,
+            "model": AIProviderType.arceeAI.defaultModel,
             "messages": [
                 ["role": "user", "content": prompt]
             ],
@@ -39,8 +39,9 @@ final class GroqProvider: AIJokeExtractionProvider {
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.setValue("thebitbinder", forHTTPHeaderField: "X-Title")
         request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
-        request.timeoutInterval = 60
+        request.timeoutInterval = 15
 
         let (data, response) = try await URLSession.shared.data(for: request)
 
@@ -48,21 +49,21 @@ final class GroqProvider: AIJokeExtractionProvider {
             if httpResponse.statusCode == 429 {
                 let retryAfter = httpResponse.value(forHTTPHeaderField: "retry-after")
                     .flatMap(Int.init)
-                throw AIProviderError.rateLimited(.groq, retryAfterSeconds: retryAfter)
+                throw AIProviderError.rateLimited(.arceeAI, retryAfterSeconds: retryAfter)
             }
             guard (200...299).contains(httpResponse.statusCode) else {
                 let body = String(data: data, encoding: .utf8) ?? "Unknown error"
-                throw AIProviderError.apiError(.groq, "HTTP \(httpResponse.statusCode): \(body)")
+                throw AIProviderError.apiError(.arceeAI, "HTTP \(httpResponse.statusCode): \(body)")
             }
         }
 
-        // Groq uses OpenAI-compatible response format
+        // OpenRouter uses OpenAI-compatible response format
         guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
               let choices = json["choices"] as? [[String: Any]],
               let firstChoice = choices.first,
               let message = firstChoice["message"] as? [String: Any],
               let content = message["content"] as? String else {
-            throw AIProviderError.apiError(.groq, "Unexpected response format")
+            throw AIProviderError.apiError(.arceeAI, "Unexpected response format")
         }
 
         return try JokeExtractionPrompt.parseResponse(content)

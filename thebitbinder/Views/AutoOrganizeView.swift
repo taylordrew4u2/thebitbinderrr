@@ -57,7 +57,7 @@ struct AutoOrganizeView: View {
                                         VStack(alignment: .leading, spacing: 2) {
                                             Text("Setup Folders First")
                                                 .font(.headline)
-                                            Text("Create folders or let AI suggest them")
+                                            Text("Create folders or let us suggest them")
                                                 .font(.caption)
                                                 .foregroundColor(.white.opacity(0.8))
                                         }
@@ -153,7 +153,7 @@ struct AutoOrganizeView: View {
                             VStack(spacing: 12) {
                                 Image(systemName: "checkmark.circle.fill")
                                     .font(.system(size: 50))
-                                    .foregroundColor(.green)
+                                    .foregroundColor(AppTheme.Colors.success)
                                 Text("All Jokes Organized!")
                                     .font(.headline)
                                 Text("Your jokes have been sorted into categories with confidence scoring")
@@ -192,7 +192,7 @@ struct AutoOrganizeView: View {
                                         }
                                         Spacer()
                                         Image(systemName: "folder.fill")
-                                            .foregroundColor(.blue)
+                                            .foregroundColor(AppTheme.Colors.primaryAction)
                                             .opacity(0.6)
                                     }
                                     .padding()
@@ -220,7 +220,7 @@ struct AutoOrganizeView: View {
                     VStack(spacing: 12) {
                         Image(systemName: "checkmark.circle.fill")
                             .font(.system(size: 60))
-                            .foregroundColor(.green)
+                            .foregroundColor(AppTheme.Colors.success)
                         
                         Text("Auto-Organization Complete!")
                             .font(.title2.bold())
@@ -243,10 +243,10 @@ struct AutoOrganizeView: View {
                             }
                         }
                         .padding()
-                        .background(Color(.systemGray6))
+                        .background(AppTheme.Colors.surfaceElevated)
                         .cornerRadius(8)
                         
-                        Text("Your jokes have been analyzed by AI and categorized automatically.")
+                        Text("Your jokes have been analyzed and categorized automatically.")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                             .multilineTextAlignment(.center)
@@ -258,7 +258,7 @@ struct AutoOrganizeView: View {
                         Text("Done")
                             .frame(maxWidth: .infinity)
                             .padding()
-                            .background(Color.blue)
+                            .background(AppTheme.Colors.primaryAction)
                             .foregroundColor(.white)
                             .cornerRadius(8)
                     }
@@ -305,7 +305,9 @@ struct AutoOrganizeView: View {
         
         Task {
             do {
+                #if DEBUG
                 print("🎭 Starting analysis of \(unorganizedJokes.count) jokes...")
+                #endif
                 
                 let availableFolders = customFolders.isEmpty ? nil : customFolders
                 
@@ -331,7 +333,9 @@ struct AutoOrganizeView: View {
                     }
                     
                     joke.folder = targetFolder
+                    #if DEBUG
                     print("🎭 Analyzed \(analysisProgress)/\(analysisTotal): \(analysis.category)")
+                    #endif
                 }
                 
                 try modelContext.save()
@@ -420,7 +424,7 @@ struct JokeOrganizationCard: View {
                             Text(suggestion.category)
                                 .font(.subheadline)
                                 .fontWeight(.semibold)
-                                .foregroundColor(.blue)
+                                .foregroundColor(AppTheme.Colors.primaryAction)
                             
                             Text(suggestion.reasoning)
                                 .font(.caption)
@@ -452,7 +456,7 @@ struct JokeOrganizationCard: View {
                             .foregroundColor(.white)
                             .padding(.horizontal, 12)
                             .padding(.vertical, 6)
-                            .background(Color.green)
+                            .background(AppTheme.Colors.success)
                             .cornerRadius(6)
                         }
                         
@@ -463,10 +467,10 @@ struct JokeOrganizationCard: View {
                             }
                             .font(.caption)
                             .fontWeight(.semibold)
-                            .foregroundColor(.blue)
+                            .foregroundColor(AppTheme.Colors.primaryAction)
                             .padding(.horizontal, 12)
                             .padding(.vertical, 6)
-                            .background(Color.blue.opacity(0.1))
+                            .background(AppTheme.Colors.primaryAction.opacity(0.1))
                             .cornerRadius(6)
                         }
                         
@@ -474,7 +478,7 @@ struct JokeOrganizationCard: View {
                     }
                 }
                 .padding(12)
-                .background(Color.blue.opacity(0.05))
+                .background(AppTheme.Colors.primaryAction.opacity(0.05))
                 .cornerRadius(8)
             } else {
                 // No suggestion available
@@ -490,15 +494,15 @@ struct JokeOrganizationCard: View {
                         }
                         .font(.caption)
                         .fontWeight(.semibold)
-                        .foregroundColor(.blue)
+                        .foregroundColor(AppTheme.Colors.primaryAction)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 6)
-                        .background(Color.blue.opacity(0.1))
+                        .background(AppTheme.Colors.primaryAction.opacity(0.1))
                         .cornerRadius(6)
                     }
                 }
                 .padding(12)
-                .background(Color.orange.opacity(0.05))
+                .background(AppTheme.Colors.warning.opacity(0.05))
                 .cornerRadius(8)
             }
         }
@@ -585,10 +589,10 @@ struct CategorySuggestionDetail: View {
                                         Wrap(match.matchedKeywords) { keyword in
                                             Text(keyword)
                                                 .font(.caption)
-                                                .foregroundColor(.blue)
+                                                .foregroundColor(AppTheme.Colors.primaryAction)
                                                 .padding(.horizontal, 8)
                                                 .padding(.vertical, 4)
-                                                .background(Color.blue.opacity(0.1))
+                                                .background(AppTheme.Colors.primaryAction.opacity(0.1))
                                                 .cornerRadius(4)
                                         }
                                     }
@@ -615,7 +619,7 @@ struct CategorySuggestionDetail: View {
                             }) {
                                 Image(systemName: "plus.circle.fill")
                                     .font(.title2)
-                                    .foregroundColor(.blue)
+                                    .foregroundColor(AppTheme.Colors.primaryAction)
                             }
                         }
                         .padding(.horizontal)
@@ -721,7 +725,7 @@ struct FolderSetupView: View {
                                 ProgressView()
                             } else {
                                 Image(systemName: "sparkles")
-                                    .foregroundColor(.purple)
+                                    .foregroundColor(AppTheme.Colors.primaryAction)
                             }
                             
                             VStack(alignment: .leading, spacing: 2) {
@@ -741,12 +745,12 @@ struct FolderSetupView: View {
                         ForEach(suggestedFolders, id: \.self) { folder in
                             HStack {
                                 Image(systemName: "folder.badge.plus")
-                                    .foregroundColor(.purple)
+                                    .foregroundColor(AppTheme.Colors.primaryAction)
                                 Text(folder)
                                 Spacer()
                                 if customFolders.contains(folder) {
                                     Image(systemName: "checkmark.circle.fill")
-                                        .foregroundColor(.green)
+                                        .foregroundColor(AppTheme.Colors.success)
                                 } else {
                                     Button("Add") {
                                         if !customFolders.contains(folder) {
@@ -766,7 +770,7 @@ struct FolderSetupView: View {
                                 }
                             }
                         }
-                        .foregroundColor(.purple)
+                        .foregroundColor(AppTheme.Colors.primaryAction)
                     }
                 } header: {
                     Text("Smart Suggestions")
@@ -780,7 +784,7 @@ struct FolderSetupView: View {
                         TextField("New folder name...", text: $newFolderName)
                         Button(action: addCustomFolder) {
                             Image(systemName: "plus.circle.fill")
-                                .foregroundColor(.blue)
+                                .foregroundColor(AppTheme.Colors.primaryAction)
                         }
                         .disabled(newFolderName.trimmingCharacters(in: .whitespaces).isEmpty)
                     }
@@ -794,7 +798,7 @@ struct FolderSetupView: View {
                         ForEach(customFolders, id: \.self) { folder in
                             HStack {
                                 Image(systemName: "folder.fill")
-                                    .foregroundColor(.blue)
+                                    .foregroundColor(AppTheme.Colors.primaryAction)
                                 Text(folder)
                                 Spacer()
                             }
@@ -816,7 +820,7 @@ struct FolderSetupView: View {
                                 Spacer()
                                 if customFolders.contains(folder) {
                                     Image(systemName: "checkmark.circle.fill")
-                                        .foregroundColor(.green)
+                                        .foregroundColor(AppTheme.Colors.success)
                                 } else {
                                     Button("Use") {
                                         if !customFolders.contains(folder) {

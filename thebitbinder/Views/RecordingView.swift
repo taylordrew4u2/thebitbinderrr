@@ -36,7 +36,7 @@ struct RecordingView: View {
                         HStack(spacing: 8) {
                             if recordingService.isRecording {
                                 Circle()
-                                    .fill(Color.red)
+                                    .fill(AppTheme.Colors.recordingsAccent)
                                     .frame(width: 12, height: 12)
                                     .opacity(0.8)
                                     .scaleEffect(1.1)
@@ -53,7 +53,7 @@ struct RecordingView: View {
                             Text(timeString(from: recordingService.recordingTime))
                                 .font(.system(.title3, design: .monospaced))
                                 .fontWeight(.bold)
-                                .foregroundColor(.red)
+                                .foregroundColor(AppTheme.Colors.recordingsAccent)
                         }
                     }
                     
@@ -97,7 +97,7 @@ struct RecordingView: View {
                                             
                                             if index == currentJokeIndex {
                                                 Image(systemName: "checkmark.circle.fill")
-                                                    .foregroundColor(.blue)
+                                                    .foregroundColor(AppTheme.Colors.primaryAction)
                                             }
                                         }
                                         
@@ -107,7 +107,7 @@ struct RecordingView: View {
                                             .padding(.leading, 38)
                                     }
                                     .padding()
-                                    .background(index == currentJokeIndex ? Color.blue.opacity(0.1) : Color.clear)
+                                    .background(index == currentJokeIndex ? AppTheme.Colors.primaryAction.opacity(0.1) : Color.clear)
                                     .cornerRadius(8)
                                     .onTapGesture {
                                         currentJokeIndex = index
@@ -164,7 +164,7 @@ struct RecordingView: View {
                                         Text("View All")
                                             .font(.caption)
                                     }
-                                    .foregroundColor(.blue)
+                                    .foregroundColor(AppTheme.Colors.primaryAction)
                                 }
                                 
                                 Spacer()
@@ -196,7 +196,7 @@ struct RecordingView: View {
                             .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
                             .padding()
-                            .background(Color.red)
+                            .background(AppTheme.Colors.recordingsAccent)
                             .cornerRadius(12)
                         }
                         .disabled(setListJokes.isEmpty)
@@ -210,7 +210,7 @@ struct RecordingView: View {
                             .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
                             .padding()
-                            .background(Color.red)
+                            .background(AppTheme.Colors.recordingsAccent)
                             .cornerRadius(12)
                         }
                     }

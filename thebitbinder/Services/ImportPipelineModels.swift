@@ -184,6 +184,10 @@ struct ImportPipelineResult {
     let rejectedBlocks: [LayoutBlock]           // Not jokes, don't save
     let pipelineStats: PipelineStats
     let debugInfo: PipelineDebugInfo?
+    /// Which provider was used (e.g., OpenAI, Arcee, OpenRouter, or Local Extraction)
+    let providerUsed: String
+    /// True when all providers failed and we fell back to local extraction
+    let usedLocalFallback: Bool
 }
 
 struct PipelineStats {
