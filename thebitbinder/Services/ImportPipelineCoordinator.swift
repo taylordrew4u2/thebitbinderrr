@@ -88,31 +88,26 @@ final class ImportPipelineCoordinator {
             .map(\.normalizedText)
             .joined(separator: "\n")
 
-        debugInfo.append("\n=== Stage 4: Gemini Joke Extraction ===")
-        debugInfo.append("Sending \(fullText.count) chars to Gemini 2.0 Flash")
+        debugInfo.append("\n=== Stage 4: AI Joke Extraction (Multi-Provider) ===")
+        let availableAI = AIJokeExtractionManager.shared.availableProviders
+        debugInfo.append("Sending \(fullText.count) chars to AI extraction")
+        debugInfo.append("Available providers: \(availableAI.map(\.displayName).joined(separator: " → "))")
         debugInfo.append("Remaining Gemini requests today: \(GeminiJokeExtractor.shared.remainingRequests())")
 
-        // ── Stage 5: Gemini extraction (with local fallback) ──────────────
-        let geminiJokes: [GeminiExtractedJoke]
-        var usedLocalFallback = false
-        do {
-            geminiJokes = try await GeminiJokeExtractor.shared.extract(from: fullText)
-        } catch let rateLimitError as GeminiRateLimitError {
-            switch rateLimitError {
-            case .dailyLimitReached, .keyNotConfigured:
-                // Fall back to local rule-based extraction instead of failing
-                debugInfo.append("⚠️ Gemini unavailable: \(rateLimitError.localizedDescription)")
-                debugInfo.append("🔄 Falling back to local rule-based extraction...")
-                geminiJokes = LocalJokeExtractor.shared.extract(from: fullText)
-                usedLocalFallback = true
-                debugInfo.append("Local extractor returned \(geminiJokes.count) potential joke(s)")
-            default:
-                debugInfo.append("⚠️ Gemini error: \(rateLimitError.localizedDescription)")
-                throw rateLimitError
-            }
+        // ── Stage 5: Multi-provider extraction (with local fallback) ──────
+        let extractionResult = await AIJokeExtractionManager.shared.extractJokesForPipeline(from: fullText)
+        let geminiJokes = extractionResult.jokes
+        let usedLocalFallback = extractionResult.usedLocalFallback
+        let providerUsed = extractionResult.providerUsed
+
+        if usedLocalFallback {
+            debugInfo.append("⚠️ All AI providers unavailable — used local rule-based extraction")
+            debugInfo.append("Local extractor returned \(geminiJokes.count) potential joke(s)")
+        } else {
+            debugInfo.append("✅ Extracted \(geminiJokes.count) joke(s) via \(providerUsed)")
         }
 
-        debugInfo.append("Extracted \(geminiJokes.count) joke(s)\(usedLocalFallback ? " (local fallback)" : " (Gemini)")")
+        debugInfo.append("Extracted \(geminiJokes.count) joke(s) (\(providerUsed))")
 
         // ── Stage 6: Map into ImportedJoke ────────────────────────────────────
         let importTimestamp = Date()
@@ -156,10 +151,10 @@ final class ImportPipelineCoordinator {
             extractionDetails:      "Pages: \(extractedPages.count), Lines: \(totalLines)",
             blockSplittingDecisions: [],
             validationDecisions:    [],
-            confidenceCalculations: geminiJokes.map { "Gemini confidence: \($0.confidence)" }
+            confidenceCalculations: geminiJokes.map { "AI confidence: \($0.confidence)" }
         )
 
-        print("📊 IMPORT (Gemini): \(autoSavedJokes.count + reviewQueueJokes.count) jokes processed from \(url.lastPathComponent)")
+        print("📊 IMPORT (\(providerUsed)): \(autoSavedJokes.count + reviewQueueJokes.count) jokes processed from \(url.lastPathComponent)")
 
         return ImportPipelineResult(
             sourceFile:       url.lastPathComponent,

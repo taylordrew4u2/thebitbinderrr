@@ -19,3 +19,8 @@ DerivedData/
 
 # Secrets – never commit real API keys
 Secrets.plist
+OpenAI-Secrets.plist
+Anthropic-Secrets.plist
+Groq-Secrets.plist
+DeepSeek-Secrets.plist
+*-Secrets.plist

@@ -153,6 +153,29 @@ struct SettingsView: View {
                     Text("iCloud backs up jokes, roasts, recordings, and photos. Background sync runs periodically when the app is closed, but iOS may delay it to save battery.")
                 }
                 
+                // MARK: - AI API Keys
+                Section {
+                    NavigationLink(destination: AIProviderSettingsView()) {
+                        Label {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("AI API Keys")
+                                    .foregroundColor(.primary)
+                                let count = AIJokeExtractionManager.shared.availableProviders.count
+                                Text(count > 0 ? "\(count) provider\(count == 1 ? "" : "s") configured" : "Set up smart joke import")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                        } icon: {
+                            Image(systemName: "brain.head.profile")
+                                .foregroundColor(.purple)
+                        }
+                    }
+                } header: {
+                    Text("GagGrabber AI")
+                } footer: {
+                    Text("Add multiple AI API keys so GagGrabber can fall back to another provider when one runs out of free-tier requests.")
+                }
+                
                 // MARK: - Data Safety
                 Section {
                     NavigationLink(destination: DataSafetyView()) {
@@ -538,13 +561,17 @@ struct SettingsView: View {
             try? fm.removeItem(at: exportFolder)
             
             if let error = archiveError {
-                print("❌ Audio archive error: \(error)")
+                    #if DEBUG
+                    print("❌ Audio archive error: \(error)")
+                    #endif
                 return nil
             }
             
             return resultURL
         } catch {
+            #if DEBUG
             print("❌ Audio export error: \(error)")
+            #endif
             return nil
         }
     }
