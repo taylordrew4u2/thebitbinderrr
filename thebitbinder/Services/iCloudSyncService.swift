@@ -189,19 +189,34 @@ final class iCloudSyncService: NSObject, ObservableObject {
     
     // MARK: - Sync Thoughts (Notepad)
     
+    /// Stable record name used for upsert — one record per user, always updated in place.
+    private let thoughtsRecordName = "BitBinder_UserThoughts_v1"
+    
     func syncThoughts(_ content: String) async {
         guard isSyncEnabled else { return }
         
         // Save to iCloud KV store for sync
         kvStore.set(content, forKey: SyncedKeys.notepadText)
         
-        // Also save to CloudKit for true cloud backup
+        // Also save to CloudKit for true cloud backup.
+        // Use a stable record ID so each save updates the same record instead of
+        // creating a new one — prevents accumulation of duplicate "Thoughts" records.
         do {
-            let record = CKRecord(recordType: "Thoughts")
+            let recordID = CKRecord.ID(recordName: thoughtsRecordName)
+            let database = container.privateCloudDatabase
+            
+            // Attempt to fetch the existing record first so we can update it.
+            let record: CKRecord
+            do {
+                record = try await database.record(for: recordID)
+            } catch let ckError as CKError where ckError.code == .unknownItem {
+                // Record doesn't exist yet — create it with the stable ID
+                record = CKRecord(recordType: "Thoughts", recordID: recordID)
+            }
+            
             record["content"] = content
             record["timestamp"] = Date()
             
-            let database = container.privateCloudDatabase
             _ = try await database.save(record)
             print("✅ Thoughts synced to iCloud")
         } catch {
@@ -213,19 +228,17 @@ final class iCloudSyncService: NSObject, ObservableObject {
         guard isSyncEnabled else { return nil }
         
         do {
+            let recordID = CKRecord.ID(recordName: thoughtsRecordName)
             let database = container.privateCloudDatabase
-            let query = CKQuery(recordType: "Thoughts", predicate: NSPredicate(value: true))
-            query.sortDescriptors = [NSSortDescriptor(key: "timestamp", ascending: false)]
-            
-            let results = try await database.records(matching: query)
-            if let latestRecord = try results.matchResults.first?.1.get() {
-                return latestRecord["content"] as? String
-            }
+            let record = try await database.record(for: recordID)
+            return record["content"] as? String
+        } catch let error as CKError where error.code == .unknownItem {
+            // No thoughts record yet — that's fine
+            return nil
         } catch {
             print("❌ Failed to fetch thoughts: \(error)")
+            return nil
         }
-        
-        return nil
     }
     
     // MARK: - Manual Sync Trigger

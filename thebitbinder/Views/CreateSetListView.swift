@@ -50,7 +50,11 @@ struct CreateSetListView: View {
     private func createSetList() {
         let setList = SetList(name: name)
         modelContext.insert(setList)
-        try? modelContext.save()
+        do {
+            try modelContext.save()
+        } catch {
+            print("❌ [CreateSetListView] Failed to save new set list: \(error)")
+        }
         dismiss()
     }
 }

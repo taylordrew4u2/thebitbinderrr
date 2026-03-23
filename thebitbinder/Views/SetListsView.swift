@@ -15,6 +15,7 @@ struct SetListsView: View {
     
     @State private var showingCreateSetList = false
     @State private var searchText = ""
+    @State private var setListToDelete: SetList?
     
     var filteredSetLists: [SetList] {
         if searchText.isEmpty {
@@ -43,8 +44,14 @@ struct SetListsView: View {
                             NavigationLink(value: setList) {
                                 SetListRowView(setList: setList)
                             }
+                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                Button(role: .destructive) {
+                                    setListToDelete = setList
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
+                            }
                         }
-                        .onDelete(perform: deleteSetLists)
                     }
                     .listStyle(.plain)
                 }
@@ -66,6 +73,27 @@ struct SetListsView: View {
             }
             .sheet(isPresented: $showingCreateSetList) {
                 CreateSetListView()
+            }
+            .alert("Delete Set List?", isPresented: Binding(
+                get: { setListToDelete != nil },
+                set: { if !$0 { setListToDelete = nil } }
+            )) {
+                Button("Cancel", role: .cancel) { setListToDelete = nil }
+                Button("Delete", role: .destructive) {
+                    if let setList = setListToDelete {
+                        modelContext.delete(setList)
+                        do {
+                            try modelContext.save()
+                        } catch {
+                            print("❌ [SetListsView] Failed to save after set list deletion: \(error)")
+                        }
+                        setListToDelete = nil
+                    }
+                }
+            } message: {
+                if let setList = setListToDelete {
+                    Text(""\(setList.name)" will be permanently deleted. Your jokes will not be affected.")
+                }
             }
         }
     }

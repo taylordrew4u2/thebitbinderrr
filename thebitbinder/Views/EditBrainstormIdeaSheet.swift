@@ -15,6 +15,7 @@ struct EditBrainstormIdeaSheet: View {
 
     @Bindable var idea: BrainstormIdea
     @State private var content: String = ""
+    @State private var showingDeleteConfirmation = false
 
     var body: some View {
         NavigationStack {
@@ -53,8 +54,7 @@ struct EditBrainstormIdeaSheet: View {
 
                     // Delete button
                     Button(role: .destructive) {
-                        modelContext.delete(idea)
-                        dismiss()
+                        showingDeleteConfirmation = true
                     } label: {
                         Label("Delete Thought", systemImage: "trash")
                             .font(.system(size: 15, weight: .medium))
@@ -85,13 +85,31 @@ struct EditBrainstormIdeaSheet: View {
         .presentationDetents([.medium])
         .presentationDragIndicator(.visible)
         .onAppear { content = idea.content }
+        .alert("Delete This Thought?", isPresented: $showingDeleteConfirmation) {
+            Button("Cancel", role: .cancel) {}
+            Button("Delete", role: .destructive) {
+                modelContext.delete(idea)
+                do {
+                    try modelContext.save()
+                } catch {
+                    print("❌ [EditBrainstormIdeaSheet] Failed to save after idea deletion: \(error)")
+                }
+                dismiss()
+            }
+        } message: {
+            Text("This thought will be permanently deleted and cannot be recovered.")
+        }
     }
 
     private func saveChanges() {
         let trimmed = content.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
         idea.content = trimmed
-        try? modelContext.save()
+        do {
+            try modelContext.save()
+        } catch {
+            print("❌ [EditBrainstormIdeaSheet] Failed to save idea changes: \(error)")
+        }
         dismiss()
     }
 }

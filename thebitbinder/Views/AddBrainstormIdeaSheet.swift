@@ -84,7 +84,11 @@ struct AddBrainstormIdeaSheet: View {
         guard !trimmed.isEmpty else { return }
         let idea = BrainstormIdea(content: trimmed, colorHex: BrainstormIdea.randomColor(), isVoiceNote: isVoiceNote)
         modelContext.insert(idea)
-        try? modelContext.save()
+        do {
+            try modelContext.save()
+        } catch {
+            print("❌ [AddBrainstormIdeaSheet] Failed to save new idea: \(error)")
+        }
         dismiss()
     }
 }

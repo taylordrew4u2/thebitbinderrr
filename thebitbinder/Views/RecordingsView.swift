@@ -16,6 +16,7 @@ struct RecordingsView: View {
 
     @State private var searchText = ""
     @State private var showingQuickRecord = false
+    @State private var recordingToDelete: Recording?
     
     var filteredRecordings: [Recording] {
         if searchText.isEmpty {
@@ -48,8 +49,14 @@ struct RecordingsView: View {
                             NavigationLink(destination: RecordingDetailView(recording: recording)) {
                                 RecordingRowView(recording: recording)
                             }
+                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                Button(role: .destructive) {
+                                    recordingToDelete = recording
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
+                            }
                         }
-                        .onDelete(perform: deleteRecordings)
                     }
                     .listStyle(.plain)
                 }
@@ -72,24 +79,47 @@ struct RecordingsView: View {
             .sheet(isPresented: $showingQuickRecord) {
                 StandaloneRecordingView()
             }
+            .alert("Delete Recording?", isPresented: Binding(
+                get: { recordingToDelete != nil },
+                set: { if !$0 { recordingToDelete = nil } }
+            )) {
+                Button("Cancel", role: .cancel) { recordingToDelete = nil }
+                Button("Delete", role: .destructive) {
+                    if let recording = recordingToDelete {
+                        deleteRecording(recording)
+                        recordingToDelete = nil
+                    }
+                }
+            } message: {
+                if let recording = recordingToDelete {
+                    Text(""\(recording.title)" will be permanently deleted along with its audio file. This cannot be undone.")
+                }
+            }
         }
     }
     
-    private func deleteRecordings(at offsets: IndexSet) {
-        for index in offsets {
-            let recording = filteredRecordings[index]
-            
-            // Determine the actual file URL (handle both relative and absolute paths)
-            var fileURL: URL
-            if recording.fileURL.hasPrefix("/") {
-                fileURL = URL(fileURLWithPath: recording.fileURL)
-            } else {
-                let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-                fileURL = documentsPath.appendingPathComponent(recording.fileURL)
+    private func deleteRecording(_ recording: Recording) {
+        var fileURL: URL
+        if recording.fileURL.hasPrefix("/") {
+            fileURL = URL(fileURLWithPath: recording.fileURL)
+        } else {
+            let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            fileURL = documentsPath.appendingPathComponent(recording.fileURL)
+        }
+        
+        if FileManager.default.fileExists(atPath: fileURL.path) {
+            do {
+                try FileManager.default.removeItem(at: fileURL)
+            } catch {
+                print("⚠️ [RecordingsView] Failed to delete audio file '\(fileURL.lastPathComponent)': \(error)")
             }
-            
-            try? FileManager.default.removeItem(at: fileURL)
-            modelContext.delete(recording)
+        }
+        
+        modelContext.delete(recording)
+        do {
+            try modelContext.save()
+        } catch {
+            print("❌ [RecordingsView] Failed to save after recording deletion: \(error)")
         }
     }
 }

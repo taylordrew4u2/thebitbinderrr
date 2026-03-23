@@ -26,6 +26,8 @@ struct BrainstormView: View {
     // Batch select/delete mode
     @State private var isSelectMode = false
     @State private var selectedIdeaIDs: Set<UUID> = []
+    @State private var ideaToDelete: BrainstormIdea?
+    @State private var showingBatchDeleteConfirmation = false
     
     // Grid columns based on scale
     private var columns: [GridItem] {
@@ -138,6 +140,33 @@ struct BrainstormView: View {
             } message: {
                 Text("Please enable microphone access in Settings to use voice recording.")
             }
+            .alert("Delete This Thought?", isPresented: Binding(
+                get: { ideaToDelete != nil },
+                set: { if !$0 { ideaToDelete = nil } }
+            )) {
+                Button("Cancel", role: .cancel) { ideaToDelete = nil }
+                Button("Delete", role: .destructive) {
+                    if let idea = ideaToDelete {
+                        withAnimation { modelContext.delete(idea) }
+                        do {
+                            try modelContext.save()
+                        } catch {
+                            print("❌ [BrainstormView] Failed to save after idea deletion: \(error)")
+                        }
+                        ideaToDelete = nil
+                    }
+                }
+            } message: {
+                Text("This thought will be permanently deleted and cannot be recovered.")
+            }
+            .alert("Delete \(selectedIdeaIDs.count) Thought\(selectedIdeaIDs.count == 1 ? "" : "s")?", isPresented: $showingBatchDeleteConfirmation) {
+                Button("Cancel", role: .cancel) {}
+                Button("Delete", role: .destructive) {
+                    performBatchDelete()
+                }
+            } message: {
+                Text("These thoughts will be permanently deleted and cannot be recovered.")
+            }
         }
         .tint(roastMode ? AppTheme.Colors.roastAccent : AppTheme.Colors.inkBlue)
         .onChange(of: speechManager.isRecording) { oldValue, newValue in
@@ -213,9 +242,7 @@ struct BrainstormView: View {
                                 Divider()
                                 
                                 Button(role: .destructive) {
-                                    withAnimation {
-                                        modelContext.delete(idea)
-                                    }
+                                    ideaToDelete = idea
                                 } label: {
                                     Label("Delete", systemImage: "trash")
                                 }
@@ -273,7 +300,7 @@ struct BrainstormView: View {
             Spacer()
             
             Button(role: .destructive) {
-                batchDeleteSelectedIdeas()
+                showingBatchDeleteConfirmation = true
             } label: {
                 Label("Delete", systemImage: "trash")
                     .font(.subheadline.bold())
@@ -305,14 +332,18 @@ struct BrainstormView: View {
         }
     }
     
-    private func batchDeleteSelectedIdeas() {
+    private func performBatchDelete() {
         withAnimation {
             for idea in ideas where selectedIdeaIDs.contains(idea.id) {
                 modelContext.delete(idea)
             }
             selectedIdeaIDs.removeAll()
             isSelectMode = false
-            try? modelContext.save()
+            do {
+                try modelContext.save()
+            } catch {
+                print("❌ [BrainstormView] Failed to save after batch delete: \(error)")
+            }
         }
     }
     
@@ -375,7 +406,11 @@ struct BrainstormView: View {
                 isVoiceNote: true
             )
             modelContext.insert(newIdea)
-            try? modelContext.save()
+            do {
+                try modelContext.save()
+            } catch {
+                print("❌ [BrainstormView] Failed to save voice note idea: \(error)")
+            }
             speechManager.transcribedText = ""
         }
         
@@ -395,12 +430,25 @@ struct BrainstormView: View {
         
         modelContext.insert(joke)
         
-        // Optionally delete the original idea
+        do {
+            try modelContext.save()
+        } catch {
+            // Save failed — remove the unsaved joke to avoid a phantom entry
+            modelContext.delete(joke)
+            print("❌ [BrainstormView] Failed to save promoted joke: \(error)")
+            return
+        }
+        
+        // Only delete the idea after the joke is confirmed saved
         withAnimation {
             modelContext.delete(idea)
         }
         
-        try? modelContext.save()
+        do {
+            try modelContext.save()
+        } catch {
+            print("⚠️ [BrainstormView] Joke saved but failed to delete original idea: \(error)")
+        }
         
         // Notify user with haptic feedback
         let generator = UINotificationFeedbackGenerator()

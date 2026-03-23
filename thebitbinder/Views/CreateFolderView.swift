@@ -50,7 +50,11 @@ struct CreateFolderView: View {
     private func createFolder() {
         let folder = JokeFolder(name: folderName)
         modelContext.insert(folder)
-        try? modelContext.save()
+        do {
+            try modelContext.save()
+        } catch {
+            print("❌ [CreateFolderView] Failed to save new folder: \(error)")
+        }
         dismiss()
     }
 }

@@ -23,6 +23,7 @@ struct RoastTargetDetailView: View {
     @State private var showingRecordingSheet = false
     @State private var showingDeleteTargetAlert = false
     @State private var searchText = ""
+    @State private var roastToDelete: RoastJoke?
 
     private let accentColor = AppTheme.Colors.roastAccent
 
@@ -115,8 +116,14 @@ struct RoastTargetDetailView: View {
                             RoastJokeRow(joke: joke)
                         }
                         .buttonStyle(.plain)
+                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                            Button(role: .destructive) {
+                                roastToDelete = joke
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
+                        }
                     }
-                    .onDelete(perform: deleteRoasts)
                 }
                 .listStyle(.plain)
             }
@@ -172,6 +179,25 @@ struct RoastTargetDetailView: View {
             }
         } message: {
             Text("This will permanently delete \(target.name) and all \(target.jokeCount) roast\(target.jokeCount == 1 ? "" : "s"). This cannot be undone.")
+        }
+        .alert("Delete Roast?", isPresented: Binding(
+            get: { roastToDelete != nil },
+            set: { if !$0 { roastToDelete = nil } }
+        )) {
+            Button("Cancel", role: .cancel) { roastToDelete = nil }
+            Button("Delete", role: .destructive) {
+                if let joke = roastToDelete {
+                    modelContext.delete(joke)
+                    do {
+                        try modelContext.save()
+                    } catch {
+                        print("❌ [RoastTargetDetailView] Failed to persist roast deletion: \(error)")
+                    }
+                    roastToDelete = nil
+                }
+            }
+        } message: {
+            Text("This roast will be permanently deleted and cannot be recovered.")
         }
         .sheet(isPresented: $showingAddRoast) {
             AddRoastJokeView(target: target)

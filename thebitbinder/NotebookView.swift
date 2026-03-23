@@ -19,11 +19,16 @@ struct NotebookView: View {
     @State private var pickedPhotoItem: PhotosPickerItem?
     @State private var showingCamera = false
     @State private var cameraImage: UIImage?
+    @State private var photoToDelete: NotebookPhotoRecord?
     
     private func delete(_ photo: NotebookPhotoRecord) {
         // Remove from SwiftData (imageData is stored directly, no file to delete)
         modelContext.delete(photo)
-        try? modelContext.save()
+        do {
+            try modelContext.save()
+        } catch {
+            print("❌ [NotebookView] Failed to save after photo deletion: \(error)")
+        }
     }
     
     let columns = [GridItem(.adaptive(minimum: 100), spacing: 16)]
@@ -57,7 +62,7 @@ struct NotebookView: View {
                                         .cornerRadius(8)
                                         .onTapGesture { showingDetail = photo }
                                         .contextMenu {
-                                            Button(role: .destructive) { delete(photo) } label: { Label("Delete", systemImage: "trash") }
+                                            Button(role: .destructive) { photoToDelete = photo } label: { Label("Delete", systemImage: "trash") }
                                         }
                                 } else {
                                     Color.gray
@@ -66,7 +71,7 @@ struct NotebookView: View {
                                         .overlay(Text("No Image").foregroundColor(.white))
                                         .onTapGesture { showingDetail = photo }
                                         .contextMenu {
-                                            Button(role: .destructive) { delete(photo) } label: { Label("Delete", systemImage: "trash") }
+                                            Button(role: .destructive) { photoToDelete = photo } label: { Label("Delete", systemImage: "trash") }
                                         }
                                 }
                             }
@@ -114,6 +119,20 @@ struct NotebookView: View {
                 NotebookDetailView(photo: photo)
                     .environment(\.modelContext, modelContext)
             }
+            .alert("Delete Photo?", isPresented: Binding(
+                get: { photoToDelete != nil },
+                set: { if !$0 { photoToDelete = nil } }
+            )) {
+                Button("Cancel", role: .cancel) { photoToDelete = nil }
+                Button("Delete", role: .destructive) {
+                    if let photo = photoToDelete {
+                        delete(photo)
+                        photoToDelete = nil
+                    }
+                }
+            } message: {
+                Text("This photo will be permanently deleted and cannot be recovered.")
+            }
             .onDisappear {
                 // Memory cleanup handled by MemoryManager
             }
@@ -130,7 +149,11 @@ struct NotebookView: View {
                 let newPhoto = NotebookPhotoRecord(notes: "", imageData: jpegData)
                 await MainActor.run {
                     modelContext.insert(newPhoto)
-                    try? modelContext.save()
+                    do {
+                        try modelContext.save()
+                    } catch {
+                        print("❌ [NotebookView] Failed to save imported photo: \(error)")
+                    }
                 }
             }
         } catch {
@@ -144,7 +167,11 @@ struct NotebookView: View {
             let newPhoto = NotebookPhotoRecord(notes: "", imageData: jpegData)
             await MainActor.run {
                 modelContext.insert(newPhoto)
-                try? modelContext.save()
+                do {
+                    try modelContext.save()
+                } catch {
+                    print("❌ [NotebookView] Failed to save camera photo: \(error)")
+                }
             }
         }
     }
@@ -155,11 +182,16 @@ struct NotebookDetailView: View {
     @Bindable var photo: NotebookPhotoRecord
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
+    @State private var showingDeleteConfirmation = false
     
     private func deleteCurrent() {
         // Delete model and dismiss (imageData stored directly, no file to remove)
         modelContext.delete(photo)
-        try? modelContext.save()
+        do {
+            try modelContext.save()
+        } catch {
+            print("❌ [NotebookDetailView] Failed to save after photo deletion: \(error)")
+        }
         dismiss()
     }
     
@@ -191,7 +223,7 @@ struct NotebookDetailView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button(role: .destructive) {
-                        deleteCurrent()
+                        showingDeleteConfirmation = true
                     } label: {
                         Label("Delete", systemImage: "trash")
                     }
@@ -201,6 +233,14 @@ struct NotebookDetailView: View {
                         dismiss()
                     }
                 }
+            }
+            .alert("Delete Photo?", isPresented: $showingDeleteConfirmation) {
+                Button("Cancel", role: .cancel) {}
+                Button("Delete", role: .destructive) {
+                    deleteCurrent()
+                }
+            } message: {
+                Text("This photo will be permanently deleted and cannot be recovered.")
             }
         }
     }

@@ -70,7 +70,11 @@ struct AddJokeView: View {
     private func saveJoke() {
         let joke = Joke(content: content, title: title, folder: selectedFolder)
         modelContext.insert(joke)
-        try? modelContext.save()
+        do {
+            try modelContext.save()
+        } catch {
+            print("❌ [AddJokeView] Failed to save new joke: \(error)")
+        }
         
         NotificationCenter.default.post(name: .jokeDatabaseDidChange, object: nil)
         
