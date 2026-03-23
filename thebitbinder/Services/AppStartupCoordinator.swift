@@ -94,6 +94,9 @@ final class AppStartupCoordinator: ObservableObject {
         // FIRST: Clean up corrupted CloudKit records (one-time fix)
         await cleanupCorruptedCloudKitRecords()
         
+        // Purge soft-deleted items older than 30 days before validation runs
+        purgeExpiredTrashItems(context: context)
+
         // Perform data validation
         let validation = await dataValidation.validateDataIntegrity(context: context)
         
@@ -135,6 +138,92 @@ final class AppStartupCoordinator: ObservableObject {
         }
     }
     
+    // MARK: - Trash Auto-Purge
+
+    /// Hard-deletes any soft-deleted records whose `deletedDate` is more than 30 days ago.
+    /// Runs once per app launch, before validation, so stale trash doesn't inflate counts.
+    /// Recordings: audio files are deleted before the DB record is removed.
+    private func purgeExpiredTrashItems(context: ModelContext) {
+        let cutoff = Calendar.current.date(byAdding: .day, value: -30, to: Date()) ?? Date()
+        var purgeCount = 0
+
+        // Jokes
+        if let jokes = try? context.fetch(FetchDescriptor<Joke>(
+            predicate: #Predicate { $0.isDeleted == true && ($0.deletedDate ?? .distantFuture) < cutoff }
+        )) {
+            for joke in jokes { context.delete(joke) }
+            purgeCount += jokes.count
+        }
+
+        // BrainstormIdeas
+        if let ideas = try? context.fetch(FetchDescriptor<BrainstormIdea>(
+            predicate: #Predicate { $0.isDeleted == true && ($0.deletedDate ?? .distantFuture) < cutoff }
+        )) {
+            for idea in ideas { context.delete(idea) }
+            purgeCount += ideas.count
+        }
+
+        // SetLists
+        if let setLists = try? context.fetch(FetchDescriptor<SetList>(
+            predicate: #Predicate { $0.isDeleted == true && ($0.deletedDate ?? .distantFuture) < cutoff }
+        )) {
+            for setList in setLists { context.delete(setList) }
+            purgeCount += setLists.count
+        }
+
+        // RoastJokes
+        if let roastJokes = try? context.fetch(FetchDescriptor<RoastJoke>(
+            predicate: #Predicate { $0.isDeleted == true && ($0.deletedDate ?? .distantFuture) < cutoff }
+        )) {
+            for joke in roastJokes { context.delete(joke) }
+            purgeCount += roastJokes.count
+        }
+
+        // NotebookPhotoRecords
+        if let photos = try? context.fetch(FetchDescriptor<NotebookPhotoRecord>(
+            predicate: #Predicate { $0.isDeleted == true && ($0.deletedDate ?? .distantFuture) < cutoff }
+        )) {
+            for photo in photos { context.delete(photo) }
+            purgeCount += photos.count
+        }
+
+        // Recordings — delete audio file first, then DB record
+        if let recordings = try? context.fetch(FetchDescriptor<Recording>(
+            predicate: #Predicate { $0.isDeleted == true && ($0.deletedDate ?? .distantFuture) < cutoff }
+        )) {
+            for recording in recordings {
+                // Resolve audio file URL
+                let fileURL: URL
+                if recording.fileURL.hasPrefix("/") {
+                    fileURL = URL(fileURLWithPath: recording.fileURL)
+                } else {
+                    let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+                    fileURL = docs.appendingPathComponent(recording.fileURL)
+                }
+                if FileManager.default.fileExists(atPath: fileURL.path) {
+                    do {
+                        try FileManager.default.removeItem(at: fileURL)
+                    } catch {
+                        print("⚠️ [AutoPurge] Could not delete audio file '\(fileURL.lastPathComponent)': \(error)")
+                    }
+                }
+                context.delete(recording)
+            }
+            purgeCount += recordings.count
+        }
+
+        if purgeCount > 0 {
+            do {
+                try context.save()
+                print("🗑️ [AutoPurge] Permanently deleted \(purgeCount) item(s) from trash (>30 days old)")
+            } catch {
+                print("❌ [AutoPurge] Failed to save after trash purge: \(error)")
+            }
+        } else {
+            print("✅ [AutoPurge] No expired trash items found")
+        }
+    }
+
     // MARK: - CloudKit Cleanup
     
     /// One-time cleanup for corrupted CloudKit records.

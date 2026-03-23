@@ -15,10 +15,27 @@ final class NotebookPhotoRecord: Identifiable {
     @Attribute(.externalStorage) var imageData: Data?  // Changed from fileURL to imageData (BYTES) per schema
     var dateAdded: Date = Date()  // Renamed from 'createdAt' per CD_NotebookPhotoRecord schema
 
+    // Soft-delete (trash) support
+    var isDeleted: Bool = false
+    var deletedDate: Date?
+
     init(notes: String, imageData: Data? = nil) {
         self.id = UUID()
         self.notes = notes
         self.imageData = imageData
         self.dateAdded = Date()
+    }
+
+    // MARK: - Trash Helpers
+
+    /// Moves this photo to trash. The imageData is kept until permanent deletion.
+    func moveToTrash() {
+        isDeleted = true
+        deletedDate = Date()
+    }
+
+    func restoreFromTrash() {
+        isDeleted = false
+        deletedDate = nil
     }
 }

@@ -66,6 +66,13 @@ struct BrainstormView: View {
                         }
                     }
                 }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    NavigationLink(destination: BrainstormTrashView()) {
+                        Image(systemName: "trash")
+                            .font(.body)
+                            .foregroundStyle(roastMode ? AppTheme.Colors.roastAccent : AppTheme.Colors.inkBlue)
+                    }
+                }
             }
             .safeAreaInset(edge: .bottom) {
                 HStack {

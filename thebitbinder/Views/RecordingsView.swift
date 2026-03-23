@@ -16,6 +16,7 @@ struct RecordingsView: View {
 
     @State private var searchText = ""
     @State private var showingQuickRecord = false
+    @State private var showingTrash = false
     
     var filteredRecordings: [Recording] {
         if searchText.isEmpty {
@@ -59,6 +60,13 @@ struct RecordingsView: View {
             .searchable(text: $searchText, prompt: roastMode ? "Search recordings" : "Search recordings")
             .bitBinderToolbar(roastMode: roastMode)
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    NavigationLink(destination: RecordingTrashView()) {
+                        Image(systemName: "trash")
+                            .font(.body)
+                            .foregroundStyle(roastMode ? AppTheme.Colors.roastAccent : AppTheme.Colors.recordingsAccent)
+                    }
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         showingQuickRecord = true

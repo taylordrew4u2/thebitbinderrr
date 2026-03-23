@@ -11,7 +11,7 @@ extension FileManager {
 
 struct NotebookView: View {
     @Environment(\.modelContext) private var modelContext
-    @Query private var photos: [NotebookPhotoRecord]
+    @Query(filter: #Predicate<NotebookPhotoRecord> { !$0.isDeleted }) private var photos: [NotebookPhotoRecord]
     @AppStorage("roastModeEnabled") private var roastMode = false
 
     @State private var showingDetail: NotebookPhotoRecord?
@@ -21,9 +21,13 @@ struct NotebookView: View {
     @State private var cameraImage: UIImage?
     
     private func delete(_ photo: NotebookPhotoRecord) {
-        // Remove from SwiftData (imageData is stored directly, no file to delete)
-        modelContext.delete(photo)
-        try? modelContext.save()
+        // Soft-delete: imageData kept until permanently purged from NotebookTrashView
+        photo.moveToTrash()
+        do {
+            try modelContext.save()
+        } catch {
+            print("❌ [NotebookView] Failed to save after photo soft-delete: \(error)")
+        }
     }
     
     let columns = [GridItem(.adaptive(minimum: 100), spacing: 16)]
@@ -79,6 +83,13 @@ struct NotebookView: View {
             .navigationBarTitleDisplayMode(.inline)
             .bitBinderToolbar(roastMode: roastMode)
             .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    NavigationLink(destination: NotebookTrashView()) {
+                        Image(systemName: "trash")
+                            .font(.body)
+                            .foregroundStyle(roastMode ? AppTheme.Colors.roastAccent : AppTheme.Colors.notebookAccent)
+                    }
+                }
                 ToolbarItemGroup(placement: .navigationBarTrailing) {
                     PhotosPicker(selection: $pickedPhotoItem,
                                  matching: .images,
@@ -130,7 +141,11 @@ struct NotebookView: View {
                 let newPhoto = NotebookPhotoRecord(notes: "", imageData: jpegData)
                 await MainActor.run {
                     modelContext.insert(newPhoto)
-                    try? modelContext.save()
+                    do {
+                        try modelContext.save()
+                    } catch {
+                        print("❌ [NotebookView] Failed to save imported photo: \(error)")
+                    }
                 }
             }
         } catch {
@@ -144,7 +159,11 @@ struct NotebookView: View {
             let newPhoto = NotebookPhotoRecord(notes: "", imageData: jpegData)
             await MainActor.run {
                 modelContext.insert(newPhoto)
-                try? modelContext.save()
+                do {
+                    try modelContext.save()
+                } catch {
+                    print("❌ [NotebookView] Failed to save camera photo: \(error)")
+                }
             }
         }
     }
@@ -157,9 +176,13 @@ struct NotebookDetailView: View {
     @Environment(\.modelContext) private var modelContext
     
     private func deleteCurrent() {
-        // Delete model and dismiss (imageData stored directly, no file to remove)
-        modelContext.delete(photo)
-        try? modelContext.save()
+        // Soft-delete: imageData kept until permanently purged from NotebookTrashView
+        photo.moveToTrash()
+        do {
+            try modelContext.save()
+        } catch {
+            print("❌ [NotebookDetailView] Failed to save after photo soft-delete: \(error)")
+        }
         dismiss()
     }
     

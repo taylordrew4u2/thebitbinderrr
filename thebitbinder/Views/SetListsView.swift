@@ -57,6 +57,13 @@ struct SetListsView: View {
             .searchable(text: $searchText, prompt: roastMode ? "Search roast sets" : "Search set lists")
             .bitBinderToolbar(roastMode: roastMode)
             .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    NavigationLink(destination: SetListTrashView()) {
+                        Image(systemName: "trash")
+                            .font(.body)
+                            .foregroundStyle(roastMode ? AppTheme.Colors.roastAccent : AppTheme.Colors.inkBlue)
+                    }
+                }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(action: { showingCreateSetList = true }) {
                         Image(systemName: "plus")

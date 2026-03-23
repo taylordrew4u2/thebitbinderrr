@@ -149,6 +149,10 @@ struct RoastTargetDetailView: View {
                         Label("Record Set", systemImage: "record.circle")
                     }
                     Divider()
+                    NavigationLink(destination: RoastJokeTrashView(target: target)) {
+                        Label("Roast Trash", systemImage: "trash")
+                    }
+                    Divider()
                     Button(role: .destructive, action: { showingDeleteTargetAlert = true }) {
                         Label("Delete Target", systemImage: "trash")
                     }
