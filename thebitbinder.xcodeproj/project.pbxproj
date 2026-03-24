@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		BA22E5EC2F732DFC00B9A423 /* Algorithms in Frameworks */ = {isa = PBXBuildFile; productRef = BA22E5EB2F732DFC00B9A423 /* Algorithms */; };
 		BAD6B2CE2F6F753E00A09B53 /* bit.appex in Embed ExtensionKit Extensions */ = {isa = PBXBuildFile; fileRef = BAD6B2C62F6F753E00A09B53 /* bit.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		BAD6B5562F6FCBB600A09B53 /* GoogleGenerativeAI in Frameworks */ = {isa = PBXBuildFile; productRef = BAD6B5552F6FCBB600A09B53 /* GoogleGenerativeAI */; };
 		BAD6B5912F716B2400A09B53 /* OpenAI in Frameworks */ = {isa = PBXBuildFile; productRef = BAD6B5902F716B2400A09B53 /* OpenAI */; };
@@ -82,6 +83,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				BA22E5EC2F732DFC00B9A423 /* Algorithms in Frameworks */,
 				BAD6B5912F716B2400A09B53 /* OpenAI in Frameworks */,
 				BAD6B5562F6FCBB600A09B53 /* GoogleGenerativeAI in Frameworks */,
 			);
@@ -139,6 +141,7 @@
 			packageProductDependencies = (
 				BAD6B5552F6FCBB600A09B53 /* GoogleGenerativeAI */,
 				BAD6B5902F716B2400A09B53 /* OpenAI */,
+				BA22E5EB2F732DFC00B9A423 /* Algorithms */,
 			);
 			productName = thebitbinder;
 			productReference = BAB3D0522EDF80F5007295C1 /* thebitbinder.app */;
@@ -196,6 +199,7 @@
 			packageReferences = (
 				BAD6B5542F6FCBB600A09B53 /* XCRemoteSwiftPackageReference "generative-ai-swift" */,
 				BAD6B58F2F716B2400A09B53 /* XCRemoteSwiftPackageReference "OpenAI" */,
+				BA22E5EA2F732DFC00B9A423 /* XCRemoteSwiftPackageReference "swift-algorithms" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = BAB3D0532EDF80F5007295C1 /* Products */;
@@ -575,6 +579,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		BA22E5EA2F732DFC00B9A423 /* XCRemoteSwiftPackageReference "swift-algorithms" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/apple/swift-algorithms.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.2.1;
+			};
+		};
 		BAD6B5542F6FCBB600A09B53 /* XCRemoteSwiftPackageReference "generative-ai-swift" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/google/generative-ai-swift";
@@ -594,6 +606,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		BA22E5EB2F732DFC00B9A423 /* Algorithms */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = BA22E5EA2F732DFC00B9A423 /* XCRemoteSwiftPackageReference "swift-algorithms" */;
+			productName = Algorithms;
+		};
 		BAD6B5552F6FCBB600A09B53 /* GoogleGenerativeAI */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = BAD6B5542F6FCBB600A09B53 /* XCRemoteSwiftPackageReference "generative-ai-swift" */;
