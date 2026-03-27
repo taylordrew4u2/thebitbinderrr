@@ -298,6 +298,8 @@
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MARKETING_VERSION = 9.4;
 				PRODUCT_BUNDLE_IDENTIFIER = 666bit;
+				"PRODUCT_BUNDLE_IDENTIFIER[sdk=iphoneos*]" = "The-BitBinder.thebitbinder";
+				"PRODUCT_BUNDLE_IDENTIFIER[sdk=macosx*]" = "The-BitBinder.thebitbinder";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator maccatalyst";
@@ -351,6 +353,8 @@
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MARKETING_VERSION = 9.4;
 				PRODUCT_BUNDLE_IDENTIFIER = 666bit;
+				"PRODUCT_BUNDLE_IDENTIFIER[sdk=iphoneos*]" = "The-BitBinder.thebitbinder";
+				"PRODUCT_BUNDLE_IDENTIFIER[sdk=macosx*]" = "The-BitBinder.thebitbinder";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator maccatalyst";
@@ -500,7 +504,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				MARKETING_VERSION = 9.4;
-				PRODUCT_BUNDLE_IDENTIFIER = 666bit.bit;
+				PRODUCT_BUNDLE_IDENTIFIER = "The-BitBinder.thebitbinder.bit";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
@@ -532,7 +536,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				MARKETING_VERSION = 9.4;
-				PRODUCT_BUNDLE_IDENTIFIER = 666bit.bit;
+				PRODUCT_BUNDLE_IDENTIFIER = "The-BitBinder.thebitbinder.bit";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
