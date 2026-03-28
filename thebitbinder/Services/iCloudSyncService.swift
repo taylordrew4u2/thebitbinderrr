@@ -338,15 +338,17 @@ final class iCloudSyncService: NSObject, ObservableObject {
         }
         
         // 5. Try a test fetch to verify CloudKit connectivity
+        // Note: CD_* record types are managed by CoreData's CloudKit mirroring
+        // and cannot be queried directly via CKQuery. Instead, verify connectivity
+        // by fetching the CoreData CloudKit zone itself.
         do {
             let database = container.privateCloudDatabase
             let zoneID = CKRecordZone.ID(
                 zoneName: "com.apple.coredata.cloudkit.zone",
                 ownerName: CKCurrentUserDefaultName
             )
-            let query = CKQuery(recordType: "CD_RoastTarget", predicate: NSPredicate(value: true))
-            let (matchResults, _) = try await database.records(matching: query, inZoneWith: zoneID, resultsLimit: 1)
-            results.append("CloudKit Fetch Test: ✅ Connected (\(matchResults.count) result(s))")
+            let zone = try await database.recordZone(for: zoneID)
+            results.append("CloudKit Fetch Test: ✅ Connected (zone: \(zone.zoneID.zoneName))")
         } catch {
             results.append("CloudKit Fetch Test: ❌ \(error.localizedDescription)")
         }
