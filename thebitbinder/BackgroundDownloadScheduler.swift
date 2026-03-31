@@ -1,5 +1,5 @@
 //
-//  BackgroundDownloadHandler.swift
+//  BackgroundDownloadScheduler.swift
 //  thebitbinder
 //
 //  Created by Taylor Drew on 3/19/26.
@@ -15,9 +15,9 @@ import os.log
 /// Schedules background downloads and reads status written by the `bit` extension
 /// via shared app group storage.
 @MainActor
-final class BackgroundDownloadHandler: ObservableObject {
+final class BackgroundDownloadScheduler: ObservableObject {
     
-    static let shared = BackgroundDownloadHandler()
+    static let shared = BackgroundDownloadScheduler()
     
     private let logger = Logger(subsystem: "The-BitBinder.thebitbinder", category: "BackgroundDownload")
     

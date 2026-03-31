@@ -160,7 +160,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         let refreshTask = Task {
             // Refresh background download status
             await MainActor.run {
-                BackgroundDownloadHandler.shared.refresh()
+                BackgroundDownloadScheduler.shared.refresh()
             }
             let elapsed = Date().timeIntervalSince(startTime)
             print("🔄 [BGTask] App refresh COMPLETED in \(String(format: "%.1f", elapsed))s")
@@ -190,7 +190,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
                     name: .NSPersistentStoreRemoteChange,
                     object: nil
                 )
-                BackgroundDownloadHandler.shared.refresh()
+                BackgroundDownloadScheduler.shared.refresh()
             }
             
             // Allow a brief window for SwiftData to process the merge

@@ -510,18 +510,30 @@ struct JokesView: View {
                                     }
                                     .listRowSeparator(.hidden)
                                     .listRowBackground(Color.clear)
-                                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                                         Button(role: .destructive) {
+                                            HapticEngine.shared.delete()
                                             joke.moveToTrash()
                                         } label: {
                                             Label("Trash", systemImage: "trash")
                                         }
                                         
                                         Button {
+                                            HapticEngine.shared.starToggle(!joke.isHit)
                                             joke.isHit.toggle()
                                             joke.dateModified = Date()
                                         } label: {
                                             Label(joke.isHit ? "Remove Hit" : "Add Hit", systemImage: joke.isHit ? "star.slash" : "star.fill")
+                                        }
+                                        .tint(AppTheme.Colors.hitsGold)
+                                    }
+                                    .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                                        Button {
+                                            HapticEngine.shared.starToggle(!joke.isHit)
+                                            joke.isHit.toggle()
+                                            joke.dateModified = Date()
+                                        } label: {
+                                            Label(joke.isHit ? "Remove Hit" : "The Hits", systemImage: joke.isHit ? "star.slash.fill" : "star.fill")
                                         }
                                         .tint(AppTheme.Colors.hitsGold)
                                     }

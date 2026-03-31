@@ -197,8 +197,14 @@ struct TouchReactiveStyle: ButtonStyle {
         configuration.label
             .scaleEffect(configuration.isPressed ? pressedScale : 1.0)
             .opacity(configuration.isPressed ? 0.85 : 1.0)
-            // Performance: Use faster, simpler animation
-            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
+            // Use spring animation for snappier, more natural feel
+            .animation(.spring(response: 0.25, dampingFraction: 0.7), value: configuration.isPressed)
+            .onChange(of: configuration.isPressed) { _, isPressed in
+                if isPressed, let style = hapticStyle {
+                    let generator = UIImpactFeedbackGenerator(style: style)
+                    generator.impactOccurred()
+                }
+            }
     }
 }
 
@@ -208,8 +214,14 @@ struct FABButtonStyle: ButtonStyle {
         configuration.label
             .scaleEffect(configuration.isPressed ? 0.88 : 1.0)
             .brightness(configuration.isPressed ? 0.08 : 0)
-            // Performance: Use faster animation for immediate feedback
-            .animation(.easeOut(duration: 0.1), value: configuration.isPressed)
+            // Use bouncy spring for FABs
+            .animation(.spring(response: 0.3, dampingFraction: 0.6), value: configuration.isPressed)
+            .onChange(of: configuration.isPressed) { _, isPressed in
+                if isPressed {
+                    let generator = UIImpactFeedbackGenerator(style: .medium)
+                    generator.impactOccurred()
+                }
+            }
     }
 }
 
@@ -222,8 +234,8 @@ struct MenuItemStyle: ButtonStyle {
             .scaleEffect(configuration.isPressed ? 0.98 : 1.0, anchor: .leading)
             .offset(x: configuration.isPressed ? 2 : 0)
             .opacity(configuration.isPressed ? 0.85 : 1.0)
-            // Performance: Use faster animation
-            .animation(.easeOut(duration: 0.1), value: configuration.isPressed)
+            // Snappy animation
+            .animation(.spring(response: 0.2, dampingFraction: 0.8), value: configuration.isPressed)
     }
 }
 
@@ -232,8 +244,14 @@ struct ChipStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .scaleEffect(configuration.isPressed ? 0.94 : 1.0)
-            // Performance: Use faster animation
-            .animation(.easeOut(duration: 0.08), value: configuration.isPressed)
+            // Quick spring
+            .animation(.spring(response: 0.2, dampingFraction: 0.7), value: configuration.isPressed)
+            .onChange(of: configuration.isPressed) { _, isPressed in
+                if isPressed {
+                    let generator = UISelectionFeedbackGenerator()
+                    generator.selectionChanged()
+                }
+            }
     }
 }
 

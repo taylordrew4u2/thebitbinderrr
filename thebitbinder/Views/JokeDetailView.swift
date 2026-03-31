@@ -4,10 +4,12 @@
 //
 //  Refactored for cleaner, writer-focused experience
 //  Progressive disclosure, distraction-free editing, clear hierarchy
+//  ✨ Now with auto-save and effortless interactions
 //
 
 import SwiftUI
 import SwiftData
+import Combine
 
 struct JokeDetailView: View {
     @Environment(\.modelContext) private var modelContext
@@ -21,6 +23,10 @@ struct JokeDetailView: View {
     @State private var showingMetadata = false
     // Folders loaded lazily — only when the picker sheet opens
     @State private var folders: [JokeFolder] = []
+    
+    // Auto-save state
+    @StateObject private var autoSave = AutoSaveManager.shared
+    @State private var showSavedToast = false
     
     // Accent color based on mode
     private var accentColor: Color {
@@ -58,6 +64,7 @@ struct JokeDetailView: View {
         .bitBinderToolbar(roastMode: roastMode)
         .toolbar { toolbarContent }
         .tint(accentColor)
+        .successToast(message: "Changes saved", icon: "checkmark.circle.fill", isPresented: $showSavedToast, roastMode: roastMode)
         .alert(joke.isDeleted ? "Restore Joke" : "Move to Trash", isPresented: $showingDeleteAlert) {
             deleteAlertButtons
         } message: {
@@ -73,12 +80,34 @@ struct JokeDetailView: View {
                 folders = (try? modelContext.fetch(FetchDescriptor<JokeFolder>())) ?? []
             }
         }
+        // Auto-save on content changes (debounced)
+        .onChange(of: joke.content) { _, _ in
+            scheduleAutoSave()
+        }
+        .onChange(of: joke.title) { _, _ in
+            scheduleAutoSave()
+        }
         .onDisappear {
-            // Auto-save edits — always update word count on exit
-            joke.dateModified = Date()
-            joke.updateWordCount()
+            // Final save on exit
+            saveJokeNow()
             folders = []  // free memory
         }
+    }
+    
+    // MARK: - Auto-Save
+    
+    private func scheduleAutoSave() {
+        autoSave.scheduleSave {
+            joke.dateModified = Date()
+            joke.updateWordCount()
+            try? modelContext.save()
+        }
+    }
+    
+    private func saveJokeNow() {
+        joke.dateModified = Date()
+        joke.updateWordCount()
+        try? modelContext.save()
     }
     
     // MARK: - Title Section
@@ -91,10 +120,12 @@ struct JokeDetailView: View {
                         .font(.system(size: 24, weight: .bold, design: .serif))
                         .foregroundColor(roastMode ? .white : AppTheme.Colors.inkBlack)
                         .lineLimit(3)
+                        .transition(.opacity.combined(with: .scale(scale: 0.98)))
                 } else {
                     Text(joke.title.isEmpty ? KeywordTitleGenerator.displayTitle(from: joke.content) : joke.title)
                         .font(.system(size: 24, weight: .bold, design: .serif))
                         .foregroundColor(roastMode ? .white : AppTheme.Colors.inkBlack)
+                        .transition(.opacity)
                 }
                 
                 Spacer()
@@ -102,10 +133,13 @@ struct JokeDetailView: View {
                 // Hit badge
                 if joke.isHit {
                     HitStarBadge(size: 24, showBackground: true, roastMode: roastMode)
+                        .transition(.scale.combined(with: .opacity))
                 }
             }
+            .animation(EffortlessAnimation.snappy, value: isEditing)
+            .animation(EffortlessAnimation.bouncy, value: joke.isHit)
             
-            // Word count + folders inline
+            // Word count + folders + auto-save status inline
             HStack(spacing: 12) {
                 if joke.wordCount > 0 {
                     Text("\(joke.wordCount) words")
@@ -115,6 +149,7 @@ struct JokeDetailView: View {
                 
                 if !joke.folders.isEmpty {
                     Button {
+                        HapticEngine.shared.tap()
                         showingFolderPicker = true
                     } label: {
                         HStack(spacing: 4) {
@@ -130,6 +165,13 @@ struct JokeDetailView: View {
                         }
                         .foregroundColor(accentColor.opacity(0.8))
                     }
+                }
+                
+                Spacer()
+                
+                // Auto-save status indicator
+                if isEditing {
+                    SaveStatusIndicator(roastMode: roastMode)
                 }
             }
         }
@@ -152,6 +194,7 @@ struct JokeDetailView: View {
                         RoundedRectangle(cornerRadius: AppTheme.Radius.medium, style: .continuous)
                             .fill(roastMode ? AppTheme.Colors.roastCard : AppTheme.Colors.surfaceElevated)
                     )
+                    .transition(.opacity.combined(with: .scale(scale: 0.99, anchor: .top)))
             } else {
                 Text(joke.content)
                     .font(.system(size: 17))
@@ -163,8 +206,18 @@ struct JokeDetailView: View {
                         RoundedRectangle(cornerRadius: AppTheme.Radius.medium, style: .continuous)
                             .fill(roastMode ? AppTheme.Colors.roastCard.opacity(0.5) : AppTheme.Colors.surfaceElevated.opacity(0.5))
                     )
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        // Tap to edit - feels natural
+                        withAnimation(EffortlessAnimation.snappy) {
+                            isEditing = true
+                        }
+                        HapticEngine.shared.tap()
+                    }
+                    .transition(.opacity)
             }
         }
+        .animation(EffortlessAnimation.smooth, value: isEditing)
         .padding(.bottom, 16)
     }
     
@@ -207,14 +260,19 @@ struct JokeDetailView: View {
         HStack(spacing: 12) {
             // Hit Toggle
             Button {
-                withAnimation(.easeOut(duration: 0.15)) {
+                withAnimation(EffortlessAnimation.bouncy) {
                     joke.isHit.toggle()
                     joke.dateModified = Date()
                 }
+                HapticEngine.shared.starToggle(joke.isHit)
+                
+                // Auto-save after toggle
+                try? modelContext.save()
             } label: {
                 HStack(spacing: 8) {
                     Image(systemName: roastMode ? (joke.isHit ? "flame.fill" : "flame") : (joke.isHit ? "star.fill" : "star"))
                         .font(.system(size: 16, weight: .semibold))
+                        .symbolEffect(.bounce, value: joke.isHit)
                     Text(joke.isHit ? "In Hits" : "Add to Hits")
                         .font(.system(size: 14, weight: .medium))
                 }
@@ -234,10 +292,11 @@ struct JokeDetailView: View {
                         )
                 )
             }
-            .buttonStyle(ChipStyle())
+            .buttonStyle(SmoothScaleButtonStyle(scale: 0.95, haptic: false))
             
             // Folder picker
             Button {
+                HapticEngine.shared.tap()
                 showingFolderPicker = true
             } label: {
                 HStack(spacing: 6) {
@@ -262,19 +321,21 @@ struct JokeDetailView: View {
                         .fill(roastMode ? AppTheme.Colors.roastCard : AppTheme.Colors.paperDeep)
                 )
             }
-            .buttonStyle(ChipStyle())
+            .buttonStyle(SmoothScaleButtonStyle(scale: 0.95))
             
             Spacer()
             
             // Show/hide metadata
             Button {
-                withAnimation(.easeInOut(duration: 0.2)) {
+                withAnimation(EffortlessAnimation.smooth) {
                     showingMetadata.toggle()
                 }
+                HapticEngine.shared.tap()
             } label: {
                 Image(systemName: showingMetadata ? "chevron.up.circle.fill" : "info.circle")
                     .font(.system(size: 20))
                     .foregroundColor(roastMode ? .white.opacity(0.5) : AppTheme.Colors.textTertiary)
+                    .symbolEffect(.bounce, value: showingMetadata)
             }
         }
         .padding(.bottom, 16)
@@ -343,10 +404,14 @@ struct JokeDetailView: View {
             HStack(spacing: 16) {
                 Button(isEditing ? "Done" : "Edit") {
                     if isEditing {
-                        joke.dateModified = Date()
-                        joke.updateWordCount()
+                        // Save on done
+                        saveJokeNow()
+                        HapticEngine.shared.success()
+                        showSavedToast = true
+                    } else {
+                        HapticEngine.shared.tap()
                     }
-                    withAnimation(.easeInOut(duration: 0.15)) {
+                    withAnimation(EffortlessAnimation.snappy) {
                         isEditing.toggle()
                     }
                 }
@@ -355,6 +420,7 @@ struct JokeDetailView: View {
                 
                 if joke.isDeleted {
                     Button {
+                        HapticEngine.shared.success()
                         joke.restoreFromTrash()
                         dismiss()
                     } label: {
@@ -363,6 +429,7 @@ struct JokeDetailView: View {
                     }
                 } else {
                     Button {
+                        HapticEngine.shared.warning()
                         showingDeleteAlert = true
                     } label: {
                         Image(systemName: "trash")

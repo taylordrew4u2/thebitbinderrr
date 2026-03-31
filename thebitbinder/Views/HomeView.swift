@@ -602,7 +602,10 @@ struct HomeView: View {
 
             VStack(spacing: AppTheme.Spacing.sm) {
                 // Primary action — New Joke (full width, prominent)
-                Button { showAddJoke = true } label: {
+                Button { 
+                    HapticEngine.shared.press()
+                    showAddJoke = true 
+                } label: {
                     HStack(spacing: AppTheme.Spacing.sm) {
                         Image(systemName: "plus")
                             .font(.system(size: 16, weight: .semibold))
@@ -617,10 +620,13 @@ struct HomeView: View {
                             .fill(AppTheme.Colors.primaryAction)
                     )
                 }
-                .buttonStyle(TouchReactiveStyle(pressedScale: 0.97, hapticStyle: .light))
+                .buttonStyle(TouchReactiveStyle(pressedScale: 0.97, hapticStyle: nil))
 
                 // Talk-to-Text Joke — prominent full-width button
-                Button { showTalkToText = true } label: {
+                Button { 
+                    HapticEngine.shared.press()
+                    showTalkToText = true 
+                } label: {
                     HStack(spacing: AppTheme.Spacing.sm) {
                         Image(systemName: "mic.fill")
                             .font(.system(size: 18, weight: .medium))
@@ -640,14 +646,16 @@ struct HomeView: View {
                             .strokeBorder(AppTheme.Colors.primaryAction.opacity(0.25), lineWidth: 1)
                     )
                 }
-                .buttonStyle(TouchReactiveStyle(pressedScale: 0.97, hapticStyle: .light))
+                .buttonStyle(TouchReactiveStyle(pressedScale: 0.97, hapticStyle: nil))
 
                 // Secondary actions — horizontal row
                 HStack(spacing: AppTheme.Spacing.sm) {
                     QuickCaptureButton(icon: "lightbulb", label: "Brainstorm", color: AppTheme.Colors.brainstormAccent) {
+                        HapticEngine.shared.tap()
                         showBrainstorm = true
                     }
                     QuickCaptureButton(icon: "mic.fill", label: "Record", color: AppTheme.Colors.recordingsAccent) {
+                        HapticEngine.shared.tap()
                         showVoiceNote = true
                     }
                 }

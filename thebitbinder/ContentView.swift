@@ -222,7 +222,8 @@ struct MainTabView: View {
                     .overlay(alignment: .topLeading) {
                         if canGoBack {
                             Button {
-                                withAnimation(.easeOut(duration: 0.2)) {
+                                HapticEngine.shared.tap()
+                                withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
                                     goBack()
                                 }
                             } label: {
@@ -245,8 +246,9 @@ struct MainTabView: View {
                     }
                     .overlay(alignment: .topTrailing) {
                         Button {
+                            HapticEngine.shared.press()
                             dismissKeyboard()
-                            withAnimation(.easeOut(duration: 0.25)) {
+                            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
                                 showMenu = true
                             }
                         } label: {
@@ -270,6 +272,7 @@ struct MainTabView: View {
             }
         }
         .onChange(of: roastMode) { _, newValue in
+            HapticEngine.shared.impact()
             handleRoastModeChange(isRoast: newValue)
         }
         .onReceive(NotificationCenter.default.publisher(for: .navigateToScreen)) { notification in

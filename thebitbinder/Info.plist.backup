@@ -2,10 +2,27 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>BAEssentialMaxInstallSize</key>
+	<integer>10485760</integer>
+	<key>BAInitialDownloadRestrictions</key>
+	<dict>
+		<key>BADownloadAllowance</key>
+		<integer>10485760</integer>
+		<key>BADownloadDomainAllowList</key>
+		<array>
+			<string>github.com</string>
+		</array>
+		<key>BAEssentialDownloadAllowance</key>
+		<integer>5242880</integer>
+	</dict>
+	<key>BAManifestURL</key>
+	<string>https://github.com/taylordrew4u-llc/thebitbinderr/releases/download/latest/manifest.json</string>
+	<key>BAMaxInstallSize</key>
+	<integer>52428800</integer>
 	<key>BGTaskSchedulerPermittedIdentifiers</key>
 	<array>
-		<string>666bit.refresh</string>
-		<string>666bit.sync</string>
+		<string>The-BitBinder.thebitbinder.refresh</string>
+		<string>The-BitBinder.thebitbinder.sync</string>
 	</array>
 	<key>CFBundleDisplayName</key>
 	<string>BitBinder</string>
@@ -18,7 +35,7 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>10.0</string>
+	<string>10.1</string>
 	<key>CFBundleVersion</key>
 	<string>1</string>
 	<key>CloudKitSchemaConfiguration</key>
@@ -78,7 +95,7 @@
 	<string>Allow speech recognition to transcribe recordings and enable Talk-to-Text joke creation.</string>
 	<key>NSUbiquitousContainers</key>
 	<dict>
-		<key>iCloud.666bit</key>
+		<key>iCloud.The-BitBinder.thebitbinder</key>
 		<dict>
 			<key>NSUbiquitousContainerIsDocumentScopePublic</key>
 			<true/>
