@@ -15,7 +15,7 @@ enum ImportFileType {
     case scannedPDF
     case image
     case document
-    case unknown     // unrecognised extension — attempt OCR as last resort
+    case unknown     // unrecognized extension — attempt OCR as last resort
     case unsupported // known extension that we explicitly do not support (e.g. .swift, .py)
 }
 

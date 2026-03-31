@@ -250,10 +250,8 @@ struct thebitbinderApp: App {
                 print("⚠️ [DataProtection] Could not create emergency backup: \(error)")
             }
             
-            // Clean up old backups
-            await MainActor.run {
-                DataProtectionService.shared.cleanupEmergencyBackups()
-            }
+            // Clean up old backups — file I/O only, safe off main thread
+            await DataProtectionService.shared.cleanupEmergencyBackups()
         }.value
     }
     

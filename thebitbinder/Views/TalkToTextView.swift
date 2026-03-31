@@ -181,6 +181,13 @@ struct TalkToTextView: View {
             .onAppear {
                 checkPermissions()
             }
+            .onDisappear {
+                // Ensure audio pipeline is fully torn down when leaving this view
+                if isRecording {
+                    isRecording = false
+                }
+                speechRecognizer.stopTranscribing()
+            }
             .alert("Permissions Required", isPresented: $showingPermissionAlert) {
                 Button("Open Settings") {
                     if let url = URL(string: UIApplication.openSettingsURLString) {
@@ -389,11 +396,36 @@ class SpeechRecognizer: ObservableObject {
     private var shouldBeRunning = false
     /// Accumulated text from previous recognition segments (auto-restart appends here)
     private var accumulatedText = ""
+    /// Guard against overlapping restart attempts
+    private var isRestarting = false
+    /// Observer for memory warnings
+    private var memoryWarningObserver: NSObjectProtocol?
+    
+    init() {
+        // Stop the audio pipeline on memory warnings — AVAudioEngine + speech
+        // recognition buffers are the single largest memory consumer in the app.
+        // The OS sends this notification before killing with code 9.
+        memoryWarningObserver = NotificationCenter.default.addObserver(
+            forName: UIApplication.didReceiveMemoryWarningNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            guard let self = self, self.shouldBeRunning else { return }
+            print("⚠️ [SpeechRecognizer] Memory warning — stopping to free resources")
+            // Preserve transcription so user doesn't lose work
+            self.accumulatedText = self.transcribedText
+            self.shouldBeRunning = false
+            self.tearDownAudioPipeline()
+            self.isTranscribing = false
+            self.error = "Recording paused due to low memory. Your text is preserved — tap Start to resume."
+        }
+    }
     
     func startTranscribing() {
         // Don't reset text — preserve anything already transcribed
         error = nil
         shouldBeRunning = true
+        isRestarting = false
         accumulatedText = transcribedText
         
         startRecognitionSession()
@@ -401,6 +433,11 @@ class SpeechRecognizer: ObservableObject {
     
     /// Internal: starts or restarts one speech recognition session.
     private func startRecognitionSession() {
+        // Prevent overlapping restart attempts that can stack sessions
+        guard !isRestarting else { return }
+        isRestarting = true
+        defer { isRestarting = false }
+        
         // Clean up any previous session without clearing state
         tearDownAudioPipeline()
         
@@ -408,9 +445,9 @@ class SpeechRecognizer: ObservableObject {
         
         // Check if speech recognizer is available
         guard let speechRecognizer = speechRecognizer, speechRecognizer.isAvailable else {
-            DispatchQueue.main.async {
-                self.error = "Speech recognition is not available"
-                self.isTranscribing = false
+            DispatchQueue.main.async { [weak self] in
+                self?.error = "Speech recognition is not available"
+                self?.isTranscribing = false
             }
             return
         }
@@ -426,9 +463,9 @@ class SpeechRecognizer: ObservableObject {
             )
             try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
         } catch {
-            DispatchQueue.main.async {
-                self.error = "Failed to configure audio session: \(error.localizedDescription)"
-                self.isTranscribing = false
+            DispatchQueue.main.async { [weak self] in
+                self?.error = "Failed to configure audio session: \(error.localizedDescription)"
+                self?.isTranscribing = false
             }
             return
         }
@@ -448,18 +485,24 @@ class SpeechRecognizer: ObservableObject {
         
         // Guard against invalid format (sample rate of 0 on some devices)
         guard recordingFormat.sampleRate > 0, recordingFormat.channelCount > 0 else {
-            DispatchQueue.main.async {
-                self.error = "Audio input format is invalid. Please check your microphone."
-                self.isTranscribing = false
+            DispatchQueue.main.async { [weak self] in
+                self?.error = "Audio input format is invalid. Please check your microphone."
+                self?.isTranscribing = false
             }
             return
         }
         
+        // Install audio tap — use autoreleasepool to release each buffer promptly
+        // and only forward if the request is still alive (avoids appending to a
+        // finished/cancelled request).
         inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { [weak self] buffer, _ in
-            self?.recognitionRequest?.append(buffer)
+            autoreleasepool {
+                self?.recognitionRequest?.append(buffer)
+            }
         }
         
-        // Start recognition task
+        // Start recognition task — capture self weakly in the result handler
+        // AND in every inner DispatchQueue closure to avoid retain cycles.
         recognitionTask = speechRecognizer.recognitionTask(with: request) { [weak self] result, error in
             guard let self = self else { return }
             
@@ -468,7 +511,8 @@ class SpeechRecognizer: ObservableObject {
             if let result = result {
                 isFinal = result.isFinal
                 let newText = result.bestTranscription.formattedString
-                DispatchQueue.main.async {
+                DispatchQueue.main.async { [weak self] in
+                    guard let self = self else { return }
                     // Combine accumulated text from prior segments with current partial result
                     if self.accumulatedText.isEmpty {
                         self.transcribedText = newText
@@ -492,12 +536,13 @@ class SpeechRecognizer: ObservableObject {
                 if isTimeout || isFinal {
                     // Speech recognition timed out (~60s) or finished —
                     // save what we have and restart automatically
-                    DispatchQueue.main.async {
+                    DispatchQueue.main.async { [weak self] in
+                        guard let self = self else { return }
                         self.accumulatedText = self.transcribedText
                         if self.shouldBeRunning {
                             // Brief delay then restart to keep listening
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                                self.startRecognitionSession()
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+                                self?.startRecognitionSession()
                             }
                         }
                     }
@@ -505,20 +550,21 @@ class SpeechRecognizer: ObservableObject {
                 }
                 
                 // Real error — show it
-                DispatchQueue.main.async {
-                    self.error = error.localizedDescription
-                    self.isTranscribing = false
+                DispatchQueue.main.async { [weak self] in
+                    self?.error = error.localizedDescription
+                    self?.isTranscribing = false
                 }
                 return
             }
             
             // If result is final (e.g. recognizer decided speech ended), auto-restart
             if isFinal {
-                DispatchQueue.main.async {
+                DispatchQueue.main.async { [weak self] in
+                    guard let self = self else { return }
                     self.accumulatedText = self.transcribedText
                     if self.shouldBeRunning {
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                            self.startRecognitionSession()
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+                            self?.startRecognitionSession()
                         }
                     }
                 }
@@ -529,13 +575,13 @@ class SpeechRecognizer: ObservableObject {
         do {
             engine.prepare()
             try engine.start()
-            DispatchQueue.main.async {
-                self.isTranscribing = true
+            DispatchQueue.main.async { [weak self] in
+                self?.isTranscribing = true
             }
         } catch {
-            DispatchQueue.main.async {
-                self.error = "Failed to start audio engine: \(error.localizedDescription)"
-                self.isTranscribing = false
+            DispatchQueue.main.async { [weak self] in
+                self?.error = "Failed to start audio engine: \(error.localizedDescription)"
+                self?.isTranscribing = false
             }
         }
     }
@@ -544,29 +590,38 @@ class SpeechRecognizer: ObservableObject {
         shouldBeRunning = false
         tearDownAudioPipeline()
         accumulatedText = ""
-        DispatchQueue.main.async {
-            self.isTranscribing = false
+        DispatchQueue.main.async { [weak self] in
+            self?.isTranscribing = false
         }
     }
     
     /// Tears down audio engine and recognition without resetting user-facing state.
     private func tearDownAudioPipeline() {
-        recognitionTask?.cancel()
-        recognitionRequest?.endAudio()
-        
-        audioEngine?.stop()
-        audioEngine?.inputNode.removeTap(onBus: 0)
-        
+        // 1. Stop the audio engine first so no more buffers are appended
+        if let engine = audioEngine {
+            engine.stop()
+            engine.inputNode.removeTap(onBus: 0)
+        }
         audioEngine = nil
+        
+        // 2. End audio on the request so the recognition task can finish
+        recognitionRequest?.endAudio()
         recognitionRequest = nil
+        
+        // 3. Cancel any in-flight recognition task
+        recognitionTask?.cancel()
         recognitionTask = nil
+        
+        // 4. Deactivate the audio session to release hardware resources
+        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
     }
     
     deinit {
+        if let observer = memoryWarningObserver {
+            NotificationCenter.default.removeObserver(observer)
+        }
         shouldBeRunning = false
         tearDownAudioPipeline()
-        // Deactivate audio session safely
-        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
     }
 }
 

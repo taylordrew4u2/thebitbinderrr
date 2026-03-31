@@ -1,631 +1,631 @@
 // !$*UTF8*$!
 {
-    archiveVersion = 1;
-    classes = {
-    };
-    objectVersion = 77;
-    objects = {
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
 
 /* Begin PBXBuildFile section */
-        BA22E5EC2F732DFC00B9A423 /* Algorithms in Frameworks */ = {isa = PBXBuildFile; productRef = BA22E5EB2F732DFC00B9A423 /* Algorithms */; };
-        BAD6B2CE2F6F753E00A09B53 /* bit.appex in Embed ExtensionKit Extensions */ = {isa = PBXBuildFile; fileRef = BAD6B2C62F6F753E00A09B53 /* bit.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
-        BAD6B5562F6FCBB600A09B53 /* GoogleGenerativeAI in Frameworks */ = {isa = PBXBuildFile; productRef = BAD6B5552F6FCBB600A09B53 /* GoogleGenerativeAI */; };
-        BAD6B5912F716B2400A09B53 /* OpenAI in Frameworks */ = {isa = PBXBuildFile; productRef = BAD6B5902F716B2400A09B53 /* OpenAI */; };
+		BA22E5EC2F732DFC00B9A423 /* Algorithms in Frameworks */ = {isa = PBXBuildFile; productRef = BA22E5EB2F732DFC00B9A423 /* Algorithms */; };
+		BAD6B2CE2F6F753E00A09B53 /* bit.appex in Embed ExtensionKit Extensions */ = {isa = PBXBuildFile; fileRef = BAD6B2C62F6F753E00A09B53 /* bit.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		BAD6B5562F6FCBB600A09B53 /* GoogleGenerativeAI in Frameworks */ = {isa = PBXBuildFile; productRef = BAD6B5552F6FCBB600A09B53 /* GoogleGenerativeAI */; };
+		BAD6B5912F716B2400A09B53 /* OpenAI in Frameworks */ = {isa = PBXBuildFile; productRef = BAD6B5902F716B2400A09B53 /* OpenAI */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
-        BAD6B2CC2F6F753E00A09B53 /* PBXContainerItemProxy */ = {
-            isa = PBXContainerItemProxy;
-            containerPortal = BAB3D0492EDF80F5007295C1 /* Project object */;
-            proxyType = 1;
-            remoteGlobalIDString = BAD6B2C52F6F753E00A09B53;
-            remoteInfo = bit;
-        };
+		BAD6B2CC2F6F753E00A09B53 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = BAB3D0492EDF80F5007295C1 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = BAD6B2C52F6F753E00A09B53;
+			remoteInfo = bit;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
-        BA859D9B2F6CF69600B61B1B /* Embed ExtensionKit Extensions */ = {
-            isa = PBXCopyFilesBuildPhase;
-            buildActionMask = 2147483647;
-            dstPath = "$(EXTENSIONS_FOLDER_PATH)";
-            dstSubfolderSpec = 13;
-            files = (
-                BAD6B2CE2F6F753E00A09B53 /* bit.appex in Embed ExtensionKit Extensions */,
-            );
-            name = "Embed ExtensionKit Extensions";
-            runOnlyForDeploymentPostprocessing = 0;
-        };
+		BA859D9B2F6CF69600B61B1B /* Embed ExtensionKit Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(EXTENSIONS_FOLDER_PATH)";
+			dstSubfolderSpec = 16;
+			files = (
+				BAD6B2CE2F6F753E00A09B53 /* bit.appex in Embed ExtensionKit Extensions */,
+			);
+			name = "Embed ExtensionKit Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-        BAB3D0522EDF80F5007295C1 /* thebitbinder.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = thebitbinder.app; sourceTree = BUILT_PRODUCTS_DIR; };
-        BAD6B2C62F6F753E00A09B53 /* bit.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.extensionkit-extension"; includeInIndex = 0; path = bit.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		BAB3D0522EDF80F5007295C1 /* thebitbinder.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = thebitbinder.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		BAD6B2C62F6F753E00A09B53 /* bit.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.extensionkit-extension"; includeInIndex = 0; path = bit.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-        BAB3D05F2EDF80F6007295C1 /* Exceptions for "thebitbinder" folder in "thebitbinder" target */ = {
-            isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-            membershipExceptions = (
-                Info.plist,
-            );
-            target = BAB3D0512EDF80F5007295C1 /* thebitbinder */;
-        };
-        BAD6B2D22F6F753E00A09B53 /* Exceptions for "bit" folder in "bit" target */ = {
-            isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-            membershipExceptions = (
-                Info.plist,
-            );
-            target = BAD6B2C52F6F753E00A09B53 /* bit */;
-        };
+		BAB3D05F2EDF80F6007295C1 /* Exceptions for "thebitbinder" folder in "thebitbinder" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = BAB3D0512EDF80F5007295C1 /* thebitbinder */;
+		};
+		BAD6B2D22F6F753E00A09B53 /* Exceptions for "bit" folder in "bit" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = BAD6B2C52F6F753E00A09B53 /* bit */;
+		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-        BAB3D0542EDF80F5007295C1 /* thebitbinder */ = {
-            isa = PBXFileSystemSynchronizedRootGroup;
-            exceptions = (
-                BAB3D05F2EDF80F6007295C1 /* Exceptions for "thebitbinder" folder in "thebitbinder" target */,
-            );
-            path = thebitbinder;
-            sourceTree = "<group>";
-        };
-        BAD6B2C72F6F753E00A09B53 /* bit */ = {
-            isa = PBXFileSystemSynchronizedRootGroup;
-            exceptions = (
-                BAD6B2D22F6F753E00A09B53 /* Exceptions for "bit" folder in "bit" target */,
-            );
-            path = bit;
-            sourceTree = "<group>";
-        };
+		BAB3D0542EDF80F5007295C1 /* thebitbinder */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				BAB3D05F2EDF80F6007295C1 /* Exceptions for "thebitbinder" folder in "thebitbinder" target */,
+			);
+			path = thebitbinder;
+			sourceTree = "<group>";
+		};
+		BAD6B2C72F6F753E00A09B53 /* bit */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				BAD6B2D22F6F753E00A09B53 /* Exceptions for "bit" folder in "bit" target */,
+			);
+			path = bit;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
-        BAB3D04F2EDF80F5007295C1 /* Frameworks */ = {
-            isa = PBXFrameworksBuildPhase;
-            buildActionMask = 2147483647;
-            files = (
-                BA22E5EC2F732DFC00B9A423 /* Algorithms in Frameworks */,
-                BAD6B5912F716B2400A09B53 /* OpenAI in Frameworks */,
-                BAD6B5562F6FCBB600A09B53 /* GoogleGenerativeAI in Frameworks */,
-            );
-            runOnlyForDeploymentPostprocessing = 0;
-        };
-        BAD6B2C32F6F753E00A09B53 /* Frameworks */ = {
-            isa = PBXFrameworksBuildPhase;
-            buildActionMask = 2147483647;
-            files = (
-            );
-            runOnlyForDeploymentPostprocessing = 0;
-        };
+		BAB3D04F2EDF80F5007295C1 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BA22E5EC2F732DFC00B9A423 /* Algorithms in Frameworks */,
+				BAD6B5912F716B2400A09B53 /* OpenAI in Frameworks */,
+				BAD6B5562F6FCBB600A09B53 /* GoogleGenerativeAI in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BAD6B2C32F6F753E00A09B53 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-        BAB3D0482EDF80F5007295C1 = {
-            isa = PBXGroup;
-            children = (
-                BAB3D0542EDF80F5007295C1 /* thebitbinder */,
-                BAD6B2C72F6F753E00A09B53 /* bit */,
-                BAB3D0532EDF80F5007295C1 /* Products */,
-            );
-            sourceTree = "<group>";
-        };
-        BAB3D0532EDF80F5007295C1 /* Products */ = {
-            isa = PBXGroup;
-            children = (
-                BAB3D0522EDF80F5007295C1 /* thebitbinder.app */,
-                BAD6B2C62F6F753E00A09B53 /* bit.appex */,
-            );
-            name = Products;
-            sourceTree = "<group>";
-        };
+		BAB3D0482EDF80F5007295C1 = {
+			isa = PBXGroup;
+			children = (
+				BAB3D0542EDF80F5007295C1 /* thebitbinder */,
+				BAD6B2C72F6F753E00A09B53 /* bit */,
+				BAB3D0532EDF80F5007295C1 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		BAB3D0532EDF80F5007295C1 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				BAB3D0522EDF80F5007295C1 /* thebitbinder.app */,
+				BAD6B2C62F6F753E00A09B53 /* bit.appex */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-        BAB3D0512EDF80F5007295C1 /* thebitbinder */ = {
-            isa = PBXNativeTarget;
-            buildConfigurationList = BAB3D0602EDF80F6007295C1 /* Build configuration list for PBXNativeTarget "thebitbinder" */;
-            buildPhases = (
-                BAB3D04E2EDF80F5007295C1 /* Sources */,
-                BAB3D04F2EDF80F5007295C1 /* Frameworks */,
-                BAB3D0502EDF80F5007295C1 /* Resources */,
-                BA859D9B2F6CF69600B61B1B /* Embed ExtensionKit Extensions */,
-            );
-            buildRules = (
-            );
-            dependencies = (
-                BAD6B2CD2F6F753E00A09B53 /* PBXTargetDependency */,
-            );
-            fileSystemSynchronizedGroups = (
-                BAB3D0542EDF80F5007295C1 /* thebitbinder */,
-            );
-            name = thebitbinder;
-            packageProductDependencies = (
-                BAD6B5552F6FCBB600A09B53 /* GoogleGenerativeAI */,
-                BAD6B5902F716B2400A09B53 /* OpenAI */,
-                BA22E5EB2F732DFC00B9A423 /* Algorithms */,
-            );
-            productName = thebitbinder;
-            productReference = BAB3D0522EDF80F5007295C1 /* thebitbinder.app */;
-            productType = "com.apple.product-type.application";
-        };
-        BAD6B2C52F6F753E00A09B53 /* bit */ = {
-            isa = PBXNativeTarget;
-            buildConfigurationList = BAD6B2CF2F6F753E00A09B53 /* Build configuration list for PBXNativeTarget "bit" */;
-            buildPhases = (
-                BAD6B2C22F6F753E00A09B53 /* Sources */,
-                BAD6B2C32F6F753E00A09B53 /* Frameworks */,
-                BAD6B2C42F6F753E00A09B53 /* Resources */,
-            );
-            buildRules = (
-            );
-            dependencies = (
-            );
-            fileSystemSynchronizedGroups = (
-                BAD6B2C72F6F753E00A09B53 /* bit */,
-            );
-            name = bit;
-            packageProductDependencies = (
-            );
-            productName = bit;
-            productReference = BAD6B2C62F6F753E00A09B53 /* bit.appex */;
-            productType = "com.apple.product-type.extensionkit-extension";
-        };
+		BAB3D0512EDF80F5007295C1 /* thebitbinder */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = BAB3D0602EDF80F6007295C1 /* Build configuration list for PBXNativeTarget "thebitbinder" */;
+			buildPhases = (
+				BAB3D04E2EDF80F5007295C1 /* Sources */,
+				BAB3D04F2EDF80F5007295C1 /* Frameworks */,
+				BAB3D0502EDF80F5007295C1 /* Resources */,
+				BA859D9B2F6CF69600B61B1B /* Embed ExtensionKit Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				BAD6B2CD2F6F753E00A09B53 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				BAB3D0542EDF80F5007295C1 /* thebitbinder */,
+			);
+			name = thebitbinder;
+			packageProductDependencies = (
+				BAD6B5552F6FCBB600A09B53 /* GoogleGenerativeAI */,
+				BAD6B5902F716B2400A09B53 /* OpenAI */,
+				BA22E5EB2F732DFC00B9A423 /* Algorithms */,
+			);
+			productName = thebitbinder;
+			productReference = BAB3D0522EDF80F5007295C1 /* thebitbinder.app */;
+			productType = "com.apple.product-type.application";
+		};
+		BAD6B2C52F6F753E00A09B53 /* bit */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = BAD6B2CF2F6F753E00A09B53 /* Build configuration list for PBXNativeTarget "bit" */;
+			buildPhases = (
+				BAD6B2C22F6F753E00A09B53 /* Sources */,
+				BAD6B2C32F6F753E00A09B53 /* Frameworks */,
+				BAD6B2C42F6F753E00A09B53 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				BAD6B2C72F6F753E00A09B53 /* bit */,
+			);
+			name = bit;
+			packageProductDependencies = (
+			);
+			productName = bit;
+			productReference = BAD6B2C62F6F753E00A09B53 /* bit.appex */;
+			productType = "com.apple.product-type.extensionkit-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
-        BAB3D0492EDF80F5007295C1 /* Project object */ = {
-            isa = PBXProject;
-            attributes = {
-                BuildIndependentTargetsInParallel = 1;
-                LastSwiftUpdateCheck = 2630;
-                LastUpgradeCheck = 2630;
-                TargetAttributes = {
-                    BAB3D0512EDF80F5007295C1 = {
-                        CreatedOnToolsVersion = 16.2;
-                    };
-                    BAD6B2C52F6F753E00A09B53 = {
-                        CreatedOnToolsVersion = 26.3;
-                    };
-                };
-            };
-            buildConfigurationList = BAB3D04C2EDF80F5007295C1 /* Build configuration list for PBXProject "thebitbinder" */;
-            developmentRegion = en;
-            hasScannedForEncodings = 0;
-            knownRegions = (
-                en,
-                Base,
-            );
-            mainGroup = BAB3D0482EDF80F5007295C1;
-            minimizedProjectReferenceProxies = 1;
-            packageReferences = (
-                BAD6B5542F6FCBB600A09B53 /* XCRemoteSwiftPackageReference "generative-ai-swift" */,
-                BAD6B58F2F716B2400A09B53 /* XCRemoteSwiftPackageReference "OpenAI" */,
-                BA22E5EA2F732DFC00B9A423 /* XCRemoteSwiftPackageReference "swift-algorithms" */,
-            );
-            preferredProjectObjectVersion = 77;
-            productRefGroup = BAB3D0532EDF80F5007295C1 /* Products */;
-            projectDirPath = "";
-            projectRoot = "";
-            targets = (
-                BAB3D0512EDF80F5007295C1 /* thebitbinder */,
-                BAD6B2C52F6F753E00A09B53 /* bit */,
-            );
-        };
+		BAB3D0492EDF80F5007295C1 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2630;
+				LastUpgradeCheck = 2630;
+				TargetAttributes = {
+					BAB3D0512EDF80F5007295C1 = {
+						CreatedOnToolsVersion = 16.2;
+					};
+					BAD6B2C52F6F753E00A09B53 = {
+						CreatedOnToolsVersion = 26.3;
+					};
+				};
+			};
+			buildConfigurationList = BAB3D04C2EDF80F5007295C1 /* Build configuration list for PBXProject "thebitbinder" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = BAB3D0482EDF80F5007295C1;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				BAD6B5542F6FCBB600A09B53 /* XCRemoteSwiftPackageReference "generative-ai-swift" */,
+				BAD6B58F2F716B2400A09B53 /* XCRemoteSwiftPackageReference "OpenAI" */,
+				BA22E5EA2F732DFC00B9A423 /* XCRemoteSwiftPackageReference "swift-algorithms" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = BAB3D0532EDF80F5007295C1 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				BAB3D0512EDF80F5007295C1 /* thebitbinder */,
+				BAD6B2C52F6F753E00A09B53 /* bit */,
+			);
+		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-        BAB3D0502EDF80F5007295C1 /* Resources */ = {
-            isa = PBXResourcesBuildPhase;
-            buildActionMask = 2147483647;
-            files = (
-            );
-            runOnlyForDeploymentPostprocessing = 0;
-        };
-        BAD6B2C42F6F753E00A09B53 /* Resources */ = {
-            isa = PBXResourcesBuildPhase;
-            buildActionMask = 2147483647;
-            files = (
-            );
-            runOnlyForDeploymentPostprocessing = 0;
-        };
+		BAB3D0502EDF80F5007295C1 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BAD6B2C42F6F753E00A09B53 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-        BAB3D04E2EDF80F5007295C1 /* Sources */ = {
-            isa = PBXSourcesBuildPhase;
-            buildActionMask = 2147483647;
-            files = (
-            );
-            runOnlyForDeploymentPostprocessing = 0;
-        };
-        BAD6B2C22F6F753E00A09B53 /* Sources */ = {
-            isa = PBXSourcesBuildPhase;
-            buildActionMask = 2147483647;
-            files = (
-            );
-            runOnlyForDeploymentPostprocessing = 0;
-        };
+		BAB3D04E2EDF80F5007295C1 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BAD6B2C22F6F753E00A09B53 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
-        BAD6B2CD2F6F753E00A09B53 /* PBXTargetDependency */ = {
-            isa = PBXTargetDependency;
-            target = BAD6B2C52F6F753E00A09B53 /* bit */;
-            targetProxy = BAD6B2CC2F6F753E00A09B53 /* PBXContainerItemProxy */;
-        };
+		BAD6B2CD2F6F753E00A09B53 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = BAD6B2C52F6F753E00A09B53 /* bit */;
+			targetProxy = BAD6B2CC2F6F753E00A09B53 /* PBXContainerItemProxy */;
+		};
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
-        BAB3D0612EDF80F6007295C1 /* Debug */ = {
-            isa = XCBuildConfiguration;
-            buildSettings = {
-                ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-                ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-                CODE_SIGN_ENTITLEMENTS = thebitbinder/thebitbinder.entitlements;
-                CODE_SIGN_IDENTITY = "Apple Development";
-                CODE_SIGN_STYLE = Automatic;
-                CURRENT_PROJECT_VERSION = 1;
-                DEAD_CODE_STRIPPING = YES;
-                DEVELOPMENT_TEAM = R44WG942GS;
-                ENABLE_APP_SANDBOX = YES;
-                ENABLE_FILE_ACCESS_DOWNLOADS_FOLDER = readwrite;
-                ENABLE_INCOMING_NETWORK_CONNECTIONS = YES;
-                ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
-                ENABLE_PREVIEWS = YES;
-                ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = YES;
-                ENABLE_RESOURCE_ACCESS_BLUETOOTH = YES;
-                ENABLE_RESOURCE_ACCESS_CALENDARS = NO;
-                ENABLE_RESOURCE_ACCESS_CAMERA = YES;
-                ENABLE_RESOURCE_ACCESS_CONTACTS = NO;
-                ENABLE_RESOURCE_ACCESS_LOCATION = NO;
-                ENABLE_RESOURCE_ACCESS_PRINTING = NO;
-                ENABLE_RESOURCE_ACCESS_USB = NO;
-                ENABLE_USER_SELECTED_FILES = readwrite;
-                GENERATE_INFOPLIST_FILE = NO;
-                INFOPLIST_FILE = thebitbinder/Info.plist;
-                INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
-                "INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
-                "INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
-                "INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
-                "INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphonesimulator*]" = YES;
-                "INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphoneos*]" = YES;
-                "INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphonesimulator*]" = YES;
-                "INFOPLIST_KEY_UIStatusBarStyle[sdk=iphoneos*]" = UIStatusBarStyleDefault;
-                "INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
-                INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-                INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-                IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-                LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
-                MACOSX_DEPLOYMENT_TARGET = 14.0;
-                MARKETING_VERSION = 10.0;
-                PRODUCT_BUNDLE_IDENTIFIER = The-BitBinder.thebitbinder;
-                "PRODUCT_BUNDLE_IDENTIFIER[sdk=iphoneos*]" = "The-BitBinder.thebitbinder";
-                "PRODUCT_BUNDLE_IDENTIFIER[sdk=macosx*]" = "The-BitBinder.thebitbinder";
-                PRODUCT_NAME = "$(TARGET_NAME)";
-                SDKROOT = iphoneos;
-                SUPPORTED_PLATFORMS = "iphoneos iphonesimulator maccatalyst";
-                SUPPORTS_MACCATALYST = YES;
-                SWIFT_EMIT_LOC_STRINGS = YES;
-                SWIFT_VERSION = 5.0;
-                TARGETED_DEVICE_FAMILY = "1,2";
-            };
-            name = Debug;
-        };
-        BAB3D0622EDF80F6007295C1 /* Release */ = {
-            isa = XCBuildConfiguration;
-            buildSettings = {
-                ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-                ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-                CODE_SIGN_ENTITLEMENTS = thebitbinder/thebitbinder.entitlements;
-                CODE_SIGN_IDENTITY = "Apple Development";
-                CODE_SIGN_STYLE = Automatic;
-                CURRENT_PROJECT_VERSION = 1;
-                DEAD_CODE_STRIPPING = YES;
-                DEVELOPMENT_TEAM = R44WG942GS;
-                ENABLE_APP_SANDBOX = YES;
-                ENABLE_FILE_ACCESS_DOWNLOADS_FOLDER = readwrite;
-                ENABLE_INCOMING_NETWORK_CONNECTIONS = YES;
-                ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
-                ENABLE_PREVIEWS = YES;
-                ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = YES;
-                ENABLE_RESOURCE_ACCESS_BLUETOOTH = YES;
-                ENABLE_RESOURCE_ACCESS_CALENDARS = NO;
-                ENABLE_RESOURCE_ACCESS_CAMERA = YES;
-                ENABLE_RESOURCE_ACCESS_CONTACTS = NO;
-                ENABLE_RESOURCE_ACCESS_LOCATION = NO;
-                ENABLE_RESOURCE_ACCESS_PRINTING = NO;
-                ENABLE_RESOURCE_ACCESS_USB = NO;
-                ENABLE_USER_SELECTED_FILES = readwrite;
-                GENERATE_INFOPLIST_FILE = NO;
-                INFOPLIST_FILE = thebitbinder/Info.plist;
-                INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
-                "INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
-                "INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
-                "INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
-                "INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphonesimulator*]" = YES;
-                "INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphoneos*]" = YES;
-                "INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphonesimulator*]" = YES;
-                "INFOPLIST_KEY_UIStatusBarStyle[sdk=iphoneos*]" = UIStatusBarStyleDefault;
-                "INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
-                INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-                INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-                IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-                LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
-                MACOSX_DEPLOYMENT_TARGET = 14.0;
-                MARKETING_VERSION = 10.0;
-                PRODUCT_BUNDLE_IDENTIFIER = The-BitBinder.thebitbinder;
-                "PRODUCT_BUNDLE_IDENTIFIER[sdk=iphoneos*]" = "The-BitBinder.thebitbinder";
-                "PRODUCT_BUNDLE_IDENTIFIER[sdk=macosx*]" = "The-BitBinder.thebitbinder";
-                PRODUCT_NAME = "$(TARGET_NAME)";
-                SDKROOT = iphoneos;
-                SUPPORTED_PLATFORMS = "iphoneos iphonesimulator maccatalyst";
-                SUPPORTS_MACCATALYST = YES;
-                SWIFT_EMIT_LOC_STRINGS = YES;
-                SWIFT_VERSION = 5.0;
-                TARGETED_DEVICE_FAMILY = "1,2";
-            };
-            name = Release;
-        };
-        BAB3D0632EDF80F6007295C1 /* Debug */ = {
-            isa = XCBuildConfiguration;
-            buildSettings = {
-                ALWAYS_SEARCH_USER_PATHS = NO;
-                ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
-                CLANG_ANALYZER_NONNULL = YES;
-                CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
-                CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
-                CLANG_ENABLE_MODULES = YES;
-                CLANG_ENABLE_OBJC_ARC = YES;
-                CLANG_ENABLE_OBJC_WEAK = YES;
-                CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
-                CLANG_WARN_BOOL_CONVERSION = YES;
-                CLANG_WARN_COMMA = YES;
-                CLANG_WARN_CONSTANT_CONVERSION = YES;
-                CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
-                CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
-                CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
-                CLANG_WARN_EMPTY_BODY = YES;
-                CLANG_WARN_ENUM_CONVERSION = YES;
-                CLANG_WARN_INFINITE_RECURSION = YES;
-                CLANG_WARN_INT_CONVERSION = YES;
-                CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
-                CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
-                CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
-                CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
-                CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
-                CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
-                CLANG_WARN_STRICT_PROTOTYPES = YES;
-                CLANG_WARN_SUSPICIOUS_MOVE = YES;
-                CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
-                CLANG_WARN_UNREACHABLE_CODE = YES;
-                CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
-                COPY_PHASE_STRIP = NO;
-                DEAD_CODE_STRIPPING = YES;
-                DEBUG_INFORMATION_FORMAT = dwarf;
-                DEVELOPMENT_TEAM = R44WG942GS;
-                ENABLE_STRICT_OBJC_MSGSEND = YES;
-                ENABLE_TESTABILITY = YES;
-                ENABLE_USER_SCRIPT_SANDBOXING = YES;
-                GCC_C_LANGUAGE_STANDARD = gnu17;
-                GCC_DYNAMIC_NO_PIC = NO;
-                GCC_NO_COMMON_BLOCKS = YES;
-                GCC_OPTIMIZATION_LEVEL = 0;
-                GCC_PREPROCESSOR_DEFINITIONS = (
-                    "DEBUG=1",
-                    "$(inherited)",
-                );
-                GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
-                GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
-                GCC_WARN_UNDECLARED_SELECTOR = YES;
-                GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
-                GCC_WARN_UNUSED_FUNCTION = YES;
-                GCC_WARN_UNUSED_VARIABLE = YES;
-                LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-                MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
-                MTL_FAST_MATH = YES;
-                ONLY_ACTIVE_ARCH = YES;
-                STRING_CATALOG_GENERATE_SYMBOLS = YES;
-                SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
-                SWIFT_OPTIMIZATION_LEVEL = "-Onone";
-            };
-            name = Debug;
-        };
-        BAB3D0642EDF80F6007295C1 /* Release */ = {
-            isa = XCBuildConfiguration;
-            buildSettings = {
-                ALWAYS_SEARCH_USER_PATHS = NO;
-                ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
-                CLANG_ANALYZER_NONNULL = YES;
-                CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
-                CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
-                CLANG_ENABLE_MODULES = YES;
-                CLANG_ENABLE_OBJC_ARC = YES;
-                CLANG_ENABLE_OBJC_WEAK = YES;
-                CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
-                CLANG_WARN_BOOL_CONVERSION = YES;
-                CLANG_WARN_COMMA = YES;
-                CLANG_WARN_CONSTANT_CONVERSION = YES;
-                CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
-                CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
-                CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
-                CLANG_WARN_EMPTY_BODY = YES;
-                CLANG_WARN_ENUM_CONVERSION = YES;
-                CLANG_WARN_INFINITE_RECURSION = YES;
-                CLANG_WARN_INT_CONVERSION = YES;
-                CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
-                CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
-                CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
-                CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
-                CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
-                CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
-                CLANG_WARN_STRICT_PROTOTYPES = YES;
-                CLANG_WARN_SUSPICIOUS_MOVE = YES;
-                CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
-                CLANG_WARN_UNREACHABLE_CODE = YES;
-                CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
-                COPY_PHASE_STRIP = NO;
-                DEAD_CODE_STRIPPING = YES;
-                DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-                DEVELOPMENT_TEAM = R44WG942GS;
-                ENABLE_NS_ASSERTIONS = NO;
-                ENABLE_STRICT_OBJC_MSGSEND = YES;
-                ENABLE_USER_SCRIPT_SANDBOXING = YES;
-                GCC_C_LANGUAGE_STANDARD = gnu17;
-                GCC_NO_COMMON_BLOCKS = YES;
-                GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
-                GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
-                GCC_WARN_UNDECLARED_SELECTOR = YES;
-                GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
-                GCC_WARN_UNUSED_FUNCTION = YES;
-                GCC_WARN_UNUSED_VARIABLE = YES;
-                LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-                MTL_ENABLE_DEBUG_INFO = NO;
-                MTL_FAST_MATH = YES;
-                STRING_CATALOG_GENERATE_SYMBOLS = YES;
-                SWIFT_COMPILATION_MODE = wholemodule;
-            };
-            name = Release;
-        };
-        BAD6B2D02F6F753E00A09B53 /* Debug */ = {
-            isa = XCBuildConfiguration;
-            buildSettings = {
-                CODE_SIGN_ENTITLEMENTS = bit/bit.entitlements;
-                CODE_SIGN_IDENTITY = "Apple Development";
-                CODE_SIGN_STYLE = Automatic;
-                CURRENT_PROJECT_VERSION = 1;
-                DEVELOPMENT_TEAM = R44WG942GS;
-                GENERATE_INFOPLIST_FILE = YES;
-                INFOPLIST_FILE = bit/Info.plist;
-                INFOPLIST_KEY_CFBundleDisplayName = bit;
-                INFOPLIST_KEY_NSHumanReadableCopyright = "";
-                IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-                LD_RUNPATH_SEARCH_PATHS = (
-                    "$(inherited)",
-                    "@executable_path/Frameworks",
-                    "@executable_path/../../Frameworks",
-                );
-                MARKETING_VERSION = 10.0;
-                PRODUCT_BUNDLE_IDENTIFIER = "The-BitBinder.thebitbinder.bit";
-                PRODUCT_NAME = "$(TARGET_NAME)";
-                SDKROOT = iphoneos;
-                SKIP_INSTALL = YES;
-                STRING_CATALOG_GENERATE_SYMBOLS = YES;
-                SWIFT_APPROACHABLE_CONCURRENCY = YES;
-                SWIFT_EMIT_LOC_STRINGS = YES;
-                SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-                SWIFT_VERSION = 5.0;
-                TARGETED_DEVICE_FAMILY = "1,2";
-            };
-            name = Debug;
-        };
-        BAD6B2D12F6F753E00A09B53 /* Release */ = {
-            isa = XCBuildConfiguration;
-            buildSettings = {
-                CODE_SIGN_ENTITLEMENTS = bit/bit.entitlements;
-                CODE_SIGN_IDENTITY = "Apple Development";
-                CODE_SIGN_STYLE = Automatic;
-                CURRENT_PROJECT_VERSION = 1;
-                DEVELOPMENT_TEAM = R44WG942GS;
-                GENERATE_INFOPLIST_FILE = YES;
-                INFOPLIST_FILE = bit/Info.plist;
-                INFOPLIST_KEY_CFBundleDisplayName = bit;
-                INFOPLIST_KEY_NSHumanReadableCopyright = "";
-                IPHONEOS_DEPLOYMENT_TARGET = 26.2;
-                LD_RUNPATH_SEARCH_PATHS = (
-                    "$(inherited)",
-                    "@executable_path/Frameworks",
-                    "@executable_path/../../Frameworks",
-                );
-                MARKETING_VERSION = 10.0;
-                PRODUCT_BUNDLE_IDENTIFIER = "The-BitBinder.thebitbinder.bit";
-                PRODUCT_NAME = "$(TARGET_NAME)";
-                SDKROOT = iphoneos;
-                SKIP_INSTALL = YES;
-                STRING_CATALOG_GENERATE_SYMBOLS = YES;
-                SWIFT_APPROACHABLE_CONCURRENCY = YES;
-                SWIFT_EMIT_LOC_STRINGS = YES;
-                SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-                SWIFT_VERSION = 5.0;
-                TARGETED_DEVICE_FAMILY = "1,2";
-                VALIDATE_PRODUCT = YES;
-            };
-            name = Release;
-        };
+		BAB3D0612EDF80F6007295C1 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = thebitbinder/thebitbinder.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
+				DEVELOPMENT_TEAM = R44WG942GS;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_FILE_ACCESS_DOWNLOADS_FOLDER = readwrite;
+				ENABLE_INCOMING_NETWORK_CONNECTIONS = YES;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
+				ENABLE_PREVIEWS = YES;
+				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = YES;
+				ENABLE_RESOURCE_ACCESS_BLUETOOTH = YES;
+				ENABLE_RESOURCE_ACCESS_CALENDARS = NO;
+				ENABLE_RESOURCE_ACCESS_CAMERA = YES;
+				ENABLE_RESOURCE_ACCESS_CONTACTS = NO;
+				ENABLE_RESOURCE_ACCESS_LOCATION = NO;
+				ENABLE_RESOURCE_ACCESS_PRINTING = NO;
+				ENABLE_RESOURCE_ACCESS_USB = NO;
+				ENABLE_USER_SELECTED_FILES = readwrite;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = thebitbinder/Info.plist;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
+				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
+				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
+				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphonesimulator*]" = YES;
+				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphoneos*]" = YES;
+				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphonesimulator*]" = YES;
+				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphoneos*]" = UIStatusBarStyleDefault;
+				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 10.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "The-BitBinder.thebitbinder";
+				"PRODUCT_BUNDLE_IDENTIFIER[sdk=iphoneos*]" = "The-BitBinder.thebitbinder";
+				"PRODUCT_BUNDLE_IDENTIFIER[sdk=macosx*]" = "The-BitBinder.thebitbinder";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator maccatalyst";
+				SUPPORTS_MACCATALYST = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		BAB3D0622EDF80F6007295C1 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = thebitbinder/thebitbinder.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
+				DEVELOPMENT_TEAM = R44WG942GS;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_FILE_ACCESS_DOWNLOADS_FOLDER = readwrite;
+				ENABLE_INCOMING_NETWORK_CONNECTIONS = YES;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
+				ENABLE_PREVIEWS = YES;
+				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = YES;
+				ENABLE_RESOURCE_ACCESS_BLUETOOTH = YES;
+				ENABLE_RESOURCE_ACCESS_CALENDARS = NO;
+				ENABLE_RESOURCE_ACCESS_CAMERA = YES;
+				ENABLE_RESOURCE_ACCESS_CONTACTS = NO;
+				ENABLE_RESOURCE_ACCESS_LOCATION = NO;
+				ENABLE_RESOURCE_ACCESS_PRINTING = NO;
+				ENABLE_RESOURCE_ACCESS_USB = NO;
+				ENABLE_USER_SELECTED_FILES = readwrite;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = thebitbinder/Info.plist;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
+				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
+				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
+				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphonesimulator*]" = YES;
+				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphoneos*]" = YES;
+				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphonesimulator*]" = YES;
+				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphoneos*]" = UIStatusBarStyleDefault;
+				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 10.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "The-BitBinder.thebitbinder";
+				"PRODUCT_BUNDLE_IDENTIFIER[sdk=iphoneos*]" = "The-BitBinder.thebitbinder";
+				"PRODUCT_BUNDLE_IDENTIFIER[sdk=macosx*]" = "The-BitBinder.thebitbinder";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator maccatalyst";
+				SUPPORTS_MACCATALYST = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		BAB3D0632EDF80F6007295C1 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = R44WG942GS;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		BAB3D0642EDF80F6007295C1 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = R44WG942GS;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_COMPILATION_MODE = wholemodule;
+			};
+			name = Release;
+		};
+		BAD6B2D02F6F753E00A09B53 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = bit/bit.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = R44WG942GS;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = bit/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = bit;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 10.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "The-BitBinder.thebitbinder.bit";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		BAD6B2D12F6F753E00A09B53 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = bit/bit.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = R44WG942GS;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = bit/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = bit;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 10.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "The-BitBinder.thebitbinder.bit";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-        BAB3D04C2EDF80F5007295C1 /* Build configuration list for PBXProject "thebitbinder" */ = {
-            isa = XCConfigurationList;
-            buildConfigurations = (
-                BAB3D0632EDF80F6007295C1 /* Debug */,
-                BAB3D0642EDF80F6007295C1 /* Release */,
-            );
-            defaultConfigurationIsVisible = 0;
-            defaultConfigurationName = Release;
-        };
-        BAB3D0602EDF80F6007295C1 /* Build configuration list for PBXNativeTarget "thebitbinder" */ = {
-            isa = XCConfigurationList;
-            buildConfigurations = (
-                BAB3D0612EDF80F6007295C1 /* Debug */,
-                BAB3D0622EDF80F6007295C1 /* Release */,
-            );
-            defaultConfigurationIsVisible = 0;
-            defaultConfigurationName = Release;
-        };
-        BAD6B2CF2F6F753E00A09B53 /* Build configuration list for PBXNativeTarget "bit" */ = {
-            isa = XCConfigurationList;
-            buildConfigurations = (
-                BAD6B2D02F6F753E00A09B53 /* Debug */,
-                BAD6B2D12F6F753E00A09B53 /* Release */,
-            );
-            defaultConfigurationIsVisible = 0;
-            defaultConfigurationName = Release;
-        };
+		BAB3D04C2EDF80F5007295C1 /* Build configuration list for PBXProject "thebitbinder" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BAB3D0632EDF80F6007295C1 /* Debug */,
+				BAB3D0642EDF80F6007295C1 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		BAB3D0602EDF80F6007295C1 /* Build configuration list for PBXNativeTarget "thebitbinder" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BAB3D0612EDF80F6007295C1 /* Debug */,
+				BAB3D0622EDF80F6007295C1 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		BAD6B2CF2F6F753E00A09B53 /* Build configuration list for PBXNativeTarget "bit" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BAD6B2D02F6F753E00A09B53 /* Debug */,
+				BAD6B2D12F6F753E00A09B53 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-        BA22E5EA2F732DFC00B9A423 /* XCRemoteSwiftPackageReference "swift-algorithms" */ = {
-            isa = XCRemoteSwiftPackageReference;
-            repositoryURL = "https://github.com/apple/swift-algorithms.git";
-            requirement = {
-                kind = upToNextMajorVersion;
-                minimumVersion = 1.2.1;
-            };
-        };
-        BAD6B5542F6FCBB600A09B53 /* XCRemoteSwiftPackageReference "generative-ai-swift" */ = {
-            isa = XCRemoteSwiftPackageReference;
-            repositoryURL = "https://github.com/google/generative-ai-swift";
-            requirement = {
-                kind = upToNextMajorVersion;
-                minimumVersion = 0.5.0;
-            };
-        };
-        BAD6B58F2F716B2400A09B53 /* XCRemoteSwiftPackageReference "OpenAI" */ = {
-            isa = XCRemoteSwiftPackageReference;
-            repositoryURL = "https://github.com/MacPaw/OpenAI.git";
-            requirement = {
-                kind = upToNextMajorVersion;
-                minimumVersion = 0.4.7;
-            };
-        };
+		BA22E5EA2F732DFC00B9A423 /* XCRemoteSwiftPackageReference "swift-algorithms" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/apple/swift-algorithms.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.2.1;
+			};
+		};
+		BAD6B5542F6FCBB600A09B53 /* XCRemoteSwiftPackageReference "generative-ai-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/google/generative-ai-swift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.5.0;
+			};
+		};
+		BAD6B58F2F716B2400A09B53 /* XCRemoteSwiftPackageReference "OpenAI" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/MacPaw/OpenAI.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.4.7;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-        BA22E5EB2F732DFC00B9A423 /* Algorithms */ = {
-            isa = XCSwiftPackageProductDependency;
-            package = BA22E5EA2F732DFC00B9A423 /* XCRemoteSwiftPackageReference "swift-algorithms" */;
-            productName = Algorithms;
-        };
-        BAD6B5552F6FCBB600A09B53 /* GoogleGenerativeAI */ = {
-            isa = XCSwiftPackageProductDependency;
-            package = BAD6B5542F6FCBB600A09B53 /* XCRemoteSwiftPackageReference "generative-ai-swift" */;
-            productName = GoogleGenerativeAI;
-        };
-        BAD6B5902F716B2400A09B53 /* OpenAI */ = {
-            isa = XCSwiftPackageProductDependency;
-            package = BAD6B58F2F716B2400A09B53 /* XCRemoteSwiftPackageReference "OpenAI" */;
-            productName = OpenAI;
-        };
+		BA22E5EB2F732DFC00B9A423 /* Algorithms */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = BA22E5EA2F732DFC00B9A423 /* XCRemoteSwiftPackageReference "swift-algorithms" */;
+			productName = Algorithms;
+		};
+		BAD6B5552F6FCBB600A09B53 /* GoogleGenerativeAI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = BAD6B5542F6FCBB600A09B53 /* XCRemoteSwiftPackageReference "generative-ai-swift" */;
+			productName = GoogleGenerativeAI;
+		};
+		BAD6B5902F716B2400A09B53 /* OpenAI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = BAD6B58F2F716B2400A09B53 /* XCRemoteSwiftPackageReference "OpenAI" */;
+			productName = OpenAI;
+		};
 /* End XCSwiftPackageProductDependency section */
-    };
-    rootObject = BAB3D0492EDF80F5007295C1 /* Project object */;
+	};
+	rootObject = BAB3D0492EDF80F5007295C1 /* Project object */;
 }

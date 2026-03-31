@@ -18,7 +18,7 @@ struct JokeCardView: View {
     @AppStorage("expandAllJokes") private var expandAllJokes = false
     
     private var isHit: Bool { joke.isHit }
-    private var hasFolder: Bool { joke.folder != nil }
+    private var hasFolder: Bool { !joke.folders.isEmpty }
     private var hasTags: Bool { !joke.tags.isEmpty }
     
     var body: some View {
@@ -83,13 +83,19 @@ struct JokeCardView: View {
                     
                     // Folder + date row
                     HStack(spacing: 6) {
-                        if let folder = joke.folder {
+                        if !joke.folders.isEmpty {
                             HStack(spacing: 3) {
                                 Image(systemName: "folder.fill")
                                     .font(.system(size: max(7, metaSize - 1)))
-                                Text(folder.name)
-                                    .font(.system(size: metaSize, weight: .medium))
-                                    .lineLimit(1)
+                                if joke.folders.count == 1 {
+                                    Text(joke.folders[0].name)
+                                        .font(.system(size: metaSize, weight: .medium))
+                                        .lineLimit(1)
+                                } else {
+                                    Text("\(joke.folders.count) folders")
+                                        .font(.system(size: metaSize, weight: .medium))
+                                        .lineLimit(1)
+                                }
                             }
                             .foregroundColor(roastMode ? .white.opacity(0.5) : AppTheme.Colors.primaryAction.opacity(0.7))
                         }
@@ -187,13 +193,18 @@ struct JokeRowView: View {
                         }
                     }
                     
-                    // Folder
-                    if let folder = joke.folder {
+                    // Folder(s)
+                    if !joke.folders.isEmpty {
                         HStack(spacing: 3) {
                             Image(systemName: "folder.fill")
                                 .font(.system(size: 9))
-                            Text(folder.name)
-                                .font(.system(size: 11, weight: .medium))
+                            if joke.folders.count == 1 {
+                                Text(joke.folders[0].name)
+                                    .font(.system(size: 11, weight: .medium))
+                            } else {
+                                Text("\(joke.folders.count) folders")
+                                    .font(.system(size: 11, weight: .medium))
+                            }
                         }
                         .foregroundColor(roastMode ? .white.opacity(0.5) : AppTheme.Colors.primaryAction.opacity(0.7))
                     }
@@ -379,34 +390,82 @@ struct ImportProgressCard: View {
     let importedJokeNames: [String]
     var roastMode: Bool = false
     
+    @State private var isPulsing = false
+    @State private var tipIndex = 0
+    
+    private static let importTips = [
+        "💡 Typed text extracts better than handwriting",
+        "💡 One joke per paragraph gets the best results",
+        "💡 PDFs with clear text work great",
+        "💡 Good lighting helps photo imports",
+        "💡 GagGrabber gets smarter with each import",
+        "💡 High-contrast pages scan best",
+    ]
+    
+    /// Infers the current pipeline stage from the status message.
+    private var currentStage: ImportStage {
+        let lower = importStatusMessage.lowercased()
+        if lower.contains("found") { return .finishing }
+        if lower.contains("extract") || lower.contains("gaggrabber") { return .extracting }
+        if lower.contains("scan") || lower.contains("analyz") || lower.contains("loading") { return .reading }
+        return .analyzing
+    }
+    
     var body: some View {
         VStack(spacing: 20) {
-            // Header
-            HStack {
-                Image(systemName: "doc.text.magnifyingglass")
-                    .font(.system(size: 24))
-                    .foregroundColor(roastMode ? AppTheme.Colors.roastAccent : AppTheme.Colors.primaryAction)
+            // Animated icon
+            ZStack {
+                Circle()
+                    .fill(
+                        (roastMode ? AppTheme.Colors.roastAccent : AppTheme.Colors.primaryAction)
+                            .opacity(isPulsing ? 0.15 : 0.05)
+                    )
+                    .frame(width: 72, height: 72)
+                    .scaleEffect(isPulsing ? 1.15 : 1.0)
                 
-                Text("Importing...")
-                    .font(.system(size: 18, weight: .bold, design: .serif))
-                    .foregroundColor(roastMode ? .white : AppTheme.Colors.inkBlack)
+                Image(systemName: currentStage.icon)
+                    .font(.system(size: 30, weight: .medium))
+                    .foregroundColor(roastMode ? AppTheme.Colors.roastAccent : AppTheme.Colors.primaryAction)
+                    .symbolEffect(.pulse, isActive: true)
+            }
+            .animation(.easeInOut(duration: 1.2).repeatForever(autoreverses: true), value: isPulsing)
+            
+            // Title
+            Text(currentStage.title)
+                .font(.system(size: 18, weight: .bold, design: .serif))
+                .foregroundColor(roastMode ? .white : AppTheme.Colors.inkBlack)
+                .animation(.easeInOut(duration: 0.3), value: currentStage)
+            
+            // Stage pipeline
+            HStack(spacing: 6) {
+                ForEach(ImportStage.allCases, id: \.self) { stage in
+                    stagePill(stage)
+                }
             }
             
-            // Progress
-            VStack(spacing: 8) {
+            // Progress bar
+            VStack(spacing: 6) {
+                if importFileCount > 1 {
+                    Text("File \(importFileIndex) of \(importFileCount)")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(roastMode ? .white.opacity(0.5) : AppTheme.Colors.textTertiary)
+                }
+                
                 ProgressView(value: Double(importFileIndex), total: Double(max(1, importFileCount)))
                     .tint(roastMode ? AppTheme.Colors.roastAccent : AppTheme.Colors.primaryAction)
                 
                 Text(importStatusMessage)
-                    .font(.system(size: 14))
+                    .font(.system(size: 13))
                     .foregroundColor(roastMode ? .white.opacity(0.7) : AppTheme.Colors.textSecondary)
                     .multilineTextAlignment(.center)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             
             // Recent imports
             if !importedJokeNames.isEmpty {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Found:")
+                    Text("Found so far:")
                         .font(.system(size: 12, weight: .medium))
                         .foregroundColor(roastMode ? .white.opacity(0.5) : AppTheme.Colors.textTertiary)
                     
@@ -424,6 +483,15 @@ struct ImportProgressCard: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
+            
+            // Rotating tip
+            Text(Self.importTips[tipIndex % Self.importTips.count])
+                .font(.system(size: 12, design: .rounded))
+                .foregroundColor(roastMode ? .white.opacity(0.4) : AppTheme.Colors.textTertiary)
+                .multilineTextAlignment(.center)
+                .transition(.opacity)
+                .id(tipIndex)
+                .animation(.easeInOut(duration: 0.5), value: tipIndex)
         }
         .padding(24)
         .frame(maxWidth: 320)
@@ -432,6 +500,86 @@ struct ImportProgressCard: View {
                 .fill(roastMode ? AppTheme.Colors.roastSurface : AppTheme.Colors.surfaceElevated)
                 .shadow(color: .black.opacity(0.2), radius: 20, y: 10)
         )
+        .onAppear {
+            isPulsing = true
+            startTipRotation()
+        }
+    }
+    
+    private func stagePill(_ stage: ImportStage) -> some View {
+        let isActive = stage == currentStage
+        let isComplete = stage.rawValue < currentStage.rawValue
+        
+        return HStack(spacing: 4) {
+            if isComplete {
+                Image(systemName: "checkmark")
+                    .font(.system(size: 8, weight: .bold))
+            }
+            Text(stage.shortLabel)
+                .font(.system(size: 10, weight: isActive ? .bold : .medium))
+        }
+        .foregroundColor(
+            isActive
+                ? .white
+                : (isComplete
+                    ? (roastMode ? AppTheme.Colors.roastAccent : AppTheme.Colors.success)
+                    : (roastMode ? .white.opacity(0.3) : AppTheme.Colors.textTertiary))
+        )
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(
+            Capsule().fill(
+                isActive
+                    ? (roastMode ? AppTheme.Colors.roastAccent : AppTheme.Colors.primaryAction)
+                    : (isComplete
+                        ? (roastMode ? AppTheme.Colors.roastAccent.opacity(0.15) : AppTheme.Colors.success.opacity(0.12))
+                        : (roastMode ? Color.white.opacity(0.08) : AppTheme.Colors.paperDeep))
+            )
+        )
+    }
+    
+    private func startTipRotation() {
+        Timer.scheduledTimer(withTimeInterval: 4.0, repeats: true) { _ in
+            DispatchQueue.main.async {
+                withAnimation { tipIndex += 1 }
+            }
+        }
+    }
+}
+
+// MARK: - Import Stage
+
+enum ImportStage: Int, CaseIterable {
+    case analyzing = 0
+    case reading = 1
+    case extracting = 2
+    case finishing = 3
+    
+    var title: String {
+        switch self {
+        case .analyzing: return "Analyzing File..."
+        case .reading: return "Reading Content..."
+        case .extracting: return "GagGrabber Extracting..."
+        case .finishing: return "Almost Done..."
+        }
+    }
+    
+    var shortLabel: String {
+        switch self {
+        case .analyzing: return "Analyze"
+        case .reading: return "Read"
+        case .extracting: return "Extract"
+        case .finishing: return "Finish"
+        }
+    }
+    
+    var icon: String {
+        switch self {
+        case .analyzing: return "doc.text.magnifyingglass"
+        case .reading: return "text.viewfinder"
+        case .extracting: return "wand.and.stars"
+        case .finishing: return "checkmark.seal"
+        }
     }
 }
 

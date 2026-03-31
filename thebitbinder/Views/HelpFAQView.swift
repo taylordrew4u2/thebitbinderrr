@@ -44,7 +44,7 @@ struct HelpFAQView: View {
 
                     // Footer
                     VStack(spacing: 6) {
-                        Text("BitBinder v9.3")
+                        Text("BitBinder v10.4")
                             .font(.system(size: 12, weight: .semibold, design: .serif))
                             .foregroundColor(roastMode ? .white.opacity(0.4) : AppTheme.Colors.textTertiary)
                         Text("Shut up and write some jokes.")

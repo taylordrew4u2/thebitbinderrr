@@ -32,7 +32,7 @@ final class ImportRouter {
         "rtf", "rtfd", "doc", "docx"
     ]
 
-    /// Extensions we recognise but explicitly refuse to import as jokes.
+    /// Extensions we recognize but explicitly refuse to import as jokes.
     /// These would previously fall through to visionOCR and fail with "Invalid image file".
     private static let rejectedExtensions: Set<String> = [
         // Source code

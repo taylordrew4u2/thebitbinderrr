@@ -119,10 +119,17 @@ struct JokesAlertsModifier: ViewModifier {
             } message: {
                 Text("Your jokes have been exported to a PDF file.")
             }
-            .alert("Import Complete", isPresented: $showingImportSummary) {
+            .alert(
+                importSummary.added > 0 ? "Import Complete! 🎉" : "No Jokes Found",
+                isPresented: $showingImportSummary
+            ) {
                 Button("OK") {}
             } message: {
-                Text("Imported \(importSummary.added) jokes. Skipped \(importSummary.skipped).")
+                if importSummary.added > 0 {
+                    Text("Imported \(importSummary.added) joke\(importSummary.added == 1 ? "" : "s")\(importSummary.skipped > 0 ? " and skipped \(importSummary.skipped) duplicate\(importSummary.skipped == 1 ? "" : "s")" : ""). Check them out in your collection!")
+                } else {
+                    Text("GagGrabber couldn't find any jokes in this file. Try a PDF with selectable text, or make sure jokes are separated by line breaks.")
+                }
             }
             .alert("Delete Folder?", isPresented: $showingDeleteFolderAlert) {
                 Button("Move Jokes…") {
@@ -220,42 +227,105 @@ struct ReviewImportsSheet: View {
     let possibleDuplicates: [String]
     let unresolvedFragments: [UnresolvedImportFragment]
     let selectedFolder: JokeFolder?
+    
+    private var openFragments: [UnresolvedImportFragment] {
+        unresolvedFragments.filter { !$0.isResolved }
+    }
+    
+    private var hasContent: Bool {
+        !possibleDuplicates.isEmpty || !openFragments.isEmpty || !reviewCandidates.isEmpty
+    }
 
     var body: some View {
         NavigationStack {
-            List {
-                if !possibleDuplicates.isEmpty {
-                    Section("Possible Duplicates") {
-                        ForEach(possibleDuplicates, id: \.self) { dup in
-                            Label(dup, systemImage: "exclamationmark.triangle")
-                                .foregroundColor(AppTheme.Colors.warning)
+            Group {
+                if hasContent {
+                    List {
+                        // Summary header
+                        Section {
+                            HStack(spacing: 12) {
+                                Image(systemName: "tray.full.fill")
+                                    .font(.system(size: 24))
+                                    .foregroundColor(AppTheme.Colors.primaryAction)
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("\(openFragments.count + reviewCandidates.count) item\(openFragments.count + reviewCandidates.count == 1 ? "" : "s") to review")
+                                        .font(.system(size: 15, weight: .semibold))
+                                    if !possibleDuplicates.isEmpty {
+                                        Text("\(possibleDuplicates.count) possible duplicate\(possibleDuplicates.count == 1 ? "" : "s") detected")
+                                            .font(.system(size: 12))
+                                            .foregroundColor(AppTheme.Colors.warning)
+                                    }
+                                }
+                                Spacer()
+                            }
+                            .listRowBackground(Color.clear)
                         }
-                    }
-                }
-                if !unresolvedFragments.isEmpty {
-                    Section("Unresolved Fragments") {
-                        ForEach(unresolvedFragments.filter { !$0.isResolved }) { fragment in
-                            UnresolvedFragmentRow(
-                                fragment: fragment,
-                                selectedFolder: selectedFolder,
-                                onSaveAsJoke: { saveFragmentAsJoke($0) },
-                                onMarkResolved: { markResolved($0) }
-                            )
-                        }
-                    }
-                }
-                if !reviewCandidates.isEmpty {
-                    Section("Needs Review") {
-                        ForEach(Array(reviewCandidates.enumerated()), id: \.element.id) { _, cand in
-                            VStack(alignment: .leading, spacing: 8) {
-                                TextField("Title", text: .constant(cand.suggestedTitle))
-                                    .textFieldStyle(.roundedBorder)
-                                Text(cand.content)
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                                    .lineLimit(6)
+                        
+                        if !possibleDuplicates.isEmpty {
+                            Section {
+                                ForEach(possibleDuplicates, id: \.self) { dup in
+                                    HStack(spacing: 10) {
+                                        Image(systemName: "exclamationmark.triangle.fill")
+                                            .font(.system(size: 14))
+                                            .foregroundColor(AppTheme.Colors.warning)
+                                        Text(dup)
+                                            .font(.system(size: 14))
+                                            .lineLimit(2)
+                                    }
+                                }
+                            } header: {
+                                Label("Possible Duplicates", systemImage: "doc.on.doc")
                             }
                         }
+                        if !openFragments.isEmpty {
+                            Section {
+                                ForEach(openFragments) { fragment in
+                                    UnresolvedFragmentRow(
+                                        fragment: fragment,
+                                        selectedFolder: selectedFolder,
+                                        onSaveAsJoke: { saveFragmentAsJoke($0) },
+                                        onMarkResolved: { markResolved($0) }
+                                    )
+                                }
+                            } header: {
+                                Label("Unresolved Fragments", systemImage: "puzzle.piece")
+                            } footer: {
+                                Text("These text fragments were extracted but need your review. Save them as jokes or mark them resolved to dismiss.")
+                                    .font(.caption)
+                            }
+                        }
+                        if !reviewCandidates.isEmpty {
+                            Section {
+                                ForEach(Array(reviewCandidates.enumerated()), id: \.element.id) { _, cand in
+                                    VStack(alignment: .leading, spacing: 8) {
+                                        TextField("Title", text: .constant(cand.suggestedTitle))
+                                            .textFieldStyle(.roundedBorder)
+                                        Text(cand.content)
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                            .lineLimit(6)
+                                    }
+                                }
+                            } header: {
+                                Label("Needs Review", systemImage: "eye")
+                            }
+                        }
+                    }
+                } else {
+                    // Empty state
+                    VStack(spacing: 20) {
+                        Spacer()
+                        Image(systemName: "checkmark.seal.fill")
+                            .font(.system(size: 50))
+                            .foregroundColor(AppTheme.Colors.success.opacity(0.6))
+                        Text("All Caught Up!")
+                            .font(.system(size: 20, weight: .bold, design: .serif))
+                        Text("No unresolved fragments or items needing review. Everything from your imports has been handled.")
+                            .font(.system(size: 14))
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 40)
+                        Spacer()
                     }
                 }
             }
@@ -300,44 +370,80 @@ struct UnresolvedFragmentRow: View {
     let onSaveAsJoke: (UnresolvedImportFragment) -> Void
     let onMarkResolved: (UnresolvedImportFragment) -> Void
     
+    private var confidenceColor: Color {
+        switch fragment.confidence.lowercased() {
+        case "high": return AppTheme.Colors.success
+        case "medium": return .orange
+        default: return AppTheme.Colors.error
+        }
+    }
+    
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Text(fragment.titleCandidate ?? "Recovered Fragment")
-                    .font(.headline)
-                Spacer()
-                Text(fragment.confidence.capitalized)
-                    .font(.caption.bold())
-                    .foregroundStyle(fragment.confidence == "high" ? .green : fragment.confidence == "medium" ? .orange : .red)
-            }
-            
-            Text(fragment.text)
-                .font(.caption)
-                .foregroundColor(.secondary)
-                .lineLimit(8)
-            
-            HStack(spacing: 12) {
-                Text(fragment.kind.capitalized)
-                    .font(.caption2)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(Color.blue.opacity(0.12))
-                    .cornerRadius(6)
-                Text(fragment.sourceFilename)
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
-                if let page = fragment.sourcePage {
-                    Text("Page \(page)")
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
+        VStack(alignment: .leading, spacing: 12) {
+            // Header row: title + confidence
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(fragment.titleCandidate ?? "Recovered Fragment")
+                        .font(.system(size: 15, weight: .semibold))
+                        .lineLimit(2)
+                    
+                    HStack(spacing: 8) {
+                        Label(fragment.kind.capitalized, systemImage: "tag")
+                            .font(.system(size: 11))
+                            .foregroundColor(.secondary)
+                        
+                        if let page = fragment.sourcePage {
+                            Label("Page \(page)", systemImage: "doc.text")
+                                .font(.system(size: 11))
+                                .foregroundColor(.secondary)
+                        }
+                    }
                 }
+                
+                Spacer()
+                
+                // Confidence pill
+                Text(fragment.confidence.capitalized)
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundColor(confidenceColor)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(
+                        Capsule().fill(confidenceColor.opacity(0.12))
+                    )
             }
             
+            // Fragment text preview
+            Text(fragment.text)
+                .font(.system(size: 13, design: .serif))
+                .foregroundColor(.secondary)
+                .lineSpacing(2)
+                .lineLimit(6)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(10)
+                .background(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(Color(UIColor.tertiarySystemBackground))
+                )
+            
+            // Source info
+            Text(fragment.sourceFilename)
+                .font(.system(size: 11))
+                .foregroundColor(.secondary.opacity(0.7))
+            
+            // Action buttons
             HStack(spacing: 10) {
                 Button {
                     onSaveAsJoke(fragment)
                 } label: {
-                    Label("Save as Joke", systemImage: "square.and.arrow.down")
+                    HStack(spacing: 5) {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.system(size: 13))
+                        Text("Save as Joke")
+                            .font(.system(size: 13, weight: .medium))
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.small)
@@ -345,12 +451,19 @@ struct UnresolvedFragmentRow: View {
                 Button {
                     onMarkResolved(fragment)
                 } label: {
-                    Label("Mark Resolved", systemImage: "checkmark.circle")
+                    HStack(spacing: 5) {
+                        Image(systemName: "checkmark.circle")
+                            .font(.system(size: 13))
+                        Text("Dismiss")
+                            .font(.system(size: 13, weight: .medium))
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
             }
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, 6)
     }
 }

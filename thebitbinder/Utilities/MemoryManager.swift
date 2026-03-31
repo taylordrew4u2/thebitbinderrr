@@ -88,8 +88,20 @@ final class MemoryManager {
             // Clear URL caches
             URLCache.shared.removeAllCachedResponses()
             
-            // Notify listeners
+            // Clear any system image caches by evicting all objects
+            // from Foundation's shared caches
+            URLCache.shared.memoryCapacity = 0
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                // Restore a small capacity after clearing
+                URLCache.shared.memoryCapacity = 4 * 1024 * 1024 // 4 MB
+            }
+            
+            // Notify listeners (SpeechRecognizer, import pipeline, etc.)
             NotificationCenter.default.post(name: .appMemoryWarning, object: nil)
+            
+            #if DEBUG
+            self?.reportMemoryUsage()
+            #endif
             
             print("✅ [MemoryManager] Caches cleared")
             

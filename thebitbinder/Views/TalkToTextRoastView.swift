@@ -98,6 +98,7 @@ struct TalkToTextRoastView: View {
                         ScrollView {
                             Text(transcribedText)
                                 .font(.body)
+                                .foregroundColor(.primary) // Ensure text is visible in light/dark mode
                                 .padding(14)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                         }
@@ -175,6 +176,13 @@ struct TalkToTextRoastView: View {
             }
             .onAppear {
                 checkPermissions()
+            }
+            .onDisappear {
+                // Ensure audio pipeline is fully torn down when leaving this view
+                if isRecording {
+                    isRecording = false
+                }
+                speechRecognizer.stopTranscribing()
             }
             .alert("Permissions Required", isPresented: $showingPermissionAlert) {
                 Button("Open Settings") {

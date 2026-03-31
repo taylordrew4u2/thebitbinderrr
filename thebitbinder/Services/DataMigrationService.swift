@@ -42,7 +42,7 @@ final class DataMigrationService: ObservableObject {
         print("🔄 [DataMigration] Creating pre-migration backup...")
         await dataProtection.createBackup(
             named: "PreMigration_v\(lastMigrationVersion)_to_v\(currentMigrationVersion)_\(ISO8601DateFormatter().string(from: Date()))",
-            reason: .preDataOpertion
+            reason: .preDataOperation
         )
         
         // Step 2: Validate data integrity before migration
@@ -100,7 +100,7 @@ final class DataMigrationService: ObservableObject {
         case .failure, .warning:
             // Rollback on failure
             print("🔄 [DataMigration] Migration failed, attempting rollback...")
-            let rollbackResult = await performRollback()
+            let rollbackResult = await performRollback(to: lastMigrationVersion)
             
             if case .success = rollbackResult {
                 return .failure("Migration failed but data was successfully rolled back")
@@ -138,8 +138,11 @@ final class DataMigrationService: ObservableObject {
     
     // MARK: - Rollback Capabilities
     
-    private func performRollback() async -> MigrationResult {
-        print("🔄 [DataMigration] Performing rollback...")
+    /// Restores the most recent pre-migration backup and resets the migration
+    /// version to `targetVersion` (the version the user was on *before* the
+    /// migration attempt started).
+    private func performRollback(to targetVersion: Int) async -> MigrationResult {
+        print("🔄 [DataMigration] Performing rollback to v\(targetVersion)...")
         
         // Get the most recent pre-migration backup
         let backups = dataProtection.getAvailableBackups()
@@ -152,9 +155,8 @@ final class DataMigrationService: ObservableObject {
         do {
             try await dataProtection.recoverFromBackup(preMigrationBackup)
             
-            // Reset migration version to previous state
-            let previousVersion = currentMigrationVersion - 1
-            UserDefaults.standard.set(previousVersion, forKey: migrationVersionKey)
+            // Reset migration version to the pre-migration state
+            UserDefaults.standard.set(targetVersion, forKey: migrationVersionKey)
             
             print("✅ [DataMigration] Rollback completed successfully")
             return .success("Data rolled back to pre-migration state")
@@ -176,7 +178,7 @@ final class DataMigrationService: ObservableObject {
             print("🔄 [DataMigration] Schema change detected, creating safety backup...")
             await dataProtection.createBackup(
                 named: "SchemaChange_\(ISO8601DateFormatter().string(from: Date()))",
-                reason: .preDataOpertion
+                reason: .preDataOperation
             )
         }
         

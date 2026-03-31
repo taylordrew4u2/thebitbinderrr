@@ -19,6 +19,10 @@ final class iCloudSyncService: NSObject, ObservableObject {
     @Published var syncStatus: SyncStatus = .idle
     @Published var errorMessage: String?
     
+    private var syncDebouncer: Timer?
+    private var lastSyncCompletionDate: Date = .distantPast
+    private let syncCooldown: TimeInterval = 5.0 // 5 seconds
+
     enum SyncStatus: Equatable {
         case idle
         case syncing
@@ -71,13 +75,23 @@ final class iCloudSyncService: NSObject, ObservableObject {
     }
     
     @objc private func handleRemoteChange(_ notification: Notification) {
-        // Debounce — only process once per 2 seconds to avoid loops
-        NSObject.cancelPreviousPerformRequests(withTarget: self, selector: #selector(processRemoteChange), object: nil)
-        perform(#selector(processRemoteChange), with: nil, afterDelay: 2.0)
+        syncDebouncer?.invalidate()
+        syncDebouncer = Timer.scheduledTimer(
+            timeInterval: 2.0,
+            target: self,
+            selector: #selector(processRemoteChange),
+            userInfo: nil,
+            repeats: false
+        )
     }
     
     @objc private func processRemoteChange() {
         Task { @MainActor in
+            guard Date().timeIntervalSince(lastSyncCompletionDate) >= syncCooldown else {
+                print("🔄 [iCloud] Sync request ignored due to cooldown.")
+                return
+            }
+            
             // Refresh the SwiftData context so it merges remote CloudKit changes
             // into the in-memory objects. Without this, the context holds stale data
             // and the UI won't reflect changes from other devices.
@@ -100,6 +114,7 @@ final class iCloudSyncService: NSObject, ObservableObject {
             
             lastSyncDate = Date()
             syncStatus = .success
+            lastSyncCompletionDate = Date()
             
             // Post a notification so any listening views can refresh their queries
             NotificationCenter.default.post(name: .init("iCloudDataDidChange"), object: nil)
@@ -356,4 +371,3 @@ final class iCloudSyncService: NSObject, ObservableObject {
         return results
     }
 }
-

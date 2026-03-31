@@ -15,8 +15,8 @@ final class ImportReviewViewModel: ObservableObject {
     @Published var reviewItems: [ImportReviewItem] = []
     @Published var currentIndex = 0
     @Published var isProcessing = false
-    /// Set when the Gemini daily rate-limit is hit during import.
-    @Published var rateLimitError: GeminiRateLimitError? = nil
+    /// Set when extraction hits a rate-limit or all providers fail during import.
+    @Published var rateLimitError: AIExtractionFailedError? = nil
 
     // Gemini request stats (quota tracking - TODO: implement)
     var geminiRequestsRemaining: Int { Int.max }
@@ -116,23 +116,44 @@ final class ImportReviewViewModel: ObservableObject {
     
     // MARK: - Review Actions
     
+    /// Tracks the last action for undo support: (item index, previous action)
+    @Published var lastAction: (index: Int, previousAction: ReviewAction)? = nil
+    
     func approveCurrentItem() {
         guard currentIndex < reviewItems.count else { return }
+        let prev = reviewItems[currentIndex].action
+        lastAction = (currentIndex, prev)
         reviewItems[currentIndex].action = .approved
         autoAdvance()
     }
     
     func rejectCurrentItem() {
         guard currentIndex < reviewItems.count else { return }
+        let prev = reviewItems[currentIndex].action
+        lastAction = (currentIndex, prev)
         reviewItems[currentIndex].action = .rejected
         autoAdvance()
     }
     
     func sendCurrentToBrainstorm() {
         guard currentIndex < reviewItems.count else { return }
+        let prev = reviewItems[currentIndex].action
+        lastAction = (currentIndex, prev)
         reviewItems[currentIndex].action = .sendToBrainstorm
         autoAdvance()
     }
+    
+    /// Undoes the last review action and navigates back to that item.
+    func undoLastAction() {
+        guard let (index, previousAction) = lastAction else { return }
+        guard index < reviewItems.count else { return }
+        reviewItems[index].action = previousAction
+        currentIndex = index
+        lastAction = nil
+    }
+    
+    /// Whether undo is available
+    var canUndo: Bool { lastAction != nil }
     
     func markForSplitting() {
         guard currentIndex < reviewItems.count else { return }

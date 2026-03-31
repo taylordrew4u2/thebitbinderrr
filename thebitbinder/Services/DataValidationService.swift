@@ -390,10 +390,10 @@ final class DataValidationService: ObservableObject {
                         orphanedRoastJokes.append(roastJoke)
                         roastRepaired += 1
                     }
-                } else {
-                    // Roast joke has no target at all — it's an orphan
-                    orphanedRoastJokes.append(roastJoke)
                 }
+                // NOTE: A roast joke with target == nil is NOT considered orphaned.
+                // The user may have intentionally created it without a target.
+                // Only jokes whose target reference was *broken* get re-homed.
             }
             
             // Try to re-home orphaned roast jokes to a target if there's exactly one,

@@ -365,7 +365,7 @@ struct ModernSideMenu: View {
             HStack(spacing: 4) {
                 Image(systemName: roastMode ? "flame" : "pencil.and.scribble")
                     .font(.caption2)
-                Text("v9.4")
+                Text("v10.4")
                     .font(.system(size: 11, design: .serif))
             }
             .foregroundStyle(roastMode ? Color.orange.opacity(0.5) : AppTheme.Colors.textTertiary)
@@ -484,14 +484,14 @@ struct ModernMenuItem: View {
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 14) {
+            HStack(spacing: 18) {
                 Image(systemName: icon)
-                    .font(.system(size: 18, weight: .semibold))
+                    .font(.system(size: 22, weight: .semibold))
                     .foregroundColor(isSelected ? selectedAccent : iconAccent)
-                    .frame(width: 24)
+                    .frame(width: 28)
 
                 Text(label)
-                    .font(.system(size: 16, weight: isSelected ? .semibold : .regular, design: .serif))
+                    .font(.system(size: 18, weight: isSelected ? .semibold : .regular, design: .serif))
                     .foregroundColor(isSelected
                         ? (roastMode ? .white : AppTheme.Colors.inkBlack)
                         : (roastMode ? Color.white.opacity(0.60) : AppTheme.Colors.textSecondary))
@@ -501,11 +501,13 @@ struct ModernMenuItem: View {
                 if isSelected {
                     Circle()
                         .fill(selectedAccent)
-                        .frame(width: 6, height: 6)
+                        .frame(width: 8, height: 8)
                 }
             }
-            .padding(.horizontal, 18)
-            .padding(.vertical, 14)
+            .padding(.horizontal, 22)
+            .padding(.vertical, 18)
+            .frame(minHeight: 56)
+            .contentShape(Rectangle())
             .background(
                 RoundedRectangle(cornerRadius: AppTheme.Radius.medium, style: .continuous)
                     .fill(isSelected

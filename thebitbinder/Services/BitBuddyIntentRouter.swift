@@ -68,7 +68,7 @@ enum BitBuddyIntentCategory: String, Codable, Sendable {
 
 // MARK: - Intent Definition
 
-/// A single intent BitBuddy can recognise.
+/// A single intent BitBuddy can recognize.
 struct BitBuddyIntent: Sendable, Identifiable {
     let id: String               // e.g. "save_joke"
     let section: BitBuddySection
@@ -107,7 +107,7 @@ struct BitBuddyIntent: Sendable, Identifiable {
 
 struct BitBuddyRouteResult: Sendable {
     let intent: BitBuddyIntent
-    let confidence: Double          // 0…1 (normalised)
+    let confidence: Double          // 0…1 (normalized)
     let section: BitBuddySection
     let category: BitBuddyIntentCategory
     let extractedEntities: [String: String]  // e.g. "title", "folder", "target"

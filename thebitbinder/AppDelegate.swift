@@ -10,6 +10,10 @@ class AppDelegate: NSObject, UIApplicationDelegate {
     static let refreshTaskIdentifier = "The-BitBinder.thebitbinder.refresh"
     static let syncTaskIdentifier    = "The-BitBinder.thebitbinder.sync"
     
+    // MARK: - Background Task Scheduling State
+    private var isRefreshTaskScheduled = false
+    private var isSyncTaskScheduled = false
+    
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
         _ = MemoryManager.shared
@@ -149,7 +153,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
     private func handleAppRefresh(_ task: BGAppRefreshTask) {
         let startTime = Date()
         print("🔄 [BGTask] App refresh STARTED at \(startTime.formatted(date: .omitted, time: .standard))")
-        
+        self.isRefreshTaskScheduled = false
         // Schedule the next refresh before doing work
         scheduleBackgroundRefresh()
         
@@ -167,6 +171,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
             let elapsed = Date().timeIntervalSince(startTime)
             print("⚠️ [BGTask] App refresh EXPIRED after \(String(format: "%.1f", elapsed))s — cancelling")
             refreshTask.cancel()
+            self.isRefreshTaskScheduled = false
             task.setTaskCompleted(success: false)
         }
     }
@@ -174,7 +179,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
     private func handleBackgroundSync(_ task: BGProcessingTask) {
         let startTime = Date()
         print("🔄 [BGTask] Background sync STARTED at \(startTime.formatted(date: .omitted, time: .standard))")
-        
+        self.isSyncTaskScheduled = false
         // Schedule the next sync before doing work
         scheduleBackgroundSync()
         
@@ -200,6 +205,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
             let elapsed = Date().timeIntervalSince(startTime)
             print("⚠️ [BGTask] Background sync EXPIRED after \(String(format: "%.1f", elapsed))s — cancelling")
             syncTask.cancel()
+            self.isSyncTaskScheduled = false
             // Mark success: true since partial sync is still useful
             task.setTaskCompleted(success: true)
         }
@@ -208,28 +214,37 @@ class AppDelegate: NSObject, UIApplicationDelegate {
     // MARK: - Background Task Scheduling
     
     private func scheduleBackgroundRefresh() {
+        if isRefreshTaskScheduled {
+            print("⏭️ [BGTask] Refresh already scheduled, skipping")
+            return
+        }
         let request = BGAppRefreshTaskRequest(identifier: Self.refreshTaskIdentifier)
         request.earliestBeginDate = Date(timeIntervalSinceNow: 15 * 60) // 15 minutes
-        
         do {
             try BGTaskScheduler.shared.submit(request)
+            isRefreshTaskScheduled = true
             print("📅 [BGTask] Scheduled background refresh")
         } catch {
             print("⚠️ [BGTask] Could not schedule refresh: \(error.localizedDescription)")
+            isRefreshTaskScheduled = false
         }
     }
-    
     private func scheduleBackgroundSync() {
+        if isSyncTaskScheduled {
+            print("⏭️ [BGTask] Sync already scheduled, skipping")
+            return
+        }
         let request = BGProcessingTaskRequest(identifier: Self.syncTaskIdentifier)
         request.requiresNetworkConnectivity = true
         request.requiresExternalPower = false
         request.earliestBeginDate = Date(timeIntervalSinceNow: 60 * 60) // 1 hour
-        
         do {
             try BGTaskScheduler.shared.submit(request)
+            isSyncTaskScheduled = true
             print("📅 [BGTask] Scheduled background sync")
         } catch {
             print("⚠️ [BGTask] Could not schedule sync: \(error.localizedDescription)")
+            isSyncTaskScheduled = false
         }
     }
     

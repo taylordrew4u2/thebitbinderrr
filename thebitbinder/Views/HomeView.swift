@@ -16,11 +16,11 @@ struct HomeView: View {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.verticalSizeClass) private var verticalSizeClass
 
-    // Data
-    @Query(sort: \Joke.dateModified, order: .reverse) private var allJokes: [Joke]
-    @Query(sort: \SetList.dateModified, order: .reverse) private var allSets: [SetList]
-    @Query(sort: \BrainstormIdea.dateCreated, order: .reverse) private var allIdeas: [BrainstormIdea]
-    @Query(sort: \Recording.dateCreated, order: .reverse) private var allRecordings: [Recording]
+    // Data — filter out soft-deleted items at the query level to reduce memory
+    @Query(filter: #Predicate<Joke> { !$0.isDeleted }, sort: \Joke.dateModified, order: .reverse) private var allJokes: [Joke]
+    @Query(filter: #Predicate<SetList> { !$0.isDeleted }, sort: \SetList.dateModified, order: .reverse) private var allSets: [SetList]
+    @Query(filter: #Predicate<BrainstormIdea> { !$0.isDeleted }, sort: \BrainstormIdea.dateCreated, order: .reverse) private var allIdeas: [BrainstormIdea]
+    @Query(filter: #Predicate<Recording> { !$0.isDeleted }, sort: \Recording.dateCreated, order: .reverse) private var allRecordings: [Recording]
     @Query(sort: \ImportBatch.importTimestamp, order: .reverse) private var allImports: [ImportBatch]
 
     // State
@@ -40,7 +40,7 @@ struct HomeView: View {
 
     // MARK: - Computed data (lightweight only)
 
-    private var activeJokes: [Joke] { allJokes.filter { !$0.isDeleted } }
+    private var activeJokes: [Joke] { allJokes }
 
     private var activeSets: [SetList] {
         allSets.sorted { $0.dateModified > $1.dateModified }

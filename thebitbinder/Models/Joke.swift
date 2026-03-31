@@ -15,7 +15,23 @@ final class Joke: Identifiable {
     var title: String = ""
     var dateCreated: Date = Date()
     var dateModified: Date = Date()
-    @Relationship var folder: JokeFolder?
+    
+    // Many-to-many: A joke can be in multiple folders
+    @Relationship var folders: [JokeFolder] = []
+    
+    // Legacy single folder support (computed for backward compatibility)
+    var folder: JokeFolder? {
+        get { folders.first }
+        set {
+            if let newFolder = newValue {
+                if !folders.contains(where: { $0.id == newFolder.id }) {
+                    folders = [newFolder]
+                }
+            } else {
+                folders = []
+            }
+        }
+    }
     
     // Soft-delete (trash) support
     var isDeleted: Bool = false

@@ -245,14 +245,16 @@ final class DataProtectionService: ObservableObject {
     
     /// Cleans up emergency_backup_*.store and corrupted_store_backup_*.store files.
     /// Keeps only the 3 most recent and deletes any older than 7 days.
-    func cleanupEmergencyBackups() {
+    /// Nonisolated because this is pure FileManager I/O — no UI state touched.
+    nonisolated func cleanupEmergencyBackups() {
+        let fm = FileManager.default
         let supportDir = URL.applicationSupportDirectory
         let maxEmergencyBackups = 3
         let maxAgeDays: TimeInterval = 7 * 24 * 60 * 60 // 7 days
         let cutoffDate = Date().addingTimeInterval(-maxAgeDays)
         
         do {
-            let allFiles = try fileManager.contentsOfDirectory(
+            let allFiles = try fm.contentsOfDirectory(
                 at: supportDir,
                 includingPropertiesForKeys: [.creationDateKey, .fileSizeKey]
             )
@@ -279,7 +281,7 @@ final class DataProtectionService: ObservableObject {
                 
                 // Delete if: beyond the max keep count OR older than cutoff date
                 if index >= maxEmergencyBackups || creationDate < cutoffDate {
-                    try fileManager.removeItem(at: fileURL)
+                    try fm.removeItem(at: fileURL)
                     deletedCount += 1
                     freedBytes += fileSize
                 }
@@ -458,7 +460,7 @@ enum BackupReason: String, Codable {
     case appUpdate = "app_update"
     case preRecovery = "pre_recovery"
     case scheduled = "scheduled"
-    case preDataOpertion = "pre_data_operation"
+    case preDataOperation = "pre_data_operation"
 }
 
 struct BackupManifest: Codable {
@@ -482,3 +484,4 @@ struct BackupInfo: Identifiable {
         ByteCountFormatter.string(fromByteCount: size, countStyle: .file)
     }
 }
+

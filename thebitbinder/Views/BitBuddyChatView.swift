@@ -18,7 +18,7 @@ struct BitBuddyChatView: View {
     @AppStorage("roastModeEnabled") private var roastMode = false
     
     @StateObject private var authService = AuthService.shared
-    @State private var messages: [ChatMessage] = []
+    @State private var messages: [ChatBubbleMessage] = []
     @State private var inputText = ""
     @State private var conversationId = UUID().uuidString
     
@@ -99,6 +99,31 @@ struct BitBuddyChatView: View {
             messages.removeAll()
             bitBuddy.cleanupAudioResources()
         }
+        .onReceive(NotificationCenter.default.publisher(for: .bitBuddyAddJoke)) { notification in
+            guard let jokeText = notification.userInfo?["jokeText"] as? String,
+                  !jokeText.isEmpty else { return }
+            let newJoke = Joke(content: jokeText)
+            modelContext.insert(newJoke)
+            do {
+                try modelContext.save()
+                print("✅ [BitBuddy→SwiftData] Joke saved via action dispatch")
+            } catch {
+                print("❌ [BitBuddy→SwiftData] Failed to save joke: \(error)")
+            }
+        }
+        .onChange(of: bitBuddy.pendingNavigation) { _, section in
+            guard let section else { return }
+            guard let appScreen = appScreen(for: section) else { return }
+            bitBuddy.clearPendingNavigation()
+            // Post navigation then dismiss the sheet so the user lands
+            // on the target screen.
+            NotificationCenter.default.post(
+                name: .navigateToScreen,
+                object: nil,
+                userInfo: ["screen": appScreen.rawValue]
+            )
+            dismiss()
+        }
     }
     
     // MARK: - Empty State
@@ -158,6 +183,7 @@ struct BitBuddyChatView: View {
     private func suggestionChip(_ text: String) -> some View {
         Button {
             inputText = text
+            sendMessage()
         } label: {
             Text(text)
                 .font(.system(size: 14, weight: .medium))
@@ -252,23 +278,40 @@ struct BitBuddyChatView: View {
         guard !message.isEmpty else { return }
         guard !bitBuddy.isLoading else { return }
         
-        let userMessage = ChatMessage(text: message, isUser: true, conversationId: conversationId)
+        let userMessage = ChatBubbleMessage(text: message, isUser: true, conversationId: conversationId)
         messages.append(userMessage)
         inputText = ""
         
         Task {
             do {
                 let response = try await bitBuddy.sendMessage(message)
-                let aiMessage = ChatMessage(text: response, isUser: false, conversationId: conversationId)
+                let aiMessage = ChatBubbleMessage(text: response, isUser: false, conversationId: conversationId)
                 await MainActor.run {
                     messages.append(aiMessage)
                 }
             } catch {
-                let errorMsg = ChatMessage(text: "Sorry, I encountered an error. Please try again.", isUser: false, conversationId: conversationId)
+                let errorMsg = ChatBubbleMessage(text: "Sorry, I encountered an error. Please try again.", isUser: false, conversationId: conversationId)
                 await MainActor.run {
                     messages.append(errorMsg)
                 }
             }
+        }
+    }
+    
+    // MARK: - Section → AppScreen Mapping
+    
+    /// Maps a BitBuddySection to the corresponding AppScreen for navigation.
+    private func appScreen(for section: BitBuddySection) -> AppScreen? {
+        switch section {
+        case .jokes, .roastMode:  return .jokes
+        case .brainstorm:         return .brainstorm
+        case .setLists:           return .sets
+        case .recordings:         return .recordings
+        case .notebook:           return .notebookSaver
+        case .settings, .sync:    return .settings
+        case .help:               return .settings   // Help lives under Settings
+        case .importFlow:         return .jokes       // Import lands on Jokes
+        case .bitbuddy:           return nil           // Stay in chat
         }
     }
 }
@@ -276,7 +319,7 @@ struct BitBuddyChatView: View {
 // MARK: - Chat Bubble
 
 struct ChatBubble: View {
-    let message: ChatMessage
+    let message: ChatBubbleMessage
     let roastMode: Bool
     
     var body: some View {

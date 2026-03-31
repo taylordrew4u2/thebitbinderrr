@@ -66,7 +66,7 @@ struct JokeDetailView: View {
                 : "Are you sure? You can restore it from Trash later.")
         }
         .sheet(isPresented: $showingFolderPicker) {
-            FolderPickerView(selectedFolder: $joke.folder, folders: folders)
+            MultiFolderPickerView(selectedFolders: $joke.folders, allFolders: folders)
         }
         .onChange(of: showingFolderPicker) { _, isOpen in
             if isOpen {
@@ -105,7 +105,7 @@ struct JokeDetailView: View {
                 }
             }
             
-            // Word count + folder inline
+            // Word count + folders inline
             HStack(spacing: 12) {
                 if joke.wordCount > 0 {
                     Text("\(joke.wordCount) words")
@@ -113,15 +113,20 @@ struct JokeDetailView: View {
                         .foregroundColor(roastMode ? .white.opacity(0.4) : AppTheme.Colors.textTertiary)
                 }
                 
-                if let folder = joke.folder {
+                if !joke.folders.isEmpty {
                     Button {
                         showingFolderPicker = true
                     } label: {
                         HStack(spacing: 4) {
                             Image(systemName: "folder.fill")
                                 .font(.system(size: 10))
-                            Text(folder.name)
-                                .font(.system(size: 12, weight: .medium))
+                            if joke.folders.count == 1 {
+                                Text(joke.folders[0].name)
+                                    .font(.system(size: 12, weight: .medium))
+                            } else {
+                                Text("\(joke.folders.count) folders")
+                                    .font(.system(size: 12, weight: .medium))
+                            }
                         }
                         .foregroundColor(accentColor.opacity(0.8))
                     }
@@ -238,8 +243,16 @@ struct JokeDetailView: View {
                 HStack(spacing: 6) {
                     Image(systemName: "folder.fill")
                         .font(.system(size: 14))
-                    Text(joke.folder?.name ?? "Add Folder")
-                        .font(.system(size: 14, weight: .medium))
+                    if joke.folders.isEmpty {
+                        Text("Add Folders")
+                            .font(.system(size: 14, weight: .medium))
+                    } else if joke.folders.count == 1 {
+                        Text(joke.folders[0].name)
+                            .font(.system(size: 14, weight: .medium))
+                    } else {
+                        Text("\(joke.folders.count) folders")
+                            .font(.system(size: 14, weight: .medium))
+                    }
                 }
                 .foregroundColor(roastMode ? .white.opacity(0.7) : AppTheme.Colors.textSecondary)
                 .padding(.horizontal, 14)
@@ -429,6 +442,96 @@ struct FolderPickerView: View {
                     Button("Cancel") {
                         dismiss()
                     }
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Multi-Folder Picker (for many-to-many)
+
+struct MultiFolderPickerView: View {
+    @Environment(\.dismiss) private var dismiss
+    @Binding var selectedFolders: [JokeFolder]
+    let allFolders: [JokeFolder]
+    @AppStorage("roastModeEnabled") private var roastMode = false
+    
+    private func isSelected(_ folder: JokeFolder) -> Bool {
+        selectedFolders.contains(where: { $0.id == folder.id })
+    }
+    
+    private func toggleFolder(_ folder: JokeFolder) {
+        if isSelected(folder) {
+            selectedFolders.removeAll(where: { $0.id == folder.id })
+        } else {
+            selectedFolders.append(folder)
+        }
+    }
+    
+    var body: some View {
+        NavigationView {
+            List {
+                Section {
+                    if selectedFolders.isEmpty {
+                        Text("No folders selected")
+                            .foregroundColor(.secondary)
+                            .italic()
+                    } else {
+                        ForEach(selectedFolders) { folder in
+                            HStack {
+                                Label(folder.name, systemImage: "folder.fill")
+                                    .foregroundColor(roastMode ? .white : .primary)
+                                Spacer()
+                                Button {
+                                    toggleFolder(folder)
+                                } label: {
+                                    Image(systemName: "xmark.circle.fill")
+                                        .foregroundColor(.red.opacity(0.7))
+                                }
+                            }
+                        }
+                    }
+                } header: {
+                    Text("Selected Folders (\(selectedFolders.count))")
+                }
+                
+                Section {
+                    Button {
+                        selectedFolders = []
+                    } label: {
+                        HStack {
+                            Label("Clear All Folders", systemImage: "tray")
+                                .foregroundColor(roastMode ? .white : .primary)
+                            Spacer()
+                        }
+                    }
+                    .disabled(selectedFolders.isEmpty)
+                    
+                    ForEach(allFolders.filter { !isSelected($0) }) { folder in
+                        Button {
+                            toggleFolder(folder)
+                        } label: {
+                            HStack {
+                                Label(folder.name, systemImage: "folder")
+                                    .foregroundColor(roastMode ? .white : .primary)
+                                Spacer()
+                                Image(systemName: "plus.circle")
+                                    .foregroundColor(roastMode ? AppTheme.Colors.roastAccent : AppTheme.Colors.primaryAction)
+                            }
+                        }
+                    }
+                } header: {
+                    Text("Available Folders")
+                }
+            }
+            .navigationTitle("Select Folders")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                    .fontWeight(.semibold)
                 }
             }
         }

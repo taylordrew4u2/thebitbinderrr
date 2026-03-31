@@ -24,7 +24,8 @@ final class BitBuddyService: NSObject, ObservableObject {
     
     // MARK: - State
     @Published var isLoading = false
-    @Published var isConnected = false
+    /// Whether the backend is reachable. Always `true` for the local engine.
+    @Published var isConnected: Bool
     @Published private(set) var backendName: String
     /// Published so the UI can navigate to the section an intent targets.
     @Published var pendingNavigation: BitBuddySection? = nil
@@ -32,6 +33,8 @@ final class BitBuddyService: NSObject, ObservableObject {
     @Published private(set) var lastActions: [BitBuddyAction] = []
     
     private let maxConversationTurns = 16
+    /// Maximum number of old conversations to retain in memory
+    private let maxRetainedConversations = 3
     private var conversationId: String?
     private var turnsByConversation: [String: [BitBuddyTurn]] = [:]
     private var recentJokeProvider: (() -> [BitBuddyJokeSummary])?
@@ -40,6 +43,7 @@ final class BitBuddyService: NSObject, ObservableObject {
         let selectedBackend = BitBuddyBackendFactory.makeBackend()
         self.backend = selectedBackend
         self.backendName = selectedBackend.backendName
+        self.isConnected = selectedBackend.isAvailable
         super.init()
     }
     
@@ -82,12 +86,25 @@ final class BitBuddyService: NSObject, ObservableObject {
         do {
             let rawResponse = try await backend.send(message: message, session: session, dataContext: dataContext)
             
-            // Process the response through our JSON handler
+            // Process the response through our JSON handler (handles
+            // any future structured-JSON backends). For the local
+            // rule-based backend this is a no-op pass-through.
             let displayText = handleBitBuddyResponse(rawResponse)
             
-            // If the intent routes to a navigable section, publish it
-            if let section = routeResult?.section, section != .bitbuddy {
-                pendingNavigation = section
+            // Dispatch the structured action from the routed intent.
+            // The local backend returns plain text (never JSON), so
+            // handleBitBuddyResponse's JSON path never fires. We
+            // dispatch directly from the route result instead.
+            if let route = routeResult {
+                let intentAction: [String: Any] = [
+                    "type": route.intent.id
+                ]
+                executeBitBuddyAction(intentAction)
+                
+                // Publish navigation target for the UI
+                if route.section != .bitbuddy {
+                    pendingNavigation = route.section
+                }
             }
             
             appendTurn(.init(role: .assistant, text: displayText), conversationId: activeConversationId)
@@ -101,13 +118,24 @@ final class BitBuddyService: NSObject, ObservableObject {
     
     /// Start a new conversation.
     func startNewConversation() {
-        if let conversationId {
-            turnsByConversation[conversationId] = []
+        // Remove the old conversation's turns to free memory
+        if let oldId = conversationId {
+            turnsByConversation.removeValue(forKey: oldId)
         }
         conversationId = nil
-        isConnected = false
+        // isConnected stays true — the local backend is always available.
         pendingNavigation = nil
         lastActions = []
+        
+        // Evict oldest conversations if we're retaining too many
+        while turnsByConversation.count > maxRetainedConversations {
+            // Remove the conversation with the fewest turns (likely the oldest/least active)
+            if let leastActiveKey = turnsByConversation.min(by: { $0.value.count < $1.value.count })?.key {
+                turnsByConversation.removeValue(forKey: leastActiveKey)
+            } else {
+                break
+            }
+        }
     }
     
     /// Clear the pending navigation (call after the UI has acted on it).
@@ -185,21 +213,21 @@ final class BitBuddyService: NSObject, ObservableObject {
     }
     
     /// Analyze multiple jokes and group them by category.
+    /// Updates the original `Joke` objects in-place so changes are visible
+    /// to SwiftData without creating detached copies.
     func analyzeMultipleJokes(_ jokes: [Joke]) async throws -> [String: [Joke]] {
         var categorized: [String: [Joke]] = [:]
         
         for joke in jokes {
             let analysis = try await analyzeJoke(joke.content)
-            if categorized[analysis.category] == nil {
-                categorized[analysis.category] = []
-            }
             
-            let updatedJoke = Joke(content: joke.content, title: joke.title, folder: joke.folder)
-            updatedJoke.category = analysis.category
-            updatedJoke.tags = analysis.tags
-            updatedJoke.difficulty = analysis.difficulty
-            updatedJoke.humorRating = analysis.humorRating
-            categorized[analysis.category]?.append(updatedJoke)
+            // Update the original in-place — no detached copies
+            joke.category = analysis.category
+            joke.tags = analysis.tags
+            joke.difficulty = analysis.difficulty
+            joke.humorRating = analysis.humorRating
+            
+            categorized[analysis.category, default: []].append(joke)
         }
         
         return categorized
@@ -236,9 +264,10 @@ final class BitBuddyService: NSObject, ObservableObject {
         audioRecorder = nil
         audioPlayer?.stop()
         audioPlayer = nil
-        if let url = recordedAudioURL {
-            try? FileManager.default.removeItem(at: url)
-        }
+        // NOTE: recordedAudioURL is NOT deleted here.
+        // stopRecording() returns the URL and clears the reference.
+        // Callers are responsible for the file after stopRecording().
+        // Deleting it here would silently lose unprocessed recordings.
         recordedAudioURL = nil
     }
     
@@ -288,11 +317,25 @@ final class BitBuddyService: NSObject, ObservableObject {
         isLoading = true
         defer { isLoading = false }
         
-        guard (try? Data(contentsOf: audioURL)) != nil else {
+        guard FileManager.default.fileExists(atPath: audioURL.path) else {
             throw BitBuddyError.invalidResponse
         }
         
-        return try await sendMessage("User sent an audio message and wants feedback on the recorded idea.")
+        // Transcribe the audio using on-device speech recognition
+        let transcriptionService = AudioTranscriptionService.shared
+        do {
+            let result = try await transcriptionService.transcribe(audioURL: audioURL)
+            let transcript = result.transcription.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !transcript.isEmpty else {
+                return try await sendMessage("I recorded something but couldn't make out any words. Could you help me brainstorm instead?")
+            }
+            // Send the actual transcribed text for analysis
+            return try await sendMessage("Analyze this idea I just recorded: \(transcript)")
+        } catch {
+            print("⚠️ [BitBuddy] Transcription failed: \(error.localizedDescription)")
+            // Fall back gracefully — the user still gets a response
+            return try await sendMessage("I recorded an audio note but transcription wasn't available. Can you help me brainstorm some ideas?")
+        }
     }
     
     // MARK: - JSON Response Handling
@@ -490,7 +533,7 @@ final class BitBuddyService: NSObject, ObservableObject {
         // ── Notebook ───────────────────────────────
         case "open_notebook":
             print("📓 [BitBuddy] open_notebook routed")
-            pendingNavigation = .notebook
+            // Navigation handled centrally in sendMessage via routeResult
         case "save_notebook_text":
             print("📓 [BitBuddy] save_notebook_text routed")
         case "attach_photo_to_notebook":
@@ -500,7 +543,9 @@ final class BitBuddyService: NSObject, ObservableObject {
 
         // ── Roast Mode ─────────────────────────────
         case "toggle_roast_mode":
-            print("🔥 [BitBuddy] toggle_roast_mode routed")
+            let current = UserDefaults.standard.bool(forKey: "roastModeEnabled")
+            UserDefaults.standard.set(!current, forKey: "roastModeEnabled")
+            print("🔥 [BitBuddy] toggle_roast_mode → \(!current)")
         case "create_roast_target":
             print("🎯 [BitBuddy] create_roast_target routed")
         case "add_roast_joke":
@@ -536,7 +581,8 @@ final class BitBuddyService: NSObject, ObservableObject {
         case "check_sync_status":
             print("☁️ [BitBuddy] check_sync_status routed")
         case "sync_now":
-            print("☁️ [BitBuddy] sync_now routed")
+            print("☁️ [BitBuddy] sync_now — triggering manual sync")
+            Task { await iCloudSyncService.shared.syncNow() }
         case "toggle_icloud_sync":
             print("☁️ [BitBuddy] toggle_icloud_sync routed")
 
@@ -546,12 +592,13 @@ final class BitBuddyService: NSObject, ObservableObject {
         case "export_recordings":
             print("📤 [BitBuddy] export_recordings routed")
         case "clear_cache":
-            print("🧹 [BitBuddy] clear_cache routed")
+            print("🧹 [BitBuddy] clear_cache — clearing temp files")
+            clearTempFiles()
 
         // ── Help ───────────────────────────────────
         case "open_help_faq":
             print("❓ [BitBuddy] open_help_faq routed")
-            pendingNavigation = .help
+            // Navigation handled centrally in sendMessage via routeResult
         case "explain_feature":
             print("❓ [BitBuddy] explain_feature — handled by backend")
 
@@ -560,41 +607,52 @@ final class BitBuddyService: NSObject, ObservableObject {
         }
     }
     
-    /// Handles the add_joke action - saves a joke to the Jokes folder
-    /// - Parameter action: Action dictionary containing the joke text
+    /// Handles the add_joke action — publishes the joke text so the UI layer
+    /// can create a proper SwiftData `Joke` with the active `ModelContext`.
+    ///
+    /// ⚠️  This used to write a `.txt` file to Documents/Jokes, which was
+    /// invisible to the SwiftData-backed UI. Fixed to publish via
+    /// `NotificationCenter` so any listening view can persist it correctly.
     private func handleAddJokeAction(_ action: [String: Any]) {
         guard let jokeText = action["joke"] as? String, !jokeText.isEmpty else {
             print("❌ [BitBuddy] add_joke action missing joke text")
             return
         }
-        
-        do {
-            // Get Documents directory
-            let documentsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-            let jokesFolder = documentsURL.appendingPathComponent("Jokes")
-            
-            // Create Jokes folder if it doesn't exist
-            if !FileManager.default.fileExists(atPath: jokesFolder.path) {
-                try FileManager.default.createDirectory(at: jokesFolder, withIntermediateDirectories: true)
-                print("📁 [BitBuddy] Created Jokes folder")
-            }
-            
-            // Create filename with timestamp
-            let timestamp = Int(Date().timeIntervalSince1970)
-            let filename = "joke_\(timestamp).txt"
-            let fileURL = jokesFolder.appendingPathComponent(filename)
-            
-            // Save the joke to file
-            try jokeText.write(to: fileURL, atomically: true, encoding: .utf8)
-            print("✅ [BitBuddy] Saved joke to: \(filename)")
-            print("💾 [BitBuddy] Joke content: \(jokeText.prefix(50))...")
-            
-        } catch {
-            print("❌ [BitBuddy] Failed to save joke: \(error.localizedDescription)")
-        }
+
+        let folder = action["folder"] as? String
+        print("✅ [BitBuddy] Publishing add_joke for UI persistence")
+        print("💾 [BitBuddy] Joke content: \(jokeText.prefix(50))...")
+
+        NotificationCenter.default.post(
+            name: .bitBuddyAddJoke,
+            object: nil,
+            userInfo: [
+                "jokeText": jokeText,
+                "folder": folder as Any
+            ]
+        )
     }
     
     // MARK: - Private helpers
+    
+    /// Removes all files from the app's temporary directory.
+    /// Safe to call at any time — only affects throwaway caches/scratch files.
+    private func clearTempFiles() {
+        let tmpDir = FileManager.default.temporaryDirectory
+        guard let files = try? FileManager.default.contentsOfDirectory(
+            at: tmpDir, includingPropertiesForKeys: nil
+        ) else { return }
+        var removed = 0
+        for file in files {
+            do {
+                try FileManager.default.removeItem(at: file)
+                removed += 1
+            } catch {
+                // Temp files in use — skip silently
+            }
+        }
+        print("🧹 [BitBuddy] Cleared \(removed) temp file(s)")
+    }
     
     private func appendTurn(_ turn: BitBuddyTurn, conversationId: String) {
         var turns = turnsByConversation[conversationId] ?? []

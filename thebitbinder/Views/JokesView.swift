@@ -9,6 +9,11 @@ import SwiftUI
 import SwiftData
 import PhotosUI
 
+struct ImportErrorMessage: LocalizedError {
+    let message: String
+    var errorDescription: String? { message }
+}
+
 struct JokesView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var jokes: [Joke]
@@ -78,7 +83,7 @@ struct JokesView: View {
     // Smart import review
     @State private var smartImportResult: ImportPipelineResult?
     @State private var showingSmartImportReview = false
-    @State private var importErrorMessage = ""
+    @State private var importError: Error? = nil
     @State private var showingImportError = false
     
     // Batch select/delete mode
@@ -91,13 +96,10 @@ struct JokesView: View {
     @State private var cachedFilteredJokes: [Joke] = []
 
     // MARK: - The Hits Button
-    
-    // NOTE: The Hits is now integrated into the filter chips row
     // This computed property returns the count for the chips
     private var hitsCount: Int {
         jokes.filter { $0.isHit && !$0.isDeleted }.count
     }
-    
     // State for showing The Hits filter
     @State private var showingHitsFilter = false
 
@@ -294,7 +296,8 @@ struct JokesView: View {
             base = jokes.filter { !$0.isDeleted && $0.dateCreated >= sevenDaysAgo }
         } else if let folder = selectedFolder {
             let folderId = folder.id
-            base = jokes.filter { !$0.isDeleted && $0.folder?.id == folderId }
+            // Filter jokes that contain this folder in their folders array
+            base = jokes.filter { !$0.isDeleted && $0.folders.contains(where: { $0.id == folderId }) }
         } else {
             base = jokes.filter { !$0.isDeleted }
         }
@@ -366,10 +369,16 @@ struct JokesView: View {
                         )
                     }
                 }
-                .alert("Import Failed", isPresented: $showingImportError) {
+                .alert("Import Couldn't Complete", isPresented: $showingImportError) {
                     Button("OK", role: .cancel) { }
                 } message: {
-                    Text(importErrorMessage)
+                    if let aiError = importError as? AIExtractionFailedError {
+                        Text("GagGrabber couldn't extract jokes from your file.\n\nReason: \(aiError.reason)\n\nWhat to try:\n• Make sure your file has clear line breaks between jokes.\n• Try a different file format (PDF, TXT, DOCX).\n• Check your internet connection.\n\nDetails:\n\(aiError.detailedDescription)")
+                    } else if let stringError = importError as? ImportErrorMessage {
+                        Text(stringError.message)
+                    } else {
+                        Text("\(importError?.localizedDescription ?? "Unknown error")\n\nTip: PDFs with selectable text and clear line breaks between jokes give the best results.")
+                    }
                 }
                 .modifier(JokesAlertsModifier(
                     showingExportAlert: $showingExportAlert,
@@ -679,43 +688,46 @@ struct JokesView: View {
             // the first layout pass, producing an unsatisfiable constraint warning.
             ToolbarItem(placement: .navigationBarLeading) {
                 Menu {
-                    Button(action: { showingCreateFolder = true }) {
-                        Label("New Folder", systemImage: "folder.badge.plus")
-                    }
-                    Button(action: { showingAutoOrganize = true }) {
-                        Label("Auto-Organize", systemImage: "wand.and.stars")
-                    }
-                    Button(action: { showingImportHistory = true }) {
-                        Label("Import History", systemImage: "clock.arrow.trianglehead.counterclockwise.rotate.90")
-                    }
-                    Button(action: { expandAllJokes.toggle() }) {
-                        Label(expandAllJokes ? "Collapse Content" : "Expand Content",
-                              systemImage: expandAllJokes ? "arrow.up.left.and.arrow.down.right" : "arrow.down.right.and.arrow.up.left")
-                    }
-                    Divider()
-                    Button(action: {
-                        isSelectMode.toggle()
-                        if !isSelectMode { selectedJokeIDs.removeAll() }
-                    }) {
-                        Label(isSelectMode ? "Cancel Selection" : "Select Multiple",
-                              systemImage: isSelectMode ? "xmark.circle" : "checkmark.circle")
+                    Section(header: Text("Organization")) {
+                        Button(action: { showingCreateFolder = true }) {
+                            Label("New Folder", systemImage: "folder.badge.plus")
+                        }
+                        Button(action: { showingAutoOrganize = true }) {
+                            Label("Auto-Organize Jokes", systemImage: "wand.and.stars")
+                        }
+                        Button(action: { showingImportHistory = true }) {
+                            Label("Import History", systemImage: "clock.arrow.trianglehead.counterclockwise.rotate.90")
+                        }
+                        Button(action: { expandAllJokes.toggle() }) {
+                            Label(expandAllJokes ? "Collapse All Jokes" : "Expand All Jokes",
+                                  systemImage: expandAllJokes ? "arrow.up.left.and.arrow.down.right" : "arrow.down.right.and.arrow.up.left")
+                        }
                     }
                     Divider()
-                    Menu {
+                    Section(header: Text("Selection")) {
+                        Button(action: {
+                            isSelectMode.toggle()
+                            if !isSelectMode { selectedJokeIDs.removeAll() }
+                        }) {
+                            Label(isSelectMode ? "Cancel Multi-Select" : "Select Multiple Jokes",
+                                  systemImage: isSelectMode ? "xmark.circle" : "checkmark.circle")
+                        }
+                    }
+                    Divider()
+                    Section(header: Text("Export")) {
                         Button(action: exportJokesToPDF) {
-                            Label("Export Jokes", systemImage: "doc.text")
+                            Label("Export Jokes to PDF", systemImage: "doc.text")
                         }
                         Button(action: exportBrainstormToPDF) {
-                            Label("Export Brainstorm", systemImage: "lightbulb")
+                            Label("Export Brainstorm to PDF", systemImage: "lightbulb")
                         }
                         Button(action: exportEverythingToPDF) {
                             Label("Export Everything", systemImage: "square.and.arrow.up")
                         }
-                    } label: {
-                        Label("Export to PDF", systemImage: "square.and.arrow.up")
                     }
                 } label: {
                     Image(systemName: "ellipsis.circle")
+                        .accessibilityLabel("More Actions")
                 }
             }
             ToolbarItem(placement: .navigationBarLeading) {
@@ -726,30 +738,37 @@ struct JokesView: View {
                 } label: {
                     Image(systemName: viewMode.icon)
                         .foregroundColor(AppTheme.Colors.jokesAccent)
+                        .accessibilityLabel(viewMode == .grid ? "Switch to List View" : "Switch to Grid View")
                 }
             }
             ToolbarItem(placement: .navigationBarTrailing) {
                 Menu {
-                    Button(action: { showingAddJoke = true }) {
-                        Label("Add Manually", systemImage: "square.and.pencil")
+                    Section(header: Text("Create")) {
+                        Button(action: { showingAddJoke = true }) {
+                            Label("Write a Joke", systemImage: "square.and.pencil")
+                        }
+                        Button(action: { showingTalkToText = true }) {
+                            Label("Talk-to-Text", systemImage: "mic.badge.plus")
+                        }
                     }
-                    Button(action: { showingTalkToText = true }) {
-                        Label("Talk-to-Text Joke", systemImage: "mic.badge.plus")
-                    }
-                    Button(action: { showingScanner = true }) {
-                        Label("Scan from Camera", systemImage: "camera")
-                    }
-                    Button(action: { showingImagePicker = true }) {
-                        Label("Import Photos", systemImage: "photo.on.rectangle")
-                    }
-                    Button(action: { showingAudioImport = true }) {
-                        Label("Import Voice Memos", systemImage: "waveform")
-                    }
-                    Button(action: { showingFilePicker = true }) {
-                        Label("Import Files", systemImage: "doc")
+                    Divider()
+                    Section(header: Text("Import")) {
+                        Button(action: { showingFilePicker = true }) {
+                            Label("Import from Files", systemImage: "doc.text")
+                        }
+                        Button(action: { showingScanner = true }) {
+                            Label("Scan with Camera", systemImage: "camera.viewfinder")
+                        }
+                        Button(action: { showingImagePicker = true }) {
+                            Label("Import from Photos", systemImage: "photo.on.rectangle")
+                        }
+                        Button(action: { showingAudioImport = true }) {
+                            Label("Import from Voice Memos", systemImage: "waveform")
+                        }
                     }
                 } label: {
                     Image(systemName: "plus")
+                        .accessibilityLabel("Add or Import")
                 }
             }
         }
@@ -785,9 +804,16 @@ struct JokesView: View {
     }
     
     private func moveJokes(from sourceFolder: JokeFolder, to destinationFolder: JokeFolder?) {
-        let jokesInFolder = jokes.filter { $0.folder?.id == sourceFolder.id }
+        let jokesInFolder = jokes.filter { $0.folders.contains(where: { $0.id == sourceFolder.id }) }
         for joke in jokesInFolder {
-            joke.folder = destinationFolder
+            // Remove from source folder
+            joke.folders.removeAll(where: { $0.id == sourceFolder.id })
+            // Add to destination folder if specified
+            if let dest = destinationFolder {
+                if !joke.folders.contains(where: { $0.id == dest.id }) {
+                    joke.folders.append(dest)
+                }
+            }
         }
         do {
             try modelContext.save()
@@ -797,18 +823,18 @@ struct JokesView: View {
     }
     
     private func removeJokesFromFolderAndDelete(_ folder: JokeFolder) {
-        let jokesInFolder = jokes.filter { $0.folder?.id == folder.id }
+        let jokesInFolder = jokes.filter { $0.folders.contains(where: { $0.id == folder.id }) }
         for joke in jokesInFolder {
-            joke.folder = nil
+            joke.folders.removeAll(where: { $0.id == folder.id })
         }
         deleteFolder(folder)
     }
     
     private func deleteFolder(_ folder: JokeFolder) {
-        // Move jokes out of the folder (set to nil) before deleting the folder
-        let jokesInFolder = jokes.filter { $0.folder?.id == folder.id }
+        // Remove jokes from this folder before deleting
+        let jokesInFolder = jokes.filter { $0.folders.contains(where: { $0.id == folder.id }) }
         for joke in jokesInFolder {
-            joke.folder = nil
+            joke.folders.removeAll(where: { $0.id == folder.id })
         }
         
         modelContext.delete(folder)
@@ -822,7 +848,7 @@ struct JokesView: View {
     private func processScannedImages(_ images: [UIImage]) {
         isProcessingImages = true
         importedJokeNames = []
-        importStatusMessage = "Scanning \(images.count) image\(images.count == 1 ? "" : "s")..."
+        importStatusMessage = "Analyzing \(images.count) scanned page\(images.count == 1 ? "" : "s")..."
         importFileCount = images.count
         importFileIndex = 0
 
@@ -836,21 +862,25 @@ struct JokesView: View {
             for (idx, image) in images.enumerated() {
                 await MainActor.run {
                     importFileIndex = idx + 1
-                    importStatusMessage = "GagGrabber extracting jokes from scan \(importFileIndex)..."
+                    importStatusMessage = "Reading text from scan \(importFileIndex) of \(images.count)..."
                 }
 
-                // Write the UIImage to a temp PNG so the pipeline can process it normally
-                guard let pngData = image.pngData() else {
-                    failedMessages.append("Image \(idx + 1): could not encode as PNG")
-                    continue
-                }
-                let tmpURL = FileManager.default.temporaryDirectory
-                    .appendingPathComponent("scan_\(idx)_\(UUID().uuidString).png")
+                // Process each image inside an autoreleasepool so the temp file
+                // data and intermediate UIImage buffers are freed between pages.
+                // Using JPEG instead of PNG — ~10x smaller for camera images.
                 do {
-                    try pngData.write(to: tmpURL)
+                    guard let jpegData: Data = autoreleasepool(invoking: {
+                        image.jpegData(compressionQuality: 0.85)
+                    }) else {
+                        failedMessages.append("Image \(idx + 1): could not encode as JPEG")
+                        continue
+                    }
+                    let tmpURL = FileManager.default.temporaryDirectory
+                        .appendingPathComponent("scan_\(idx)_\(UUID().uuidString).jpg")
+                    try jpegData.write(to: tmpURL)
                     defer { try? FileManager.default.removeItem(at: tmpURL) }
 
-                    await MainActor.run { importStatusMessage = "GagGrabber extracting jokes from scan \(importFileIndex)..." }
+                    await MainActor.run { importStatusMessage = "GagGrabber extracting jokes from scan \(importFileIndex) of \(images.count)..." }
 
                     let result = try await FileImportService.shared.importWithPipeline(from: tmpURL)
                     combinedAutoSaved.append(contentsOf: result.autoSavedJokes)
@@ -859,7 +889,8 @@ struct JokesView: View {
                     providersUsed.insert(result.providerUsed)
 
                     await MainActor.run {
-                        importStatusMessage = "Found \(result.autoSavedJokes.count + result.reviewQueueJokes.count) fragment(s)..."
+                        let found = result.autoSavedJokes.count + result.reviewQueueJokes.count
+                        importStatusMessage = "Found \(found) joke\(found == 1 ? "" : "s") in scan \(importFileIndex)!"
                     }
                 } catch {
                     print("❌ SCANNER: Pipeline failed for image \(idx + 1): \(error)")
@@ -901,12 +932,12 @@ struct JokesView: View {
                     self.showingSmartImportReview = true
                     // Surface partial-failure info even when some files succeeded
                     if !failedMessages.isEmpty {
-                        self.importErrorMessage = "Some scans failed:\n" + failedMessages.joined(separator: "\n")
+                        self.importError = ImportErrorMessage(message: "Some scans failed:\n" + failedMessages.joined(separator: "\n"))
                         self.showingImportError = true
                     }
                 } else if !failedMessages.isEmpty {
                     // Every file failed — show the collected errors
-                    self.importErrorMessage = failedMessages.joined(separator: "\n")
+                    self.importError = ImportErrorMessage(message: failedMessages.joined(separator: "\n"))
                     self.showingImportError = true
                 } else {
                     self.importSummary = (0, 0)
@@ -919,7 +950,7 @@ struct JokesView: View {
     private func processSelectedPhotos(_ items: [PhotosPickerItem]) async {
         isProcessingImages = true
         importedJokeNames = []
-        importStatusMessage = "Loading \(items.count) photo\(items.count == 1 ? "" : "s")..."
+        importStatusMessage = "Analyzing \(items.count) photo\(items.count == 1 ? "" : "s")..."
         importFileCount = items.count
         importFileIndex = 0
 
@@ -932,7 +963,7 @@ struct JokesView: View {
         for (idx, item) in items.enumerated() {
             await MainActor.run {
                 importFileIndex = idx + 1
-                importStatusMessage = "Scanning photo \(importFileIndex)/\(importFileCount)..."
+                importStatusMessage = "Reading text from photo \(importFileIndex) of \(importFileCount)..."
             }
 
             guard let data = try? await item.loadTransferable(type: Data.self),
@@ -948,7 +979,7 @@ struct JokesView: View {
                 try pngData.write(to: tmpURL)
                 defer { try? FileManager.default.removeItem(at: tmpURL) }
 
-                await MainActor.run { importStatusMessage = "GagGrabber extracting jokes from photo \(importFileIndex)..." }
+                await MainActor.run { importStatusMessage = "GagGrabber extracting jokes from photo \(importFileIndex) of \(importFileCount)..." }
 
                 let result = try await FileImportService.shared.importWithPipeline(from: tmpURL)
                 combinedAutoSaved.append(contentsOf: result.autoSavedJokes)
@@ -957,7 +988,8 @@ struct JokesView: View {
                 providersUsed.insert(result.providerUsed)
 
                 await MainActor.run {
-                    importStatusMessage = "Found \(result.autoSavedJokes.count + result.reviewQueueJokes.count) fragment(s)..."
+                    let found = result.autoSavedJokes.count + result.reviewQueueJokes.count
+                    importStatusMessage = "Found \(found) joke\(found == 1 ? "" : "s") in photo \(importFileIndex)!"
                 }
             } catch {
                 print("❌ PHOTOS: Pipeline failed for photo \(idx + 1): \(error)")
@@ -1000,12 +1032,12 @@ struct JokesView: View {
                 self.showingSmartImportReview = true
                 // Surface partial-failure info even when some photos succeeded
                 if !failedMessages.isEmpty {
-                    self.importErrorMessage = "Some photos failed:\n" + failedMessages.joined(separator: "\n")
+                    self.importError = ImportErrorMessage(message: "Some photos failed:\n" + failedMessages.joined(separator: "\n"))
                     self.showingImportError = true
                 }
             } else if !failedMessages.isEmpty {
                 // Every photo failed — show the collected errors
-                self.importErrorMessage = failedMessages.joined(separator: "\n")
+                self.importError = ImportErrorMessage(message: failedMessages.joined(separator: "\n"))
                 self.showingImportError = true
             } else {
                 self.importSummary = (0, 0)
@@ -1018,7 +1050,7 @@ struct JokesView: View {
         print("📂📂📂 SMART IMPORT START: \(urls.count) files selected")
         isProcessingImages = true
         importedJokeNames = []
-        importStatusMessage = "Analyzing file..."
+        importStatusMessage = "Analyzing \(urls.count == 1 ? urls[0].lastPathComponent : "\(urls.count) files")..."
         importFileCount = urls.count
         importFileIndex = 0
         
@@ -1046,7 +1078,8 @@ struct JokesView: View {
                     providersUsed.insert(result.providerUsed)
                     
                     await MainActor.run {
-                        importStatusMessage = "Found \(result.autoSavedJokes.count + result.reviewQueueJokes.count) fragment(s)..."
+                        let found = result.autoSavedJokes.count + result.reviewQueueJokes.count
+                        importStatusMessage = "Found \(found) joke\(found == 1 ? "" : "s") in \(url.lastPathComponent)!"
                     }
                 } catch {
                     print("❌ IMPORT: AI extraction failed for \(url.lastPathComponent): \(error)")
@@ -1098,12 +1131,12 @@ struct JokesView: View {
                     self.showingSmartImportReview = true
                     // Surface partial-failure info even when some files succeeded
                     if !failedMessages.isEmpty {
-                        self.importErrorMessage = "Some files failed:\n" + failedMessages.joined(separator: "\n")
+                        self.importError = ImportErrorMessage(message: "Some files failed:\n" + failedMessages.joined(separator: "\n"))
                         self.showingImportError = true
                     }
                 } else if !failedMessages.isEmpty {
                     // AI failed on every file — show the collected errors
-                    self.importErrorMessage = failedMessages.joined(separator: "\n")
+                    self.importError = ImportErrorMessage(message: failedMessages.joined(separator: "\n"))
                     self.showingImportError = true
                 } else {
                     // AI ran but found nothing at all
@@ -1228,8 +1261,7 @@ private extension JokesView {
 }
 
 // MARK: - Roast Target Components
-// Note: FolderChip, JokeRowView, JokeCardView, TheHitsChip, JokesViewMode
-// are now in JokeComponents.swift
+// Note: FolderChip, JokeRowView, JokeCardView, TheHitsChip, JokesViewMode are now in JokeComponents.swift
 
 struct RoastTargetCard: View {
     let target: RoastTarget

@@ -26,6 +26,11 @@ struct SmartImportReviewView: View {
     @State private var brainstormCount = 0
     @State private var showingSaveError = false
     @State private var saveErrorMessage = ""
+    @State private var showSwipeTutorial = false
+    @State private var showingCancelConfirmation = false
+    @State private var showUndoBanner = false
+    @State private var lastUndoAction: (index: Int, previousAction: ReviewAction)? = nil
+    @AppStorage("hasSeenImportSwipeTutorial") private var hasSeenSwipeTutorial = false
     
     init(importResult: ImportPipelineResult, selectedFolder: JokeFolder? = nil, onComplete: (() -> Void)? = nil) {
         self.importResult = importResult
@@ -88,6 +93,7 @@ struct SmartImportReviewView: View {
                     // Prominent "Accept All" when there are pending items
                     if viewModel.pendingCount > 0 {
                         Button {
+                            UINotificationFeedbackGenerator().notificationOccurred(.success)
                             viewModel.approveAll()
                         } label: {
                             HStack(spacing: 8) {
@@ -114,6 +120,11 @@ struct SmartImportReviewView: View {
                         // All reviewed (including auto-accepted)
                         allReviewedState
                     } else if let current = viewModel.currentItem {
+                        // Source file context header
+                        if viewModel.pendingCount > 0 {
+                            importContextHeader
+                        }
+                        
                         // Card area
                         Spacer()
                         jokeCard(current)
@@ -122,6 +133,11 @@ struct SmartImportReviewView: View {
                             .gesture(swipeGesture)
                             .animation(.interactiveSpring(response: 0.4, dampingFraction: 0.7), value: dragOffset)
                         Spacer()
+                        
+                        // Undo banner
+                        if viewModel.canUndo {
+                            undoBanner
+                        }
                         
                         // Action buttons
                         actionButtonRow
@@ -142,7 +158,14 @@ struct SmartImportReviewView: View {
             )
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") { dismiss() }
+                    Button("Cancel") {
+                        let hasReviewedAnything = viewModel.reviewItems.contains { $0.action != .pending }
+                        if hasReviewedAnything {
+                            showingCancelConfirmation = true
+                        } else {
+                            dismiss()
+                        }
+                    }
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Menu {
@@ -164,15 +187,21 @@ struct SmartImportReviewView: View {
                     editSheet(for: current)
                 }
             }
-            .alert("Import Complete", isPresented: $showingSaveConfirmation) {
+            .alert("Import Complete! 🎉", isPresented: $showingSaveConfirmation) {
                 Button("Done") {
                     onComplete?()
                     dismiss()
                 }
             } message: {
-                Text("Saved \(savedCount) joke\(savedCount == 1 ? "" : "s") and sent \(brainstormCount) idea\(brainstormCount == 1 ? "" : "s") to Brainstorm.")
+                let jokeWord = savedCount == 1 ? "joke" : "jokes"
+                let ideaWord = brainstormCount == 1 ? "idea" : "ideas"
+                if brainstormCount > 0 {
+                    Text("Successfully saved \(savedCount) \(jokeWord) to your collection and sent \(brainstormCount) \(ideaWord) to Brainstorm. Your material is growing!")
+                } else {
+                    Text("Successfully saved \(savedCount) \(jokeWord) to your collection. Head to Jokes to see your new material!")
+                }
             }
-            .alert("Save Failed", isPresented: $showingSaveError) {
+            .alert("Couldn't Save Jokes", isPresented: $showingSaveError) {
                 Button("Try Again") {
                     Task { await finishAndSave() }
                 }
@@ -182,13 +211,72 @@ struct SmartImportReviewView: View {
                 }
                 Button("Cancel", role: .cancel) { }
             } message: {
-                Text(saveErrorMessage)
+                Text("\(saveErrorMessage)\n\nYour imported jokes haven't been lost — tap \"Try Again\" to retry saving them.")
+            }
+            .alert("Discard Import?", isPresented: $showingCancelConfirmation) {
+                Button("Save & Finish") {
+                    Task { await finishAndSave() }
+                }
+                Button("Discard", role: .destructive) {
+                    dismiss()
+                }
+                Button("Keep Reviewing", role: .cancel) { }
+            } message: {
+                let approved = viewModel.reviewItems.filter { $0.action == .approved }.count
+                if approved > 0 {
+                    Text("You've accepted \(approved) joke\(approved == 1 ? "" : "s"). Discard your review or save what you have so far?")
+                } else {
+                    Text("You've started reviewing this import. Are you sure you want to discard it?")
+                }
             }
         }
         .onAppear {
             viewModel.loadAllItems(from: importResult)
+            if !hasSeenSwipeTutorial && !viewModel.reviewItems.isEmpty {
+                showSwipeTutorial = true
+            }
         }
         .interactiveDismissDisabled()
+        .overlay {
+            if showSwipeTutorial {
+                swipeTutorialOverlay
+            }
+        }
+    }
+    
+    // MARK: - Import Context Header
+    
+    private var importContextHeader: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "wand.and.stars")
+                .font(.system(size: 14))
+                .foregroundColor(roastMode ? AppTheme.Colors.roastAccent : AppTheme.Colors.primaryAction)
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text("GagGrabber found \(viewModel.reviewItems.count) joke\(viewModel.reviewItems.count == 1 ? "" : "s") in **\(importResult.sourceFile)**")
+                    .font(.system(size: 12))
+                    .foregroundColor(roastMode ? .white.opacity(0.7) : AppTheme.Colors.textSecondary)
+                
+                if viewModel.pendingCount < viewModel.reviewItems.count {
+                    Text("\(viewModel.pendingCount) left to review")
+                        .font(.system(size: 11))
+                        .foregroundColor(roastMode ? .white.opacity(0.4) : AppTheme.Colors.textTertiary)
+                }
+            }
+            
+            Spacer()
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+        .background(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(
+                    (roastMode ? AppTheme.Colors.roastAccent : AppTheme.Colors.primaryAction)
+                        .opacity(0.08)
+                )
+        )
+        .padding(.horizontal, 12)
+        .padding(.top, 2)
     }
     
     // MARK: - Progress Section
@@ -314,14 +402,30 @@ struct SmartImportReviewView: View {
             }
             
             // Swipe hints
-            HStack {
-                Label("Reject", systemImage: "arrow.left")
-                    .font(.caption2)
-                    .foregroundColor(.red.opacity(0.5))
+            HStack(spacing: 0) {
+                HStack(spacing: 4) {
+                    Image(systemName: "hand.point.left.fill")
+                        .font(.system(size: 10))
+                    Text("Skip")
+                        .font(.system(size: 11, weight: .medium))
+                }
+                .foregroundColor(AppTheme.Colors.error.opacity(0.5))
+                
                 Spacer()
-                Label("Accept", systemImage: "arrow.right")
-                    .font(.caption2)
-                    .foregroundColor(.green.opacity(0.5))
+                
+                Text("or use buttons below")
+                    .font(.system(size: 10))
+                    .foregroundColor(roastMode ? .white.opacity(0.25) : AppTheme.Colors.textTertiary.opacity(0.5))
+                
+                Spacer()
+                
+                HStack(spacing: 4) {
+                    Text("Keep")
+                        .font(.system(size: 11, weight: .medium))
+                    Image(systemName: "hand.point.right.fill")
+                        .font(.system(size: 10))
+                }
+                .foregroundColor(AppTheme.Colors.success.opacity(0.5))
             }
         }
         .padding(20)
@@ -374,6 +478,7 @@ struct SmartImportReviewView: View {
                 let threshold: CGFloat = 100
                 if value.translation.width > threshold {
                     // Swipe right → Accept
+                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                     withAnimation(.easeOut(duration: 0.3)) {
                         dragOffset = CGSize(width: 500, height: 0)
                     }
@@ -383,6 +488,7 @@ struct SmartImportReviewView: View {
                     }
                 } else if value.translation.width < -threshold {
                     // Swipe left → Reject
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
                     withAnimation(.easeOut(duration: 0.3)) {
                         dragOffset = CGSize(width: -500, height: 0)
                     }
@@ -416,6 +522,54 @@ struct SmartImportReviewView: View {
         case .medium: return AppTheme.Colors.primaryAction
         case .low: return AppTheme.Colors.warning
         }
+    }
+    
+    // MARK: - Undo Banner
+    
+    private var undoBanner: some View {
+        Button {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            withAnimation(.easeInOut(duration: 0.25)) {
+                viewModel.undoLastAction()
+            }
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "arrow.uturn.backward")
+                    .font(.system(size: 13, weight: .semibold))
+                Text("Undo")
+                    .font(.system(size: 13, weight: .semibold))
+                
+                if let last = viewModel.lastAction, last.index < viewModel.reviewItems.count {
+                    let item = viewModel.reviewItems[last.index]
+                    let actionText: String = {
+                        switch item.action {
+                        case .approved: return "accepted"
+                        case .rejected: return "skipped"
+                        case .sendToBrainstorm: return "sent to brainstorm"
+                        default: return ""
+                        }
+                    }()
+                    if !actionText.isEmpty {
+                        Text("— \(actionText)")
+                            .font(.system(size: 12))
+                            .foregroundColor(roastMode ? .white.opacity(0.4) : AppTheme.Colors.textTertiary)
+                    }
+                }
+            }
+            .foregroundColor(roastMode ? AppTheme.Colors.roastAccent : AppTheme.Colors.primaryAction)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+            .background(
+                Capsule()
+                    .fill(
+                        (roastMode ? AppTheme.Colors.roastAccent : AppTheme.Colors.primaryAction)
+                            .opacity(0.1)
+                    )
+            )
+        }
+        .transition(.move(edge: .bottom).combined(with: .opacity))
+        .animation(.easeInOut(duration: 0.25), value: viewModel.canUndo)
+        .padding(.bottom, 4)
     }
     
     // MARK: - Action Buttons
@@ -556,101 +710,523 @@ struct SmartImportReviewView: View {
     // MARK: - States
     
     private var emptyState: some View {
-        BitBinderEmptyState(
-            icon: "doc.text.magnifyingglass",
-            title: "Nothing to Review",
-            subtitle: "No jokes were detected in this file. Try a different file format or check the content.",
-            roastMode: roastMode
-        )
+        ScrollView {
+            VStack(spacing: 24) {
+                Spacer(minLength: 30)
+                
+                // Icon
+                ZStack {
+                    Circle()
+                        .fill(
+                            RadialGradient(
+                                colors: [
+                                    AppTheme.Colors.warning.opacity(0.15),
+                                    AppTheme.Colors.warning.opacity(0.03)
+                                ],
+                                center: .center, startRadius: 20, endRadius: 60
+                            )
+                        )
+                        .frame(width: 110, height: 110)
+                    
+                    Image(systemName: "doc.text.magnifyingglass")
+                        .font(.system(size: 44, weight: .medium))
+                        .foregroundColor(AppTheme.Colors.warning)
+                }
+                
+                VStack(spacing: 8) {
+                    Text("No Jokes Found")
+                        .font(.system(size: 20, weight: .bold, design: .serif))
+                        .foregroundColor(roastMode ? .white : AppTheme.Colors.inkBlack)
+                    
+                    Text("GagGrabber couldn't detect any jokes in **\(importResult.sourceFile)**. This can happen for a few reasons.")
+                        .font(.system(size: 15))
+                        .foregroundColor(roastMode ? .white.opacity(0.7) : AppTheme.Colors.textSecondary)
+                        .multilineTextAlignment(.center)
+                }
+                
+                // Why this might happen
+                VStack(alignment: .leading, spacing: 14) {
+                    Text("Common reasons:")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundColor(roastMode ? .white.opacity(0.9) : AppTheme.Colors.inkBlack)
+                    
+                    importTipRow(icon: "text.alignleft", text: "The file has very little text or the text is too short for joke detection")
+                    importTipRow(icon: "photo", text: "Scanned images have low contrast or blurry text that OCR couldn't read")
+                    importTipRow(icon: "textformat", text: "Jokes aren't separated by line breaks or paragraphs")
+                    importTipRow(icon: "doc.questionmark", text: "The file format isn't ideal for extraction")
+                }
+                .padding(16)
+                .background(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(roastMode ? Color.white.opacity(0.06) : AppTheme.Colors.paperDeep)
+                )
+                
+                // What to try
+                VStack(alignment: .leading, spacing: 14) {
+                    Text("Try these tips:")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundColor(roastMode ? .white.opacity(0.9) : AppTheme.Colors.inkBlack)
+                    
+                    importTipRow(icon: "doc.text", text: "Use a **PDF with selectable text** — these work best")
+                    importTipRow(icon: "sun.max", text: "For photos: good lighting, flat page, dark ink on white paper")
+                    importTipRow(icon: "return", text: "Put each joke on its own line or paragraph")
+                    importTipRow(icon: "character.cursor.ibeam", text: "Typed or printed text extracts much better than handwriting")
+                    importTipRow(icon: "doc.on.doc", text: "Try splitting large files into smaller chunks")
+                }
+                .padding(16)
+                .background(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(roastMode ? Color.white.opacity(0.06) : AppTheme.Colors.paperDeep)
+                )
+                
+                // Supported formats
+                VStack(spacing: 8) {
+                    Text("Supported formats")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(roastMode ? .white.opacity(0.5) : AppTheme.Colors.textTertiary)
+                    
+                    HStack(spacing: 8) {
+                        formatBadge("PDF")
+                        formatBadge("TXT")
+                        formatBadge("JPG")
+                        formatBadge("PNG")
+                        formatBadge("HEIC")
+                        formatBadge("DOC")
+                    }
+                }
+                
+                Button {
+                    dismiss()
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "arrow.uturn.backward")
+                            .font(.system(size: 14))
+                        Text("Try a Different File")
+                            .font(.system(size: 15, weight: .semibold))
+                    }
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 28)
+                    .padding(.vertical, 13)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .fill(roastMode ? AppTheme.Colors.roastAccent : AppTheme.Colors.primaryAction)
+                    )
+                }
+                .buttonStyle(TouchReactiveStyle(pressedScale: 0.95, hapticStyle: .medium))
+                
+                Spacer(minLength: 20)
+            }
+            .padding(.horizontal, 24)
+        }
+    }
+    
+    private func importTipRow(icon: String, text: LocalizedStringKey) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: icon)
+                .font(.system(size: 14))
+                .foregroundColor(roastMode ? AppTheme.Colors.roastAccent.opacity(0.8) : AppTheme.Colors.primaryAction)
+                .frame(width: 20)
+            
+            Text(text)
+                .font(.system(size: 13))
+                .foregroundColor(roastMode ? .white.opacity(0.7) : AppTheme.Colors.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+    
+    private func formatBadge(_ format: String) -> some View {
+        Text(format)
+            .font(.system(size: 10, weight: .bold, design: .monospaced))
+            .foregroundColor(roastMode ? AppTheme.Colors.roastAccent : AppTheme.Colors.primaryAction)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .fill(
+                        (roastMode ? AppTheme.Colors.roastAccent : AppTheme.Colors.primaryAction)
+                            .opacity(0.1)
+                    )
+            )
     }
     
     private var allReviewedState: some View {
-        VStack(spacing: 24) {
+        ScrollView {
+            VStack(spacing: 24) {
+                Spacer(minLength: 20)
+                
+                ZStack {
+                    Circle()
+                        .fill(AppTheme.Colors.success.opacity(0.15))
+                        .frame(width: 110, height: 110)
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 50, weight: .medium))
+                        .foregroundColor(AppTheme.Colors.success)
+                }
+                
+                VStack(spacing: 8) {
+                    Text("All Reviewed!")
+                        .font(.system(size: 22, weight: .bold, design: .serif))
+                        .foregroundColor(roastMode ? .white : AppTheme.Colors.inkBlack)
+                    
+                    Text("Here's what's ready to save:")
+                        .font(.system(size: 15))
+                        .foregroundColor(roastMode ? .white.opacity(0.6) : AppTheme.Colors.textSecondary)
+                }
+                
+                // Summary stats card
+                VStack(spacing: 12) {
+                    // Source info
+                    HStack(spacing: 8) {
+                        Image(systemName: "doc.text")
+                            .font(.system(size: 14))
+                            .foregroundColor(roastMode ? .white.opacity(0.5) : AppTheme.Colors.textTertiary)
+                        Text(importResult.sourceFile)
+                            .font(.system(size: 13))
+                            .foregroundColor(roastMode ? .white.opacity(0.7) : AppTheme.Colors.textSecondary)
+                            .lineLimit(1)
+                        Spacer()
+                        Text("via \(importResult.providerUsed)")
+                            .font(.system(size: 11))
+                            .foregroundColor(roastMode ? .white.opacity(0.4) : AppTheme.Colors.textTertiary)
+                    }
+                    
+                    Divider()
+                        .opacity(0.3)
+                    
+                    // Breakdown
+                    let results = viewModel.getReviewResults()
+                    
+                    summaryStatRow(
+                        icon: "checkmark.circle.fill",
+                        color: AppTheme.Colors.success,
+                        label: "Accepted",
+                        count: results.approvedJokes.count
+                    )
+                    
+                    if results.rejectedJokes.count > 0 {
+                        summaryStatRow(
+                            icon: "xmark.circle.fill",
+                            color: AppTheme.Colors.error.opacity(0.7),
+                            label: "Skipped",
+                            count: results.rejectedJokes.count
+                        )
+                    }
+                    
+                    if results.brainstormItems.count > 0 {
+                        summaryStatRow(
+                            icon: "lightbulb.fill",
+                            color: AppTheme.Colors.brainstormAccent,
+                            label: "Sent to Brainstorm",
+                            count: results.brainstormItems.count
+                        )
+                    }
+                    
+                    if viewModel.autoAcceptedCount > 0 {
+                        Divider()
+                            .opacity(0.3)
+                        
+                        HStack(spacing: 6) {
+                            Image(systemName: "sparkles")
+                                .font(.system(size: 12))
+                                .foregroundColor(AppTheme.Colors.success)
+                            Text("\(viewModel.autoAcceptedCount) auto-accepted (high confidence)")
+                                .font(.system(size: 12))
+                                .foregroundColor(roastMode ? .white.opacity(0.5) : AppTheme.Colors.textTertiary)
+                            Spacer()
+                        }
+                    }
+                }
+                .padding(16)
+                .background(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(roastMode ? Color.white.opacity(0.06) : AppTheme.Colors.paperDeep)
+                )
+                .padding(.horizontal, 16)
+                
+                Button {
+                    UINotificationFeedbackGenerator().notificationOccurred(.success)
+                    Task {
+                        await finishAndSave()
+                    }
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 18))
+                        Text("Save \(viewModel.reviewItems.filter { $0.action == .approved }.count) Joke\(viewModel.reviewItems.filter { $0.action == .approved }.count == 1 ? "" : "s")")
+                            .font(.system(size: 17, weight: .semibold))
+                    }
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 32)
+                    .padding(.vertical, 14)
+                    .background(
+                        RoundedRectangle(cornerRadius: AppTheme.Radius.large, style: .continuous)
+                            .fill(roastMode ? AppTheme.Colors.roastAccent : AppTheme.Colors.primaryAction)
+                    )
+                }
+                .buttonStyle(TouchReactiveStyle(pressedScale: 0.95, hapticStyle: .medium))
+                
+                Spacer(minLength: 20)
+            }
+            .padding(.horizontal, 24)
+        }
+    }
+    
+    private func summaryStatRow(icon: String, color: Color, label: String, count: Int) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: icon)
+                .font(.system(size: 16))
+                .foregroundColor(color)
+            Text(label)
+                .font(.system(size: 14))
+                .foregroundColor(roastMode ? .white.opacity(0.8) : AppTheme.Colors.textPrimary)
             Spacer()
+            Text("\(count)")
+                .font(.system(size: 16, weight: .bold, design: .rounded))
+                .foregroundColor(roastMode ? .white : AppTheme.Colors.inkBlack)
+        }
+    }
+    
+    // MARK: - Swipe Tutorial Overlay
+    
+    private var swipeTutorialOverlay: some View {
+        ZStack {
+            Color.black.opacity(0.65)
+                .ignoresSafeArea()
+                .onTapGesture {
+                    dismissTutorial()
+                }
             
+            VStack(spacing: 28) {
+                Text("How to Review")
+                    .font(.system(size: 22, weight: .bold, design: .serif))
+                    .foregroundColor(.white)
+                
+                // Swipe instructions
+                HStack(spacing: 40) {
+                    VStack(spacing: 10) {
+                        ZStack {
+                            Circle()
+                                .fill(AppTheme.Colors.error.opacity(0.2))
+                                .frame(width: 60, height: 60)
+                            Image(systemName: "hand.point.left.fill")
+                                .font(.system(size: 24))
+                                .foregroundColor(AppTheme.Colors.error)
+                        }
+                        Text("Swipe Left")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(.white)
+                        Text("Skip this joke")
+                            .font(.system(size: 11))
+                            .foregroundColor(.white.opacity(0.6))
+                    }
+                    
+                    VStack(spacing: 10) {
+                        ZStack {
+                            Circle()
+                                .fill(AppTheme.Colors.success.opacity(0.2))
+                                .frame(width: 60, height: 60)
+                            Image(systemName: "hand.point.right.fill")
+                                .font(.system(size: 24))
+                                .foregroundColor(AppTheme.Colors.success)
+                        }
+                        Text("Swipe Right")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(.white)
+                        Text("Accept this joke")
+                            .font(.system(size: 11))
+                            .foregroundColor(.white.opacity(0.6))
+                    }
+                }
+                
+                // Button instructions
+                VStack(spacing: 8) {
+                    Text("Or use the buttons:")
+                        .font(.system(size: 13))
+                        .foregroundColor(.white.opacity(0.7))
+                    
+                    HStack(spacing: 16) {
+                        tutorialButtonHint(icon: "xmark", label: "Skip", color: AppTheme.Colors.error)
+                        tutorialButtonHint(icon: "lightbulb.fill", label: "Idea", color: AppTheme.Colors.brainstormAccent)
+                        tutorialButtonHint(icon: "pencil", label: "Edit", color: AppTheme.Colors.primaryAction)
+                        tutorialButtonHint(icon: "checkmark", label: "Keep", color: AppTheme.Colors.success)
+                    }
+                }
+                
+                Button {
+                    dismissTutorial()
+                } label: {
+                    Text("Got It!")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 32)
+                        .padding(.vertical, 12)
+                        .background(
+                            Capsule()
+                                .fill(roastMode ? AppTheme.Colors.roastAccent : AppTheme.Colors.primaryAction)
+                        )
+                }
+                .buttonStyle(TouchReactiveStyle(pressedScale: 0.95, hapticStyle: .medium))
+            }
+            .padding(32)
+            .background(
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .fill(.ultraThinMaterial)
+            )
+            .padding(.horizontal, 32)
+        }
+        .transition(.opacity)
+        .animation(.easeInOut(duration: 0.3), value: showSwipeTutorial)
+    }
+    
+    private func tutorialButtonHint(icon: String, label: String, color: Color) -> some View {
+        VStack(spacing: 4) {
             ZStack {
                 Circle()
-                    .fill(AppTheme.Colors.success.opacity(0.15))
-                    .frame(width: 110, height: 110)
-                Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 50, weight: .medium))
-                    .foregroundColor(AppTheme.Colors.success)
+                    .fill(color.opacity(0.2))
+                    .frame(width: 36, height: 36)
+                Image(systemName: icon)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(color)
             }
-            
-            VStack(spacing: 8) {
-                Text("All Reviewed!")
-                    .font(.system(size: 22, weight: .bold, design: .serif))
-                    .foregroundColor(roastMode ? .white : AppTheme.Colors.inkBlack)
-                Text(viewModel.summaryText)
-                    .font(.system(size: 15))
-                    .foregroundColor(roastMode ? .white.opacity(0.6) : AppTheme.Colors.textSecondary)
-                    .multilineTextAlignment(.center)
-            }
-            
-            Button {
-                Task {
-                    await finishAndSave()
-                }
-            } label: {
-                HStack(spacing: 8) {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 18))
-                    Text("Save & Finish")
-                        .font(.system(size: 17, weight: .semibold))
-                }
-                .foregroundColor(.white)
-                .padding(.horizontal, 32)
-                .padding(.vertical, 14)
-                .background(
-                    RoundedRectangle(cornerRadius: AppTheme.Radius.large, style: .continuous)
-                        .fill(roastMode ? AppTheme.Colors.roastAccent : AppTheme.Colors.primaryAction)
-                )
-            }
-            .buttonStyle(TouchReactiveStyle(pressedScale: 0.95, hapticStyle: .medium))
-            
-            Spacer()
+            Text(label)
+                .font(.system(size: 10, weight: .medium))
+                .foregroundColor(.white.opacity(0.7))
         }
-        .padding(.horizontal, 40)
+    }
+    
+    private func dismissTutorial() {
+        withAnimation {
+            showSwipeTutorial = false
+            hasSeenSwipeTutorial = true
+        }
     }
     
     // MARK: - Edit Sheet
     
     private func editSheet(for item: ImportReviewItem) -> some View {
         NavigationStack {
-            Form {
-                Section("Title") {
-                    TextField("Joke title (optional)", text: Binding(
-                        get: { viewModel.currentItem?.editedTitle ?? "" },
-                        set: { newTitle in
-                            viewModel.updateCurrentItemText(
-                                title: newTitle,
-                                body: viewModel.currentItem?.editedBody ?? "",
-                                tags: viewModel.currentItem?.editedTags ?? []
-                            )
+            ScrollView {
+                VStack(spacing: 20) {
+                    // Title field
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Title")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(roastMode ? .white.opacity(0.6) : AppTheme.Colors.textSecondary)
+                        
+                        TextField("Joke title (optional)", text: Binding(
+                            get: { viewModel.currentItem?.editedTitle ?? "" },
+                            set: { newTitle in
+                                viewModel.updateCurrentItemText(
+                                    title: newTitle,
+                                    body: viewModel.currentItem?.editedBody ?? "",
+                                    tags: viewModel.currentItem?.editedTags ?? []
+                                )
+                            }
+                        ))
+                        .font(.system(size: 16, weight: .medium))
+                        .padding(12)
+                        .background(
+                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                .fill(roastMode ? Color.white.opacity(0.06) : Color(UIColor.secondarySystemBackground))
+                        )
+                    }
+                    
+                    // Body field — TextEditor for multi-line editing
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Content")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(roastMode ? .white.opacity(0.6) : AppTheme.Colors.textSecondary)
+                        
+                        TextEditor(text: Binding(
+                            get: { viewModel.currentItem?.editedBody ?? "" },
+                            set: { newBody in
+                                viewModel.updateCurrentItemText(
+                                    title: viewModel.currentItem?.editedTitle ?? "",
+                                    body: newBody,
+                                    tags: viewModel.currentItem?.editedTags ?? []
+                                )
+                            }
+                        ))
+                        .font(.system(size: 15, design: .serif))
+                        .scrollContentBackground(.hidden)
+                        .padding(12)
+                        .frame(minHeight: 160)
+                        .background(
+                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                .fill(roastMode ? Color.white.opacity(0.06) : Color(UIColor.secondarySystemBackground))
+                        )
+                    }
+                    
+                    // Tags
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Tags")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(roastMode ? .white.opacity(0.6) : AppTheme.Colors.textSecondary)
+                        
+                        if let tags = viewModel.currentItem?.editedTags, !tags.isEmpty {
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 6) {
+                                    ForEach(tags, id: \.self) { tag in
+                                        HStack(spacing: 4) {
+                                            Text(tag)
+                                                .font(.system(size: 13))
+                                            Button {
+                                                var updated = viewModel.currentItem?.editedTags ?? []
+                                                updated.removeAll { $0 == tag }
+                                                viewModel.updateCurrentItemText(
+                                                    title: viewModel.currentItem?.editedTitle ?? "",
+                                                    body: viewModel.currentItem?.editedBody ?? "",
+                                                    tags: updated
+                                                )
+                                            } label: {
+                                                Image(systemName: "xmark.circle.fill")
+                                                    .font(.system(size: 12))
+                                                    .foregroundColor(.secondary)
+                                            }
+                                        }
+                                        .padding(.horizontal, 10)
+                                        .padding(.vertical, 5)
+                                        .background(
+                                            Capsule().fill(
+                                                roastMode ? AppTheme.Colors.roastAccent.opacity(0.2) : AppTheme.Colors.brand.opacity(0.1)
+                                            )
+                                        )
+                                        .foregroundColor(roastMode ? AppTheme.Colors.roastAccent : AppTheme.Colors.brand)
+                                    }
+                                }
+                            }
+                        } else {
+                            Text("No tags — GagGrabber will add them automatically")
+                                .font(.system(size: 13))
+                                .foregroundColor(.secondary)
+                                .italic()
                         }
-                    ))
-                }
-                
-                Section("Content") {
-                    TextField("Joke body", text: Binding(
-                        get: { viewModel.currentItem?.editedBody ?? "" },
-                        set: { newBody in
-                            viewModel.updateCurrentItemText(
-                                title: viewModel.currentItem?.editedTitle ?? "",
-                                body: newBody,
-                                tags: viewModel.currentItem?.editedTags ?? []
-                            )
+                    }
+                    
+                    // Original source text
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "doc.text")
+                                .font(.system(size: 12))
+                            Text("Original Source Text")
+                                .font(.system(size: 13, weight: .semibold))
                         }
-                    ), axis: .vertical)
-                    .lineLimit(5...15)
+                        .foregroundColor(roastMode ? .white.opacity(0.5) : AppTheme.Colors.textTertiary)
+                        
+                        Text(item.originalJoke.rawSourceText)
+                            .font(.system(size: 13))
+                            .foregroundColor(.secondary)
+                            .padding(12)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(
+                                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                    .fill(roastMode ? Color.white.opacity(0.03) : Color(UIColor.tertiarySystemBackground))
+                            )
+                    }
                 }
-                
-                Section("Original Source Text") {
-                    Text(item.originalJoke.rawSourceText)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
+                .padding(20)
             }
+            .background(roastMode ? AppTheme.Colors.roastBackground : AppTheme.Colors.paperCream)
             .navigationTitle("Edit Joke")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

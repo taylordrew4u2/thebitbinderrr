@@ -13,6 +13,9 @@ final class LocalFallbackBitBuddyService: BitBuddyBackend {
     var supportsStreaming: Bool { false }
     
     // MARK: - Mutable State (accessed only on main actor via singleton pattern)
+    // SAFETY: userProfile is mutated only from send() which is called exclusively
+    // by BitBuddyService (a @MainActor singleton). BitBuddyService serializes
+    // access via its isLoading guard. Do NOT call send() from a non-main-actor context.
     nonisolated(unsafe) private var userProfile: UserStyleProfile = .empty()
     private let intentRouter = BitBuddyIntentRouter.shared
     
@@ -120,8 +123,7 @@ final class LocalFallbackBitBuddyService: BitBuddyBackend {
         case "filter_jokes_by_tag":
             return "🏷️ Filtering by tag. Open Jokes to see the matching material."
         case "list_hits":
-            let hitCount = dataContext.recentJokes.count > 0 ? "your" : "no"
-            return "⭐ Opening The Hits — \(hitCount) proven material ready to go. These are the ones that land every time."
+            return "⭐ Opening The Hits — your proven material that lands every time. Head to Jokes and filter by Hits to see them."
         case "share_joke":
             return "📤 Joke ready to share! I'll open the share sheet so you can send it however you like."
         case "duplicate_joke":
@@ -165,9 +167,7 @@ final class LocalFallbackBitBuddyService: BitBuddyBackend {
         case "reorder_set":
             return "↕️ Set reordered! Your lineup is updated. Remember: strong opener, build in the middle, killer closer."
         case "estimate_set_time":
-            let jokeCount = dataContext.recentJokes.count
-            let estimatedMinutes = max(1, jokeCount / 2)
-            return "⏱️ Rough estimate: ~\(estimatedMinutes) minutes based on your material. Most comics average about 1–2 minutes per joke on stage."
+            return "⏱️ Rule of thumb: most comics average about 1–2 minutes per joke on stage. A tight 5-minute set is usually 3–5 jokes, a 10-minute set is 5–8. Open your set list to see the exact joke count and do the math!"
         case "shuffle_set":
             return "🔀 Set shuffled! Sometimes a random order reveals pairings you'd never have thought of. Try reading it through."
         case "suggest_set_opener":
@@ -284,7 +284,7 @@ final class LocalFallbackBitBuddyService: BitBuddyBackend {
         case "save_notebook_text":
             return "📓 Saved to your Notebook! Quick notes add up — review them weekly for hidden gems."
         case "attach_photo_to_notebook":
-            return "📸 Photo attached to your Notebook! Great for saving setlists from the stage, whiteboard ideas, or inspiration."
+            return "📸 Photo attached to your Notebook! Great for saving set lists from the stage, whiteboard ideas, or inspiration."
         case "search_notebook":
             let query = entities["value"] ?? "your search"
             return "🔍 Searching Notebook for \"\(query)\"... Head to the Notebook tab to see matches."
@@ -316,21 +316,82 @@ final class LocalFallbackBitBuddyService: BitBuddyBackend {
         // IMPORT
         // ═══════════════════════════════════════════
         case "import_file":
-            return "📥 GagGrabber ready! Select a PDF or text file and I'll extract the jokes. Head to the import section to start."
+            return """
+            📥 **GagGrabber — File Import**
+            
+            Here's how to import jokes from a file:
+            1. Go to **Jokes** tab → tap the **+** button (top right)
+            2. Choose **"Import Files"** from the menu
+            3. Select your file — GagGrabber supports:
+               • **PDF** (text or scanned) — best results
+               • **Text files** (.txt, .md)
+               • **Documents** (.doc, .docx, .rtf)
+            4. GagGrabber will extract individual jokes automatically
+            5. Review each one — accept, edit, or skip
+            
+            💡 **Tips for best results:**
+            • One joke per paragraph works best
+            • Clear line breaks between jokes help accuracy
+            • Typed text extracts better than handwritten
+            """
         case "import_image":
-            return "📸 Image import ready! I'll use OCR to pull text from photos of your notes. Head to the import section."
+            return """
+            📸 **GagGrabber — Image Import**
+            
+            Two ways to import from images:
+            
+            **Option A — Camera Scan:**
+            1. Jokes tab → **+** → **"Scan from Camera"**
+            2. Point your camera at your notes
+            3. It auto-detects the page edges
+            4. Tap the shutter, then "Save"
+            
+            **Option B — Photo Library:**
+            1. Jokes tab → **+** → **"Import Photos"**
+            2. Select one or more photos
+            
+            GagGrabber uses OCR to read the text, then extracts individual jokes.
+            
+            💡 **Tips for best results:**
+            • Good lighting, minimal shadows
+            • Keep the page flat and square to the camera
+            • Typed/printed text works best; neat handwriting works too
+            • High-contrast (dark ink on white paper) gives the best OCR
+            """
         case "review_import_queue":
-            return "📋 Opening the import review queue. Approve, reject, or edit each extracted joke before it goes into your collection."
+            return """
+            📋 **Import Review Queue**
+            
+            After GagGrabber extracts jokes, you'll see a card-by-card review:
+            • **Swipe right** or tap ✅ to accept a joke
+            • **Swipe left** or tap ❌ to skip it
+            • Tap ✏️ **Edit** to fix the text before saving
+            • Tap 💡 **Idea** to send it to Brainstorm instead
+            
+            High-confidence jokes are auto-accepted (you'll see a green banner).
+            You can still review those by scrolling back through the dots.
+            
+            When you're done, tap **"Save & Finish"** to add everything to your collection.
+            """
         case "approve_imported_joke":
-            return "✅ Approved! This joke is now part of your collection."
+            return "✅ Approved! This joke will be saved to your collection when you tap \"Save & Finish\" at the end of the review."
         case "reject_imported_joke":
-            return "❌ Rejected. This extracted joke won't be saved."
+            return "❌ Skipped. This extracted joke won't be saved. You can go back to it using the dots at the top if you change your mind."
         case "edit_imported_joke":
-            return "📝 Opening for editing — fix the split, clean up the text, then approve when it's ready."
+            return """
+            📝 **Editing an Imported Joke**
+            
+            Tap the ✏️ **Edit** button on the review card to:
+            • Fix the title (or add one if GagGrabber didn't detect it)
+            • Clean up the joke text — merge broken lines, fix OCR errors
+            • The original source text is shown below for reference
+            
+            When you're happy with it, tap **Done**, then accept the card.
+            """
         case "check_import_limit":
-            return "📊 Check your GagGrabber usage in Settings → Import. The daily limit resets every 24 hours."
+            return "📊 GagGrabber extractions are currently **unlimited**! Import as many files as you want. You can check your import history from the Jokes tab → ⋯ menu → **Import History**."
         case "show_import_history":
-            return "📜 Opening import history — you'll see all your previous GagGrabber jobs and their results."
+            return "📜 To see your import history: Jokes tab → tap the **⋯** menu (top left) → **Import History**. You'll see every file you've imported, how many jokes were extracted, and any unresolved fragments."
             
         // ═══════════════════════════════════════════
         // SYNC
@@ -489,11 +550,17 @@ final class LocalFallbackBitBuddyService: BitBuddyBackend {
              strengths.append("clear topic (\(topic))")
         }
         
-        // Check for devices/twists
-        let twistFound = BitBuddyResources.twists.contains { twistTemplate in
-            return text.lowercased().contains("but") || text.lowercased().contains("actually")
-        }
-        if twistFound { strengths.append("twist") }
+        // Detect twist/reversal patterns in the joke
+        let twistPatterns = [
+            "\\bbut\\b", "\\bactually\\b", "\\bturns out\\b", "\\bplot twist\\b",
+            "\\binstead\\b", "\\bexcept\\b", "\\bunless\\b", "\\buntil\\b",
+            "\\blittle did\\b", "\\bnot really\\b", "\\bjust kidding\\b",
+            "\\bsurprise\\b", "\\bthe real\\b", "\\bnope\\b"
+        ]
+        let lower = text.lowercased()
+        let twistCount = twistPatterns.filter { lower.range(of: $0, options: .regularExpression) != nil }.count
+        if twistCount >= 1 { strengths.append("twist") }
+        if twistCount >= 2 { strengths.append("double reversal") }
         
         if strengths.isEmpty { strengths.append("concise") }
 
@@ -531,28 +598,46 @@ final class LocalFallbackBitBuddyService: BitBuddyBackend {
 
     private func generate(_ topic: String) -> String {
         let actualTopic = topic.isEmpty ? (userProfile.topTopics.max(by: { $0.value < $1.value })?.key ?? "work") : topic
-        let template = BitBuddyResources.templates.randomElement() ?? "Why do [Group] always [Action]? because [Reason]."
-        
-        // Simple string replacement
-        var joke = template.replacingOccurrences(of: "[Topic]", with: actualTopic)
+        let template = BitBuddyResources.templates.randomElement() ?? "I thought [Topic] was [expectation], but it turns out it's more like [reality]."
+
+        // Build contextual substitution pools
+        let relations = ["mom", "dad", "roommate", "ex", "coworker", "therapist", "barista", "dentist"]
+        let objects = ["toaster", "smoke alarm", "GPS", "printer", "parking meter", "ikea manual"]
+        let activities = ["meal prepping", "meditating", "running", "online dating", "networking", "budgeting"]
+        let analogies = ["assembling IKEA furniture blindfolded", "explaining WiFi to my grandma", "defusing a bomb in a sitcom", "parallel parking a bus"]
+        let adjectives = ["old", "broke", "tired", "addicted to your phone", "avoiding people", "out of shape"]
+        let actions = ["google your symptoms", "set five alarms", "eat cereal for dinner", "rehearse conversations in the shower"]
+        let traits = ["chaotic", "expensive", "exhausting", "overhyped"]
+        let opposites = ["boring", "free", "relaxing", "underrated"]
+        let twists = ["extra steps", "guilt", "a monthly fee", "strangers judging you"]
+        let expectations = ["simple", "fun", "relaxing", "straightforward"]
+        let realities = ["a trap", "a scam with good branding", "just organized suffering", "anxiety with extra steps"]
+        let reasons = ["nobody reads the instructions", "we peaked in 2012", "the universe is petty", "capitalism"]
+        let groups = ["adults", "millennials", "morning people", "gym bros", "landlords", "coworkers"]
+
+        // Pick a second topic that's different from the main one
+        let otherTopic = BitBuddyResources.topics.filter { $0 != actualTopic }.randomElement() ?? "taxes"
+
+        var joke = template
+        joke = joke.replacingOccurrences(of: "[Topic]", with: actualTopic)
         joke = joke.replacingOccurrences(of: "[Topic A]", with: actualTopic)
-        joke = joke.replacingOccurrences(of: "[Topic B]", with: "everything else")
-        joke = joke.replacingOccurrences(of: "[Group]", with: "people")
-        joke = joke.replacingOccurrences(of: "[Action]", with: "fail at existing")
-        joke = joke.replacingOccurrences(of: "[Reason]", with: "they forgot the rules")
-        joke = joke.replacingOccurrences(of: "[expectation]", with: "normal")
-        joke = joke.replacingOccurrences(of: "[reality]", with: "a trap")
-        joke = joke.replacingOccurrences(of: "[Twist]", with: "more anxiety")
-        
-        joke = joke.replacingOccurrences(of: "[Adjective]", with: "tired")
-        joke = joke.replacingOccurrences(of: "[Relation]", with: "friend")
-        joke = joke.replacingOccurrences(of: "[Object]", with: "toaster")
-        joke = joke.replacingOccurrences(of: "[Comparison]", with: "it burns everything")
-        joke = joke.replacingOccurrences(of: "[Activity]", with: "running")
-        joke = joke.replacingOccurrences(of: "[Analogy]", with: "dying slowly")
-        joke = joke.replacingOccurrences(of: "[Trait]", with: "loud")
-        joke = joke.replacingOccurrences(of: "[Opposite Trait]", with: "quiet")
-        
+        joke = joke.replacingOccurrences(of: "[Topic B]", with: otherTopic)
+        joke = joke.replacingOccurrences(of: "[Other Topic]", with: otherTopic)
+        joke = joke.replacingOccurrences(of: "[Group]", with: groups.randomElement()!)
+        joke = joke.replacingOccurrences(of: "[Action]", with: actions.randomElement()!)
+        joke = joke.replacingOccurrences(of: "[Reason]", with: reasons.randomElement()!)
+        joke = joke.replacingOccurrences(of: "[expectation]", with: expectations.randomElement()!)
+        joke = joke.replacingOccurrences(of: "[reality]", with: realities.randomElement()!)
+        joke = joke.replacingOccurrences(of: "[Twist]", with: twists.randomElement()!)
+        joke = joke.replacingOccurrences(of: "[Adjective]", with: adjectives.randomElement()!)
+        joke = joke.replacingOccurrences(of: "[Relation]", with: relations.randomElement()!)
+        joke = joke.replacingOccurrences(of: "[Object]", with: objects.randomElement()!)
+        joke = joke.replacingOccurrences(of: "[Comparison]", with: analogies.randomElement()!)
+        joke = joke.replacingOccurrences(of: "[Activity]", with: activities.randomElement()!)
+        joke = joke.replacingOccurrences(of: "[Analogy]", with: analogies.randomElement()!)
+        joke = joke.replacingOccurrences(of: "[Trait]", with: traits.randomElement()!)
+        joke = joke.replacingOccurrences(of: "[Opposite Trait]", with: opposites.randomElement()!)
+
         return joke
     }
 
@@ -626,9 +711,5 @@ final class LocalFallbackBitBuddyService: BitBuddyBackend {
             content = content.dropFirst().trimmingCharacters(in: .whitespaces)
         }
         return content
-    }
-    
-    @objc private func handleDatabaseChange() {
-        // Profile will update on next request via updateProfile(from:)
     }
 }

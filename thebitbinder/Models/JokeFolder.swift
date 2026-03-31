@@ -14,7 +14,7 @@ final class JokeFolder: Identifiable {
     var name: String = ""
     var dateCreated: Date = Date()
     var isRecentlyAdded: Bool = false  // Special marker for "Recently Added" folder
-    @Relationship(deleteRule: .nullify, inverse: \Joke.folder) var jokes: [Joke]?
+    @Relationship(deleteRule: .nullify, inverse: \Joke.folders) var jokes: [Joke]?
     
     init(name: String, isRecentlyAdded: Bool = false) {
         self.id = UUID()

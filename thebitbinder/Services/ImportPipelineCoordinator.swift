@@ -84,8 +84,8 @@ final class ImportPipelineCoordinator {
         debugInfo.append("Extracted \(extractedPages.count) pages")
         debugInfo.append("Total lines: \(extractedPages.flatMap(\.lines).count)")
 
-        // ── Stage 3: Line Normalisation ───────────────────────────────────────
-        debugInfo.append("\n=== Stage 3: Line Normalisation ===")
+        // ── Stage 3: Line Normalization ───────────────────────────────────────
+        debugInfo.append("\n=== Stage 3: Line Normalization ===")
         let normalizedPages = lineNormalizer.normalizePages(extractedPages)
         let cleanedPages = normalizedPages.map { page in
             let mergedLines = lineNormalizer.mergeFragmentedLines(page.lines)
@@ -122,28 +122,45 @@ final class ImportPipelineCoordinator {
         // and the results are concatenated before mapping to ImportedJoke objects.
         // The chunk boundary is on a newline so we never cut mid-sentence.
         let importToken = AIExtractionToken(caller: "ImportPipelineCoordinator")
-        let geminiJokes: [GeminiExtractedJoke]
-        let providerUsed: String
-
+        var geminiJokes: [GeminiExtractedJoke]
+        var providerUsed: String
         let textChunks = splitIntoExtractionChunks(fullText)
+        var aiExtractionFailed = false
         if textChunks.count == 1 {
-            // Fast path — single chunk, no overhead
-            let result = try await AIJokeExtractionManager.shared.extractJokesForPipeline(from: textChunks[0], token: importToken)
-            geminiJokes  = result.jokes
-            providerUsed = result.providerUsed
+            do {
+                let result = try await AIJokeExtractionManager.shared.extractJokesForPipeline(from: textChunks[0], token: importToken)
+                geminiJokes  = result.jokes
+                providerUsed = result.providerUsed
+            } catch {
+                aiExtractionFailed = true
+                geminiJokes = []
+                providerUsed = "AI Extraction Failed"
+            }
         } else {
-            // Multi-chunk path — accumulate results across chunks
             var allJokes: [GeminiExtractedJoke] = []
             var lastProvider = "Unknown"
             debugInfo.append("⚡ Large file split into \(textChunks.count) chunks for extraction")
             for (chunkIndex, chunk) in textChunks.enumerated() {
-                debugInfo.append("  Chunk \(chunkIndex + 1)/\(textChunks.count): \(chunk.count) chars")
-                let result = try await AIJokeExtractionManager.shared.extractJokesForPipeline(from: chunk, token: importToken)
-                allJokes.append(contentsOf: result.jokes)
-                lastProvider = result.providerUsed
+                do {
+                    debugInfo.append("  Chunk \(chunkIndex + 1)/\(textChunks.count): \(chunk.count) chars")
+                    let result = try await AIJokeExtractionManager.shared.extractJokesForPipeline(from: chunk, token: importToken)
+                    allJokes.append(contentsOf: result.jokes)
+                    lastProvider = result.providerUsed
+                } catch {
+                    aiExtractionFailed = true
+                }
             }
             geminiJokes  = allJokes
             providerUsed = lastProvider
+        }
+        // Fallback: If AI extraction failed or returned 0, split every word as a bit
+        if aiExtractionFailed || geminiJokes.isEmpty {
+            debugInfo.append("⚠️ AI extraction failed or returned 0 results. Falling back to word-split bits.")
+            let words = fullText.components(separatedBy: CharacterSet.whitespacesAndNewlines).filter { !$0.isEmpty }
+            geminiJokes = words.map { word in
+                GeminiExtractedJoke(jokeText: word, humorMechanism: nil, confidence: 0.0, explanation: nil, title: nil, tags: [])
+            }
+            providerUsed = aiExtractionFailed ? "Fallback: AI Error" : "Fallback: 0 Results"
         }
 
         debugInfo.append("✅ Extracted \(geminiJokes.count) fragment(s) via \(providerUsed)")

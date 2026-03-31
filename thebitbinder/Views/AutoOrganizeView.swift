@@ -37,8 +37,11 @@ struct AutoOrganizeView: View {
     
     // Folder management state
     
+    // Track if we've populated categorization results
+    @State private var hasPopulatedCategorizationResults = false
+    
     var unorganizedJokes: [Joke] {
-        jokes.filter { $0.folder == nil }
+        jokes.filter { $0.folders.isEmpty && !$0.isDeleted }
     }
     
     var body: some View {
@@ -292,67 +295,207 @@ struct AutoOrganizeView: View {
             .alert("Organization Complete", isPresented: $showOrganizationSummary) {
                 Button("Done") { }
             } message: {
-                Text("✅ Organized: \(organizationStats.organized) jokes\n⚠️ Suggested: \(organizationStats.suggested) jokes")
+                Text("✅ Organized: \(organizationStats.organized) jokes\n📂 Folder assignments: \(organizationStats.suggested)")
+            }
+            .onAppear {
+                // Pre-populate categorization results for all unorganized jokes
+                // so cards show suggestions immediately
+                if !hasPopulatedCategorizationResults {
+                    hasPopulatedCategorizationResults = true
+                    for joke in unorganizedJokes {
+                        if joke.categorizationResults.isEmpty {
+                            let matches = AutoOrganizeService.categorize(content: joke.content)
+                            joke.categorizationResults = matches
+                            #if DEBUG
+                            print("🎭 [AutoOrganize] Pre-populated \(matches.count) suggestions for: \(joke.title.prefix(30))")
+                            #endif
+                        }
+                    }
+                }
             }
         }
     }
     
     private func performAutoOrganize() {
         isAnalyzing = true
-        analysisTotal = unorganizedJokes.count
+        // Capture a snapshot of unorganized jokes BEFORE we start modifying them
+        let jokesToOrganize = unorganizedJokes
+        analysisTotal = jokesToOrganize.count
         analysisProgress = 0
         errorMessage = nil
+        
+        guard !jokesToOrganize.isEmpty else {
+            isAnalyzing = false
+            return
+        }
         
         Task {
             do {
                 #if DEBUG
-                print("🎭 Starting analysis of \(unorganizedJokes.count) jokes...")
+                print("🎭 [AutoOrganize] Starting analysis of \(jokesToOrganize.count) jokes...")
                 #endif
                 
                 let availableFolders = customFolders.isEmpty ? nil : customFolders
+                var organizedCount = 0
+                var totalFolderAssignments = 0
                 
-                for joke in unorganizedJokes {
-                    analysisProgress += 1
+                for joke in jokesToOrganize {
+                    await MainActor.run {
+                        analysisProgress += 1
+                    }
                     
-                    let analysis: JokeAnalysis
+                    // Get ALL matching categories for this joke (not just the top one)
+                    let allMatches: [CategoryMatch]
                     if let custom = availableFolders, useCustomFoldersOnly {
-                        analysis = try await analyzeJokeWithFolders(joke.content, folders: custom)
+                        // Use custom folders - match joke against each custom folder
+                        allMatches = await matchJokeToMultipleFolders(joke.content, folders: custom)
                     } else {
-                        analysis = try await categorizationService.analyzeJoke(joke.content)
+                        // Use AI analysis to get primary category, then also use local categorization for additional matches
+                        let aiAnalysis = try await categorizationService.analyzeJoke(joke.content)
+                        let localMatches = AutoOrganizeService.categorize(content: joke.content)
+                        
+                        // Combine: AI category as primary + local matches that pass threshold
+                        var combined: [CategoryMatch] = []
+                        
+                        // Add AI category first
+                        combined.append(CategoryMatch(
+                            category: aiAnalysis.category,
+                            confidence: 0.9,
+                            reasoning: "AI-suggested primary category",
+                            matchedKeywords: [],
+                            styleTags: [],
+                            emotionalTone: nil,
+                            craftSignals: [],
+                            structureScore: 0
+                        ))
+                        
+                        // Add local matches that are different from AI category
+                        for match in localMatches where match.confidence >= 0.35 && match.category != aiAnalysis.category {
+                            combined.append(match)
+                        }
+                        
+                        allMatches = combined
                     }
                     
-                    joke.category = analysis.category
-                    joke.tags = analysis.tags
-                    joke.difficulty = analysis.difficulty
-                    joke.humorRating = analysis.humorRating
-                    
-                    var targetFolder = folders.first(where: { $0.name == analysis.category })
-                    if targetFolder == nil {
-                        targetFolder = JokeFolder(name: analysis.category)
-                        modelContext.insert(targetFolder!)
+                    // Update on main actor for SwiftData safety
+                    await MainActor.run {
+                        // Set primary category from top match
+                        if let topMatch = allMatches.first {
+                            joke.category = topMatch.category
+                            joke.primaryCategory = topMatch.category
+                        }
+                        
+                        // Store all categories
+                        joke.allCategories = allMatches.map { $0.category }
+                        
+                        // Assign joke to MULTIPLE folders (one per matching category)
+                        var assignedFolderNames: Set<String> = []
+                        
+                        for match in allMatches {
+                            // Skip if we've already assigned to a folder with this name (prevent duplicates)
+                            guard !assignedFolderNames.contains(match.category) else { continue }
+                            
+                            // Find or create the folder
+                            var targetFolder = folders.first(where: { $0.name == match.category })
+                            if targetFolder == nil {
+                                let newFolder = JokeFolder(name: match.category)
+                                modelContext.insert(newFolder)
+                                targetFolder = newFolder
+                                #if DEBUG
+                                print("🎭 [AutoOrganize] Created new folder: \(match.category)")
+                                #endif
+                            }
+                            
+                            // Add joke to this folder (if not already in it)
+                            if let folder = targetFolder, !joke.folders.contains(where: { $0.id == folder.id }) {
+                                joke.folders.append(folder)
+                                assignedFolderNames.insert(match.category)
+                                totalFolderAssignments += 1
+                                #if DEBUG
+                                print("🎭 [AutoOrganize] Assigned joke '\(joke.title.prefix(20))' → folder '\(folder.name)'")
+                                #endif
+                            }
+                        }
+                        
+                        if !assignedFolderNames.isEmpty {
+                            organizedCount += 1
+                        }
                     }
-                    
-                    joke.folder = targetFolder
-                    #if DEBUG
-                    print("🎭 Analyzed \(analysisProgress)/\(analysisTotal): \(analysis.category)")
-                    #endif
                 }
                 
-                try modelContext.save()
-                
+                // Save all changes
                 await MainActor.run {
-                    organizationStats = (unorganizedJokes.count, 0)
-                    showOrganizationSummary = true
-                    isAnalyzing = false
+                    do {
+                        try modelContext.save()
+                        #if DEBUG
+                        print("✅ [AutoOrganize] Saved \(organizedCount) jokes to \(totalFolderAssignments) folder assignments")
+                        #endif
+                        organizationStats = (organizedCount, totalFolderAssignments)
+                        showOrganizationSummary = true
+                        isAnalyzing = false
+                    } catch {
+                        #if DEBUG
+                        print("❌ [AutoOrganize] Save failed: \(error)")
+                        #endif
+                        errorMessage = "Failed to save: \(error.localizedDescription)"
+                        showError = true
+                        isAnalyzing = false
+                    }
                 }
             } catch {
                 await MainActor.run {
+                    #if DEBUG
+                    print("❌ [AutoOrganize] Analysis failed: \(error)")
+                    #endif
                     errorMessage = error.localizedDescription
                     showError = true
                     isAnalyzing = false
                 }
             }
         }
+    }
+    
+    /// Match a joke against multiple custom folders and return all matches above threshold
+    private func matchJokeToMultipleFolders(_ jokeText: String, folders: [String]) async -> [CategoryMatch] {
+        let normalizedJoke = jokeText.lowercased()
+        let jokeTokens = Set(normalizedJoke.split(whereSeparator: { !$0.isLetter && !$0.isNumber }).map(String.init))
+        
+        var matches: [CategoryMatch] = []
+        
+        for folder in folders {
+            let folderLower = folder.lowercased()
+            let folderTokens = Set(folderLower.split(whereSeparator: { !$0.isLetter && !$0.isNumber }).map(String.init))
+            
+            // Calculate overlap score
+            let overlap = folderTokens.intersection(jokeTokens).count
+            let containsFolder = normalizedJoke.contains(folderLower)
+            
+            // Score: direct match is high confidence, token overlap is medium
+            let confidence: Double
+            if containsFolder {
+                confidence = 0.9
+            } else if overlap > 0 {
+                confidence = min(0.3 + Double(overlap) * 0.15, 0.8)
+            } else {
+                confidence = 0.0
+            }
+            
+            if confidence >= 0.3 {
+                matches.append(CategoryMatch(
+                    category: folder,
+                    confidence: confidence,
+                    reasoning: containsFolder ? "Direct mention in joke" : "Matched \(overlap) keyword(s)",
+                    matchedKeywords: Array(folderTokens.intersection(jokeTokens)),
+                    styleTags: [],
+                    emotionalTone: nil,
+                    craftSignals: [],
+                    structureScore: 0
+                ))
+            }
+        }
+        
+        // Sort by confidence
+        return matches.sorted { $0.confidence > $1.confidence }
     }
     
     /// Analyze a joke and pick from user-provided folders using local heuristics.
@@ -382,16 +525,38 @@ struct AutoOrganizeView: View {
     
     
     private func assignJokeToFolder(_ joke: Joke, category: String) {
+        #if DEBUG
+        print("🎭 [AutoOrganize] Assigning joke '\(joke.title.prefix(20))' to folder '\(category)'")
+        #endif
+        
+        // Find existing folder or create a new one
         var targetFolder = folders.first(where: { $0.name == category })
         
         if targetFolder == nil {
-            targetFolder = JokeFolder(name: category)
-            modelContext.insert(targetFolder!)
+            let newFolder = JokeFolder(name: category)
+            modelContext.insert(newFolder)
+            targetFolder = newFolder
+            #if DEBUG
+            print("🎭 [AutoOrganize] Created new folder: \(category)")
+            #endif
         }
         
-        joke.folder = targetFolder
+        // Add to folders array (not replace) - prevents duplicates
+        if let folder = targetFolder, !joke.folders.contains(where: { $0.id == folder.id }) {
+            joke.folders.append(folder)
+        }
+        
+        // Set primary category if not already set
+        if joke.primaryCategory == nil {
+            joke.category = category
+            joke.primaryCategory = category
+        }
+        
         do {
             try modelContext.save()
+            #if DEBUG
+            print("✅ [AutoOrganize] Saved joke to folder '\(category)' (now in \(joke.folders.count) folders)")
+            #endif
         } catch {
             print("❌ [AutoOrganizeView] Failed to save folder assignment: \(error)")
         }
@@ -404,6 +569,8 @@ struct JokeOrganizationCard: View {
     let joke: Joke
     let onTap: () -> Void
     let onAccept: (String) -> Void
+    
+    @State private var hasPopulatedResults = false
     
     var topSuggestion: CategoryMatch? {
         joke.categorizationResults.first
@@ -485,24 +652,36 @@ struct JokeOrganizationCard: View {
                 .background(AppTheme.Colors.primaryAction.opacity(0.05))
                 .cornerRadius(8)
             } else {
-                // No suggestion available
+                // No suggestion available - try to generate one or show manual option
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("No automatic suggestion")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    
-                    Button(action: onTap) {
-                        HStack(spacing: 6) {
-                            Image(systemName: "folder.badge.plus")
-                            Text("Choose Category")
+                    if !hasPopulatedResults {
+                        ProgressView()
+                            .onAppear {
+                                // Try to populate results if empty
+                                if joke.categorizationResults.isEmpty {
+                                    let matches = AutoOrganizeService.categorize(content: joke.content)
+                                    joke.categorizationResults = matches
+                                }
+                                hasPopulatedResults = true
+                            }
+                    } else {
+                        Text("No automatic suggestion")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        
+                        Button(action: onTap) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "folder.badge.plus")
+                                Text("Choose Category")
+                            }
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                            .foregroundColor(AppTheme.Colors.primaryAction)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(AppTheme.Colors.primaryAction.opacity(0.1))
+                            .cornerRadius(6)
                         }
-                        .font(.caption)
-                        .fontWeight(.semibold)
-                        .foregroundColor(AppTheme.Colors.primaryAction)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .background(AppTheme.Colors.primaryAction.opacity(0.1))
-                        .cornerRadius(6)
                     }
                 }
                 .padding(12)
@@ -914,3 +1093,4 @@ struct FolderSetupView: View {
         }
     }
 }
+

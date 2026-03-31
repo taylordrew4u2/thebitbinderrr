@@ -100,7 +100,7 @@ struct AsyncAvatarView: View {
 // MARK: - Async Thumbnail View
 //
 // Decodes imageData into a fixed-size thumbnail on a background thread.
-// Used by NotebookTrashView grid (mirrors NotebookThumbnailCell behaviour).
+// Used by NotebookTrashView grid (mirrors NotebookThumbnailCell behavior).
 
 struct AsyncThumbnailView: View {
     let imageData: Data?
