@@ -81,6 +81,7 @@ struct JokesView: View {
     @State private var showingFilePicker = false
     @State private var showingCreateFolder = false
     @State private var showingAutoOrganize = false
+    @State private var showingGuidedOrganize = false
     @State private var showingImportHistory = false
     @State private var showingExportAlert = false
     @State private var selectedFolder: JokeFolder?
@@ -139,6 +140,12 @@ struct JokesView: View {
     // State for showing The Hits filter
     @State private var showingHitsFilter = false
 
+    // MARK: - Open Mic
+    private var openMicCount: Int {
+        jokes.filter { $0.isOpenMic }.count
+    }
+    @State private var showingOpenMicFilter = false
+
 
     private var folderChips: some View {
         ScrollView(.horizontal, showsIndicators: false) {
@@ -153,6 +160,22 @@ struct JokesView: View {
                         if showingHitsFilter {
                             selectedFolder = nil
                             showRecentlyAdded = false
+                            showingOpenMicFilter = false
+                        }
+                    }
+                )
+                
+                // Open Mic chip
+                OpenMicChip(
+                    count: openMicCount,
+                    isSelected: showingOpenMicFilter,
+                    roastMode: roastMode,
+                    action: {
+                        showingOpenMicFilter.toggle()
+                        if showingOpenMicFilter {
+                            selectedFolder = nil
+                            showRecentlyAdded = false
+                            showingHitsFilter = false
                         }
                     }
                 )
@@ -161,12 +184,13 @@ struct JokesView: View {
                 FolderChip(
                     name: "All",
                     icon: "tray.full.fill",
-                    isSelected: selectedFolder == nil && !showRecentlyAdded && !showingHitsFilter,
+                    isSelected: selectedFolder == nil && !showRecentlyAdded && !showingHitsFilter && !showingOpenMicFilter,
                     roastMode: roastMode,
                     action: {
                         selectedFolder = nil
                         showRecentlyAdded = false
                         showingHitsFilter = false
+                        showingOpenMicFilter = false
                     }
                 )
                 
@@ -174,12 +198,13 @@ struct JokesView: View {
                 FolderChip(
                     name: "Recent",
                     icon: "clock.fill",
-                    isSelected: showRecentlyAdded && !showingHitsFilter,
+                    isSelected: showRecentlyAdded && !showingHitsFilter && !showingOpenMicFilter,
                     roastMode: roastMode,
                     action: {
                         showRecentlyAdded = true
                         selectedFolder = nil
                         showingHitsFilter = false
+                        showingOpenMicFilter = false
                     }
                 )
                 
@@ -187,12 +212,13 @@ struct JokesView: View {
                 ForEach(folders) { folder in
                     FolderChip(
                         name: folder.name,
-                        isSelected: selectedFolder?.id == folder.id && !showRecentlyAdded && !showingHitsFilter,
+                        isSelected: selectedFolder?.id == folder.id && !showRecentlyAdded && !showingHitsFilter && !showingOpenMicFilter,
                         roastMode: roastMode,
                         action: {
                             selectedFolder = folder
                             showRecentlyAdded = false
                             showingHitsFilter = false
+                            showingOpenMicFilter = false
                         }
                     )
                     .contextMenu {
@@ -214,7 +240,7 @@ struct JokesView: View {
     private var emptyState: some View {
         JokesEmptyState(
             roastMode: roastMode,
-            hasFilter: selectedFolder != nil || showRecentlyAdded || showingHitsFilter || !searchText.isEmpty,
+            hasFilter: selectedFolder != nil || showRecentlyAdded || showingHitsFilter || showingOpenMicFilter || !searchText.isEmpty,
             onAddJoke: { showingAddJoke = true }
         )
     }
@@ -281,10 +307,11 @@ struct JokesView: View {
     private var filterKey: String {
         let folder = selectedFolder?.id.uuidString ?? "nil"
         let hits   = showingHitsFilter ? "1" : "0"
+        let openMic = showingOpenMicFilter ? "1" : "0"
         let recent = showRecentlyAdded  ? "1" : "0"
         let search = debouncedSearchText
         let count  = jokes.count
-        return "\(folder)|\(hits)|\(recent)|\(search)|\(count)"
+        return "\(folder)|\(hits)|\(openMic)|\(recent)|\(search)|\(count)"
     }
 
     var filteredJokes: [Joke] { cachedFilteredJokes }
@@ -293,6 +320,8 @@ struct JokesView: View {
         let base: [Joke]
         if showingHitsFilter {
             base = jokes.filter { $0.isHit }
+        } else if showingOpenMicFilter {
+            base = jokes.filter { $0.isOpenMic }
         } else if showRecentlyAdded {
             let sevenDaysAgo = Calendar.current.date(byAdding: .day, value: -7, to: Date()) ?? Date()
             base = jokes.filter { $0.dateCreated >= sevenDaysAgo }
@@ -330,6 +359,7 @@ struct JokesView: View {
                     showingScanner: $showingScanner,
                     showingCreateFolder: $showingCreateFolder,
                     showingAutoOrganize: $showingAutoOrganize,
+                    showingGuidedOrganize: $showingGuidedOrganize,
                     showingAudioImport: $showingAudioImport,
                     showingTalkToText: $showingTalkToText,
                     showingFilePicker: $showingFilePicker,
@@ -452,6 +482,22 @@ struct JokesView: View {
                                                         }
                                                     }
                                                     
+                                                    if joke.isOpenMic {
+                                                        Button {
+                                                            joke.isOpenMic = false
+                                                            joke.dateModified = Date()
+                                                        } label: {
+                                                            Label("Remove from Open Mic", systemImage: "mic.slash")
+                                                        }
+                                                    } else {
+                                                        Button {
+                                                            joke.isOpenMic = true
+                                                            joke.dateModified = Date()
+                                                        } label: {
+                                                            Label("Open Mic", systemImage: "mic.fill")
+                                                        }
+                                                    }
+                                                    
                                                     Divider()
                                                     
                                                     Button(role: .destructive) {
@@ -513,7 +559,7 @@ struct JokesView: View {
                                         } label: {
                                             Label(joke.isHit ? "Remove Hit" : "Add Hit", systemImage: joke.isHit ? "star.slash" : "star.fill")
                                         }
-                                        .tint(.yellow)
+                                        .tint(.blue)
                                     }
                                     .swipeActions(edge: .leading, allowsFullSwipe: true) {
                                         Button {
@@ -523,7 +569,21 @@ struct JokesView: View {
                                         } label: {
                                             Label(joke.isHit ? "Remove Hit" : "The Hits", systemImage: joke.isHit ? "star.slash.fill" : "star.fill")
                                         }
-                                        .tint(.yellow)
+                                        .tint(.blue)
+                                        
+                                        Button {
+                                            haptic(.medium)
+                                            joke.isOpenMic.toggle()
+                                            joke.dateModified = Date()
+                                            do {
+                                                try modelContext.save()
+                                            } catch {
+                                                print(" [JokesView] Failed to save open mic toggle: \(error)")
+                                            }
+                                        } label: {
+                                            Label(joke.isOpenMic ? "Remove Open Mic" : "Open Mic", systemImage: joke.isOpenMic ? "mic.slash" : "mic.fill")
+                                        }
+                                        .tint(.blue)
                                     }
                                 }
                             }
@@ -747,6 +807,9 @@ struct JokesView: View {
                         }
                         Button(action: { showingAutoOrganize = true }) {
                             Label("Auto-Organize Jokes", systemImage: "wand.and.stars")
+                        }
+                        Button(action: { showingGuidedOrganize = true }) {
+                            Label("Guided Organize", systemImage: "hand.point.right.fill")
                         }
                         Button(action: { showingImportHistory = true }) {
                             Label("Import History", systemImage: "clock.arrow.trianglehead.counterclockwise.rotate.90")
@@ -1346,15 +1409,20 @@ struct JokesView: View {
         return false
     }
     
-    private func checkPendingVoiceMemoImports() {
-        // Use App Group shared defaults for extension communication
-        let appGroupIdentifier = "group.The-BitBinder.thebitbinder"
-        guard FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupIdentifier) != nil else {
-            print(" [VoiceMemo] App Group container unavailable")
-            return
+    /// Cached app group UserDefaults — created once to avoid repeated
+    /// `UserDefaults(suiteName:)` instantiation which can trigger
+    /// "kCFPreferencesAnyUser" console warnings.
+    private static let appGroupDefaults: UserDefaults? = {
+        let id = "group.The-BitBinder.thebitbinder"
+        guard FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: id) != nil else {
+            return nil
         }
-        guard let sharedDefaults = UserDefaults(suiteName: appGroupIdentifier) else {
-            print(" [VoiceMemo] App Group not available")
+        return UserDefaults(suiteName: id)
+    }()
+
+    private func checkPendingVoiceMemoImports() {
+        guard let sharedDefaults = Self.appGroupDefaults else {
+            print(" [VoiceMemo] App Group container unavailable")
             return
         }
         guard let pendingImports = sharedDefaults.array(forKey: "pendingVoiceMemoImports") as? [[String: String]],
@@ -1377,9 +1445,8 @@ struct JokesView: View {
             }
         }
         
-        // Clear pending imports
+        // Clear pending imports — no synchronize() needed (deprecated since iOS 12)
         sharedDefaults.removeObject(forKey: "pendingVoiceMemoImports")
-        sharedDefaults.synchronize()
         
         if importedCount > 0 {
             do {
@@ -1409,7 +1476,7 @@ private extension JokesView {
 struct RoastTargetGridCard: View {
     let target: RoastTarget
     var scale: CGFloat = 1.0
-    private let accentColor: Color = .orange
+    private let accentColor: Color = .blue
     
     /// Safe property accessors to prevent crashes on invalidated models
     private var safeName: String { target.isValid ? target.name : "" }
@@ -1453,7 +1520,7 @@ struct RoastTargetGridCard: View {
 
 struct RoastTargetListRow: View {
     let target: RoastTarget
-    private let accentColor: Color = .orange
+    private let accentColor: Color = .blue
     
     /// Safe property accessors to prevent crashes on invalidated models
     private var safeName: String { target.isValid ? target.name : "" }

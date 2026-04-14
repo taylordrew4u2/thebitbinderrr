@@ -11,8 +11,11 @@ class AppDelegate: NSObject, UIApplicationDelegate {
     static let syncTaskIdentifier    = "The-BitBinder.thebitbinder.sync"
     
     // MARK: - Background Task Scheduling State
-    private var isRefreshTaskScheduled = false
-    private var isSyncTaskScheduled = false
+    // These flags are accessed from BGTask background closures — use MainActor
+    // isolation (via Task { @MainActor }) for all reads/writes to avoid
+    // `unsafeForcedSync` runtime warnings from Swift's concurrency checker.
+    @MainActor private var isRefreshTaskScheduled = false
+    @MainActor private var isSyncTaskScheduled = false
     
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
@@ -126,8 +129,8 @@ class AppDelegate: NSObject, UIApplicationDelegate {
             Task { @MainActor in
                 let syncService = iCloudSyncService.shared
                 if syncService.isSyncEnabled {
-                    // Don't await to avoid blocking the completion handler
-                    _ = Task {
+                    // Fire-and-forget sync — runs on @MainActor since syncService is @MainActor
+                    _ = Task { @MainActor in
                         await syncService.syncNow()
                     }
                 }
@@ -147,8 +150,10 @@ class AppDelegate: NSObject, UIApplicationDelegate {
     
     /// Called when the app moves to background — schedule pending background tasks.
     func applicationDidEnterBackground(_ application: UIApplication) {
-        scheduleBackgroundRefresh()
-        scheduleBackgroundSync()
+        Task { @MainActor in
+            scheduleBackgroundRefresh()
+            scheduleBackgroundSync()
+        }
     }
     
     // MARK: - Background Task Registration
@@ -158,24 +163,30 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         BGTaskScheduler.shared.register(
             forTaskWithIdentifier: Self.refreshTaskIdentifier,
             using: nil
-        ) { task in
+        ) { [weak self] task in
             guard let refreshTask = task as? BGAppRefreshTask else {
                 task.setTaskCompleted(success: false)
                 return
             }
-            self.handleAppRefresh(refreshTask)
+            // Hop to MainActor to avoid unsafeForcedSync from concurrent context
+            Task { @MainActor [weak self] in
+                self?.handleAppRefresh(refreshTask)
+            }
         }
         
         // Processing task — heavier iCloud sync work (minutes of runtime, requires power + network)
         BGTaskScheduler.shared.register(
             forTaskWithIdentifier: Self.syncTaskIdentifier,
             using: nil
-        ) { task in
+        ) { [weak self] task in
             guard let processingTask = task as? BGProcessingTask else {
                 task.setTaskCompleted(success: false)
                 return
             }
-            self.handleBackgroundSync(processingTask)
+            // Hop to MainActor to avoid unsafeForcedSync from concurrent context
+            Task { @MainActor [weak self] in
+                self?.handleBackgroundSync(processingTask)
+            }
         }
         
         print(" [BGTask] Registered background tasks: refresh, sync")
@@ -183,6 +194,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
     
     // MARK: - Background Task Handlers
     
+    @MainActor
     private func handleAppRefresh(_ task: BGAppRefreshTask) {
         let startTime = Date()
         print(" [BGTask] App refresh STARTED at \(startTime.formatted(date: .omitted, time: .standard))")
@@ -200,15 +212,18 @@ class AppDelegate: NSObject, UIApplicationDelegate {
             task.setTaskCompleted(success: true)
         }
         
-        task.expirationHandler = {
+        task.expirationHandler = { [weak self] in
             let elapsed = Date().timeIntervalSince(startTime)
             print(" [BGTask] App refresh EXPIRED after \(String(format: "%.1f", elapsed))s — cancelling")
             refreshTask.cancel()
-            self.isRefreshTaskScheduled = false
+            Task { @MainActor [weak self] in
+                self?.isRefreshTaskScheduled = false
+            }
             task.setTaskCompleted(success: false)
         }
     }
     
+    @MainActor
     private func handleBackgroundSync(_ task: BGProcessingTask) {
         let startTime = Date()
         print(" [BGTask] Background sync STARTED at \(startTime.formatted(date: .omitted, time: .standard))")
@@ -234,11 +249,13 @@ class AppDelegate: NSObject, UIApplicationDelegate {
             task.setTaskCompleted(success: true)
         }
         
-        task.expirationHandler = {
+        task.expirationHandler = { [weak self] in
             let elapsed = Date().timeIntervalSince(startTime)
             print(" [BGTask] Background sync EXPIRED after \(String(format: "%.1f", elapsed))s — cancelling")
             syncTask.cancel()
-            self.isSyncTaskScheduled = false
+            Task { @MainActor [weak self] in
+                self?.isSyncTaskScheduled = false
+            }
             // Mark success: true since partial sync is still useful
             task.setTaskCompleted(success: true)
         }
@@ -246,6 +263,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
     
     // MARK: - Background Task Scheduling
     
+    @MainActor
     private func scheduleBackgroundRefresh() {
         if isRefreshTaskScheduled {
             print(" [BGTask] Refresh already scheduled, skipping")
@@ -262,6 +280,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
             isRefreshTaskScheduled = false
         }
     }
+    @MainActor
     private func scheduleBackgroundSync() {
         if isSyncTaskScheduled {
             print(" [BGTask] Sync already scheduled, skipping")

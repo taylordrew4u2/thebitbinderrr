@@ -113,7 +113,7 @@ struct DataSafetyView: View {
                     } label: {
                         HStack {
                             Image(systemName: "externaldrive.badge.plus")
-                                .foregroundColor(.green)
+                                .foregroundColor(.blue)
                             VStack(alignment: .leading) {
                                 Text("Create Backup")
                                     .foregroundColor(.primary)
@@ -135,7 +135,7 @@ struct DataSafetyView: View {
                     } label: {
                         HStack {
                             Image(systemName: "externaldrive")
-                                .foregroundColor(.orange)
+                                .foregroundColor(.blue)
                             Text("View Backups")
                                 .foregroundColor(.primary)
                             Spacer()
@@ -154,7 +154,7 @@ struct DataSafetyView: View {
                     } label: {
                         HStack {
                             Image(systemName: "doc.text")
-                                .foregroundColor(.orange)
+                                .foregroundColor(.blue)
                             VStack(alignment: .leading) {
                                 Text("Export All Jokes")
                                     .foregroundColor(.primary)
@@ -191,7 +191,7 @@ struct DataSafetyView: View {
                         } label: {
                             HStack {
                                 Image(systemName: "flame.fill")
-                                    .foregroundColor(.orange)
+                                    .foregroundColor(.blue)
                                 VStack(alignment: .leading) {
                                     Text("Export Roasts")
                                         .foregroundColor(.primary)
@@ -558,7 +558,7 @@ struct StatusRow: View {
     var body: some View {
         HStack {
             Image(systemName: isHealthy ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
-                .foregroundColor(isHealthy ? .green : .orange)
+                .foregroundColor(isHealthy ? .blue : .red)
             
             VStack(alignment: .leading) {
                 Text(title)
@@ -770,6 +770,10 @@ struct BackupsView: View {
             return "Pre-Restore Safety"
         } else if backup.reason == "scheduled" {
             return "Scheduled Backup"
+        } else if backup.reason == "emergency" {
+            return "⚠️ Emergency Backup"
+        } else if backup.reason == "corruption_recovery" {
+            return "🔴 Corrupted Store Backup"
         } else {
             return backup.name
         }
@@ -796,8 +800,22 @@ struct BackupsView: View {
     }
     
     private func deleteBackup(_ backup: BackupInfo) {
+        let fm = FileManager.default
         do {
-            try FileManager.default.removeItem(at: backup.url)
+            // For emergency backups the URL is a .store file — also remove
+            // companion files (-shm, -wal, _Files) sitting alongside it.
+            if backup.reason == "emergency" {
+                let basePath = backup.url.path
+                for suffix in ["", "-shm", "-wal", "_Files"] {
+                    let companion = URL(fileURLWithPath: basePath + suffix)
+                    if fm.fileExists(atPath: companion.path) {
+                        try fm.removeItem(at: companion)
+                    }
+                }
+            } else {
+                // Structured / corrupted backups are directories — single remove suffices.
+                try fm.removeItem(at: backup.url)
+            }
             backupToDelete = nil
             #if DEBUG
             print(" [BackupsView] Deleted backup: \(backup.name)")

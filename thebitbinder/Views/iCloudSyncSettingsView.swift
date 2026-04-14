@@ -69,14 +69,14 @@ struct iCloudSyncSettingsView: View {
                     } else if case .success = syncService.syncStatus {
                         HStack(spacing: 8) {
                             Image(systemName: "checkmark.circle.fill")
-                                .foregroundColor(.green)
+                                .foregroundColor(.blue)
                             Text("Sync complete")
                                 .font(.system(size: 13))
-                                .foregroundColor(.green)
+                                .foregroundColor(.blue)
                             Spacer()
                         }
                         .padding(12)
-                        .background(RoundedRectangle(cornerRadius: 8).fill(Color.green.opacity(0.1)))
+                        .background(RoundedRectangle(cornerRadius: 8).fill(Color.blue.opacity(0.1)))
                     } else if case .error(let message) = syncService.syncStatus {
                         HStack(spacing: 8) {
                             Image(systemName: "exclamationmark.circle.fill")
@@ -95,10 +95,10 @@ struct iCloudSyncSettingsView: View {
                         VStack(alignment: .leading, spacing: 8) {
                             HStack {
                                 Image(systemName: "exclamationmark.triangle.fill")
-                                    .foregroundColor(.orange)
+                                    .foregroundColor(.blue)
                                 Text("Issues Found")
                                     .font(.system(size: 13, weight: .semibold))
-                                    .foregroundColor(.orange)
+                                    .foregroundColor(.blue)
                             }
                             
                             ForEach(diagnostics.syncIssuesFound.prefix(3).indices, id: \.self) { index in
@@ -122,7 +122,7 @@ struct iCloudSyncSettingsView: View {
                             }
                         }
                         .padding(12)
-                        .background(RoundedRectangle(cornerRadius: 8).fill(Color.orange.opacity(0.1)))
+                        .background(RoundedRectangle(cornerRadius: 8).fill(Color.blue.opacity(0.1)))
                     }
                 }
                 
@@ -187,7 +187,7 @@ struct iCloudSyncSettingsView: View {
                             }
                             .frame(maxWidth: .infinity)
                             .padding(14)
-                            .background(RoundedRectangle(cornerRadius: 10).fill(.orange))
+                            .background(RoundedRectangle(cornerRadius: 10).fill(.blue))
                             .foregroundColor(.white)
                         }
                         .disabled(syncService.syncStatus == .syncing || !syncService.isSyncEnabled)
@@ -253,7 +253,7 @@ struct iCloudSyncSettingsView: View {
                     VStack(alignment: .leading, spacing: 8) {
                         HStack(spacing: 8) {
                             Image(systemName: "lock.fill")
-                                .foregroundColor(.green)
+                                .foregroundColor(.blue)
                                 .font(.system(size: 13))
                             Text("End-to-End Encrypted")
                                 .font(.system(size: 12, weight: .semibold))
@@ -265,7 +265,7 @@ struct iCloudSyncSettingsView: View {
                             .lineSpacing(1.5)
                     }
                     .padding(12)
-                    .background(RoundedRectangle(cornerRadius: 8).fill(Color.green.opacity(0.08)))
+                    .background(RoundedRectangle(cornerRadius: 8).fill(Color.blue.opacity(0.08)))
                 }
                 
                 // Diagnostics
@@ -336,7 +336,7 @@ struct iCloudSyncSettingsView: View {
         case .syncing:
             return .blue
         case .success:
-            return .green
+            return .blue
         case .error:
             return .red
         }
@@ -381,7 +381,7 @@ struct SyncItemRow: View {
             Spacer()
             
             Image(systemName: "checkmark.circle.fill")
-                .foregroundColor(.green)
+                .foregroundColor(.blue)
                 .font(.system(size: 14))
         }
         .padding(10)

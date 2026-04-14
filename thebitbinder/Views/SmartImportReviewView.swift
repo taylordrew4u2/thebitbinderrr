@@ -63,7 +63,7 @@ struct SmartImportReviewView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .background(
                             RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                .fill(Color.orange.opacity(0.9))
+                                .fill(Color.blue.opacity(0.9))
                         )
                         .padding(.horizontal, 12)
                         .padding(.top, 4)
@@ -83,7 +83,7 @@ struct SmartImportReviewView: View {
                         .padding(.vertical, 10)
                         .background(
                             RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                .fill(.green.opacity(0.85))
+                                .fill(.blue.opacity(0.85))
                         )
                         .padding(.horizontal, 12)
                         .padding(.top, 4)
@@ -106,7 +106,7 @@ struct SmartImportReviewView: View {
                             .padding(.vertical, 12)
                             .background(
                                 RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                    .fill(roastMode ? Color.orange : Color.accentColor)
+                                    .fill(Color.blue)
                             )
                         }
                         .padding(.horizontal, 12)
@@ -249,7 +249,7 @@ struct SmartImportReviewView: View {
         HStack(spacing: 10) {
             Image(systemName: "wand.and.stars")
                 .font(.system(size: 14))
-                .foregroundColor(roastMode ? Color.orange : Color.accentColor)
+                .foregroundColor(Color.blue)
             
             VStack(alignment: .leading, spacing: 2) {
                 Text("GagGrabber found \(viewModel.reviewItems.count) joke\(viewModel.reviewItems.count == 1 ? "" : "s") in **\(importResult.sourceFile)**")
@@ -270,7 +270,7 @@ struct SmartImportReviewView: View {
         .background(
             RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .fill(
-                    (roastMode ? Color.orange : Color.accentColor)
+                    (Color.blue)
                         .opacity(0.08)
                 )
         )
@@ -304,7 +304,7 @@ struct SmartImportReviewView: View {
                         .fill(roastMode ? Color.white.opacity(0.1) : Color(UIColor.tertiarySystemBackground))
                     
                     RoundedRectangle(cornerRadius: 3)
-                        .fill(roastMode ? Color.orange : Color.accentColor)
+                        .fill(Color.blue)
                         .frame(width: geo.size.width * progressFraction)
                         .animation(.easeInOut(duration: 0.3), value: progressFraction)
                 }
@@ -340,13 +340,13 @@ struct SmartImportReviewView: View {
     
     private func dotColor(for item: ImportReviewItem, isActive: Bool) -> Color {
         if isActive {
-            return roastMode ? .orange : .accentColor
+            return .blue
         }
         switch item.action {
-        case .approved: return .green
+        case .approved: return .blue
         case .rejected: return .red.opacity(0.5)
-        case .sendToBrainstorm: return .yellow
-        case .needsSplitting: return .orange
+        case .sendToBrainstorm: return .blue
+        case .needsSplitting: return .blue
         case .pending: return roastMode ? .white.opacity(0.2) : Color(UIColor.tertiaryLabel).opacity(0.4)
         }
     }
@@ -391,10 +391,10 @@ struct SmartImportReviewView: View {
                                 .padding(.vertical, 3)
                                 .background(
                                     Capsule().fill(
-                                        roastMode ? .orange.opacity(0.2) : .accentColor.opacity(0.1)
+                                        roastMode ? .blue.opacity(0.2) : .accentColor.opacity(0.1)
                                     )
                                 )
-                                .foregroundColor(roastMode ? Color.orange : Color.accentColor)
+                                .foregroundColor(Color.blue)
                         }
                     }
                 }
@@ -424,7 +424,7 @@ struct SmartImportReviewView: View {
                     Image(systemName: "hand.point.right.fill")
                         .font(.system(size: 10))
                 }
-                .foregroundColor(.green.opacity(0.5))
+                .foregroundColor(.blue.opacity(0.5))
             }
         }
         .padding(20)
@@ -452,14 +452,14 @@ struct SmartImportReviewView: View {
     }
     
     private var swipeColor: Color {
-        if dragOffset.width > 30 { return .green }
+        if dragOffset.width > 30 { return .blue }
         if dragOffset.width < -30 { return .red }
         return .clear
     }
     
     private var swipeBorderColor: Color {
         let opacity = min(Double(abs(dragOffset.width)) / 100.0, 0.8)
-        if dragOffset.width > 30 { return .green.opacity(opacity) }
+        if dragOffset.width > 30 { return .blue.opacity(opacity) }
         if dragOffset.width < -30 { return .red.opacity(opacity) }
         return .clear
     }
@@ -517,9 +517,9 @@ struct SmartImportReviewView: View {
     
     private func confidenceColor(_ confidence: ImportConfidence) -> Color {
         switch confidence {
-        case .high: return .green
+        case .high: return .blue
         case .medium: return .accentColor
-        case .low: return .orange
+        case .low: return .blue
         }
     }
     
@@ -555,13 +555,13 @@ struct SmartImportReviewView: View {
                     }
                 }
             }
-            .foregroundColor(roastMode ? Color.orange : Color.accentColor)
+            .foregroundColor(Color.blue)
             .padding(.horizontal, 16)
             .padding(.vertical, 8)
             .background(
                 Capsule()
                     .fill(
-                        (roastMode ? Color.orange : Color.accentColor)
+                        (Color.blue)
                             .opacity(0.1)
                     )
             )
@@ -603,11 +603,11 @@ struct SmartImportReviewView: View {
                 VStack(spacing: 6) {
                     ZStack {
                         Circle()
-                            .fill(.yellow.opacity(0.15))
+                            .fill(.blue.opacity(0.15))
                             .frame(width: 50, height: 50)
                         Image(systemName: "lightbulb.fill")
                             .font(.system(size: 20, weight: .semibold))
-                            .foregroundColor(.yellow)
+                            .foregroundColor(.blue)
                     }
                     Text("Idea")
                         .font(.system(size: 11, weight: .medium))
@@ -645,7 +645,7 @@ struct SmartImportReviewView: View {
                 VStack(spacing: 6) {
                     ZStack {
                         Circle()
-                            .fill(.green)
+                            .fill(.blue)
                             .frame(width: 54, height: 54)
                         Image(systemName: "checkmark")
                             .font(.system(size: 22, weight: .bold))
@@ -653,7 +653,7 @@ struct SmartImportReviewView: View {
                     }
                     Text("Accept")
                         .font(.system(size: 11, weight: .semibold))
-                        .foregroundColor(.green)
+                        .foregroundColor(.blue)
                 }
             }
             .frame(maxWidth: .infinity)
@@ -690,7 +690,7 @@ struct SmartImportReviewView: View {
             }
             .font(.subheadline.bold())
             .buttonStyle(.borderedProminent)
-            .tint(roastMode ? Color.orange : Color.accentColor)
+            .tint(Color.blue)
             
             Spacer()
             
@@ -719,8 +719,8 @@ struct SmartImportReviewView: View {
                         .fill(
                             RadialGradient(
                                 colors: [
-                                    .orange.opacity(0.15),
-                                    .orange.opacity(0.03)
+                                    .blue.opacity(0.15),
+                                    .blue.opacity(0.03)
                                 ],
                                 center: .center, startRadius: 20, endRadius: 60
                             )
@@ -729,7 +729,7 @@ struct SmartImportReviewView: View {
                     
                     Image(systemName: "doc.text.magnifyingglass")
                         .font(.system(size: 44, weight: .medium))
-                        .foregroundColor(.orange)
+                        .foregroundColor(.blue)
                 }
                 
                 VStack(spacing: 8) {
@@ -808,7 +808,7 @@ struct SmartImportReviewView: View {
                     .padding(.vertical, 13)
                     .background(
                         RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .fill(roastMode ? Color.orange : Color.accentColor)
+                            .fill(Color.blue)
                     )
                 }
                 .buttonStyle(.plain)
@@ -823,7 +823,7 @@ struct SmartImportReviewView: View {
         HStack(alignment: .top, spacing: 10) {
             Image(systemName: icon)
                 .font(.system(size: 14))
-                .foregroundColor(roastMode ? .orange.opacity(0.8) : .accentColor)
+                .foregroundColor(roastMode ? .blue.opacity(0.8) : .accentColor)
                 .frame(width: 20)
             
             Text(text)
@@ -836,13 +836,13 @@ struct SmartImportReviewView: View {
     private func formatBadge(_ format: String) -> some View {
         Text(format)
             .font(.system(size: 10, weight: .bold, design: .monospaced))
-            .foregroundColor(roastMode ? Color.orange : Color.accentColor)
+            .foregroundColor(Color.blue)
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
             .background(
                 RoundedRectangle(cornerRadius: 6, style: .continuous)
                     .fill(
-                        (roastMode ? Color.orange : Color.accentColor)
+                        (Color.blue)
                             .opacity(0.1)
                     )
             )
@@ -855,11 +855,11 @@ struct SmartImportReviewView: View {
                 
                 ZStack {
                     Circle()
-                        .fill(.green.opacity(0.15))
+                        .fill(.blue.opacity(0.15))
                         .frame(width: 110, height: 110)
                     Image(systemName: "checkmark.circle.fill")
                         .font(.system(size: 50, weight: .medium))
-                        .foregroundColor(.green)
+                        .foregroundColor(.blue)
                 }
                 
                 VStack(spacing: 8) {
@@ -897,7 +897,7 @@ struct SmartImportReviewView: View {
                     
                     summaryStatRow(
                         icon: "checkmark.circle.fill",
-                        color: .green,
+                        color: .blue,
                         label: "Accepted",
                         count: results.approvedJokes.count
                     )
@@ -914,7 +914,7 @@ struct SmartImportReviewView: View {
                     if results.brainstormItems.count > 0 {
                         summaryStatRow(
                             icon: "lightbulb.fill",
-                            color: .yellow,
+                            color: .blue,
                             label: "Sent to Brainstorm",
                             count: results.brainstormItems.count
                         )
@@ -927,7 +927,7 @@ struct SmartImportReviewView: View {
                         HStack(spacing: 6) {
                             Image(systemName: "sparkles")
                                 .font(.system(size: 12))
-                                .foregroundColor(.green)
+                                .foregroundColor(.blue)
                             Text("\(viewModel.autoAcceptedCount) auto-accepted (high confidence)")
                                 .font(.system(size: 12))
                                 .foregroundColor(roastMode ? .white.opacity(0.5) : Color(UIColor.tertiaryLabel))
@@ -959,7 +959,7 @@ struct SmartImportReviewView: View {
                     .padding(.vertical, 14)
                     .background(
                         RoundedRectangle(cornerRadius: CGFloat(12), style: .continuous)
-                            .fill(roastMode ? Color.orange : Color.accentColor)
+                            .fill(Color.blue)
                     )
                 }
                 .buttonStyle(.plain)
@@ -1022,11 +1022,11 @@ struct SmartImportReviewView: View {
                     VStack(spacing: 10) {
                         ZStack {
                             Circle()
-                                .fill(.green.opacity(0.2))
+                                .fill(.blue.opacity(0.2))
                                 .frame(width: 60, height: 60)
                             Image(systemName: "hand.point.right.fill")
                                 .font(.system(size: 24))
-                                .foregroundColor(.green)
+                                .foregroundColor(.blue)
                         }
                         Text("Swipe Right")
                             .font(.system(size: 13, weight: .semibold))
@@ -1045,9 +1045,9 @@ struct SmartImportReviewView: View {
                     
                     HStack(spacing: 16) {
                         tutorialButtonHint(icon: "xmark", label: "Skip", color: .red)
-                        tutorialButtonHint(icon: "lightbulb.fill", label: "Idea", color: .yellow)
+                        tutorialButtonHint(icon: "lightbulb.fill", label: "Idea", color: .blue)
                         tutorialButtonHint(icon: "pencil", label: "Edit", color: .accentColor)
-                        tutorialButtonHint(icon: "checkmark", label: "Keep", color: .green)
+                        tutorialButtonHint(icon: "checkmark", label: "Keep", color: .blue)
                     }
                 }
                 
@@ -1061,7 +1061,7 @@ struct SmartImportReviewView: View {
                         .padding(.vertical, 12)
                         .background(
                             Capsule()
-                                .fill(roastMode ? Color.orange : Color.accentColor)
+                                .fill(Color.blue)
                         )
                 }
                 .buttonStyle(.plain)
@@ -1187,10 +1187,10 @@ struct SmartImportReviewView: View {
                                         .padding(.vertical, 5)
                                         .background(
                                             Capsule().fill(
-                                                roastMode ? .orange.opacity(0.2) : .accentColor.opacity(0.1)
+                                                roastMode ? .blue.opacity(0.2) : .accentColor.opacity(0.1)
                                             )
                                         )
-                                        .foregroundColor(roastMode ? Color.orange : Color.accentColor)
+                                        .foregroundColor(Color.blue)
                                     }
                                 }
                             }

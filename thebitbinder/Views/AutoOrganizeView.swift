@@ -99,7 +99,7 @@ struct AutoOrganizeView: View {
                     VStack(spacing: 12) {
                          Image(systemName: "checkmark.circle.fill")
                              .font(.system(size: 60))
-                             .foregroundColor(.green)
+                             .foregroundColor(.blue)
                          
                          Text("Auto-Organization Complete!")
                              .font(.title2.bold())
@@ -190,18 +190,28 @@ struct AutoOrganizeView: View {
             }
             .onAppear {
                 // Pre-populate categorization results for all unorganized jokes
-                // so cards show suggestions immediately
+                // using AI when available, local heuristics as fallback
                 if !hasPopulatedCategorizationResults {
                     hasPopulatedCategorizationResults = true
-                    for joke in unorganizedJokes {
-                        joke.loadCategorizationResults() // Ensure results are loaded
-                        if joke.categorizationResults.isEmpty {
-                            let matches = AutoOrganizeService.categorize(content: joke.content)
-                            joke.categorizationResults = matches
-                            joke.saveCategorizationResults() // Save the new results
-                            #if DEBUG
-                            print(" [AutoOrganize] Pre-populated \(matches.count) suggestions for: \(joke.title.prefix(30))")
-                            #endif
+                    let jokesNeedingResults = unorganizedJokes.filter {
+                        $0.loadCategorizationResults()
+                        return $0.categorizationResults.isEmpty
+                    }
+                    if !jokesNeedingResults.isEmpty {
+                        Task { @MainActor in
+                            let existingFolderNames = folders.map { $0.name }
+                            for joke in jokesNeedingResults {
+                                let matches = await AutoOrganizeService.aiCategorize(
+                                    content: joke.content,
+                                    existingFolders: existingFolderNames
+                                )
+                                joke.categorizationResults = matches
+                                joke.saveCategorizationResults()
+                                #if DEBUG
+                                let source = AutoOrganizeService.isAIAvailable ? "AI" : "local"
+                                print(" [AutoOrganize] Pre-populated \(matches.count) \(source) suggestions for: \(joke.title.prefix(30))")
+                                #endif
+                            }
                         }
                     }
                 }
@@ -233,7 +243,7 @@ struct AutoOrganizeView: View {
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.purple)
+            .background(Color.blue)
             .cornerRadius(10)
             
             // Auto-Organize Button
@@ -258,7 +268,9 @@ struct AutoOrganizeView: View {
                         VStack(alignment: .leading, spacing: 2) {
                             Text("Smart Auto-Organize")
                                 .font(.headline)
-                            Text(customFolders.isEmpty ? "Will create folders automatically" : "Using \(customFolders.count) custom folders")
+                            Text(customFolders.isEmpty
+                                ? (AutoOrganizeService.isAIAvailable ? "AI-powered categorization" : "Will create folders automatically")
+                                : "Using \(customFolders.count) custom folders")
                                 .font(.caption)
                                 .foregroundColor(.white.opacity(0.8))
                         }
@@ -298,7 +310,7 @@ struct AutoOrganizeView: View {
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.orange)
+            .background(Color.blue)
             .cornerRadius(10)
         }
     }
@@ -330,7 +342,7 @@ struct AutoOrganizeView: View {
         VStack(spacing: 16) {
             Image(systemName: "checkmark.circle.fill")
                 .font(.system(size: 50))
-                .foregroundColor(.green)
+                .foregroundColor(.blue)
             Text("All Jokes Organized!")
                 .font(.headline)
             Text("Your jokes have been sorted into categories with confidence scoring")
@@ -345,12 +357,12 @@ struct AutoOrganizeView: View {
                     Text("Reorganize All")
                         .font(.subheadline.weight(.semibold))
                 }
-                .foregroundColor(.orange)
+                .foregroundColor(.blue)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 10)
                 .background(
                     RoundedRectangle(cornerRadius: 8)
-                        .fill(Color.orange.opacity(0.1))
+                        .fill(Color.blue.opacity(0.1))
                 )
             }
             .disabled(isAnalyzing)
@@ -396,8 +408,7 @@ struct AutoOrganizeView: View {
             return
         }
         
-        Task {
-            do {
+        Task { @MainActor in
                 #if DEBUG
                 print(" [AutoOrganize] Starting analysis of \(jokesToOrganize.count) jokes...")
                 #endif
@@ -407,9 +418,7 @@ struct AutoOrganizeView: View {
                 var totalFolderAssignments = 0
                 
                 for joke in jokesToOrganize {
-                    await MainActor.run {
-                        analysisProgress += 1
-                    }
+                    analysisProgress += 1
                     
                     // Get ALL matching categories for this joke (not just the top one)
                     let allMatches: [CategoryMatch]
@@ -417,114 +426,80 @@ struct AutoOrganizeView: View {
                         // Use custom folders - match joke against each custom folder
                         allMatches = await matchJokeToMultipleFolders(joke.content, folders: custom)
                     } else {
-                        // Use AI analysis to get primary category, then also use local categorization for additional matches
-                        let aiAnalysis = try await categorizationService.analyzeJoke(joke.content)
-                        let localMatches = AutoOrganizeService.categorize(content: joke.content)
-                        
-                        // Combine: AI category as primary + local matches that pass threshold
-                        var combined: [CategoryMatch] = []
-                        
-                        // Add AI category first
-                        combined.append(CategoryMatch(
-                            category: aiAnalysis.category,
-                            confidence: 0.9,
-                            reasoning: "AI-suggested primary category",
-                            matchedKeywords: [],
-                            styleTags: [],
-                            emotionalTone: nil,
-                            craftSignals: [],
-                            structureScore: 0
-                        ))
-                        
-                        // Add local matches that are different from AI category
-                        for match in localMatches where match.confidence >= 0.35 && match.category != aiAnalysis.category {
-                            combined.append(match)
-                        }
-                        
-                        allMatches = combined
+                        // Use AI categorization (falls back to local if no provider configured)
+                        let existingFolderNames = folders.map { $0.name }
+                        allMatches = await AutoOrganizeService.aiCategorize(
+                            content: joke.content,
+                            existingFolders: existingFolderNames + (availableFolders ?? [])
+                        )
                     }
                     
-                    // Update on main actor for SwiftData safety
-                    await MainActor.run {
-                        // Set primary category from top match
-                        if let topMatch = allMatches.first {
-                            joke.category = topMatch.category
-                            joke.primaryCategory = topMatch.category
-                        }
-                        
-                        // Store all categories
-                        joke.allCategories = allMatches.map { $0.category }
-                        
-                        // Store all categorization results for persistence
-                        joke.categorizationResults = allMatches
-                        joke.saveCategorizationResults()
+                    // Set primary category from top match
+                    if let topMatch = allMatches.first {
+                        joke.category = topMatch.category
+                        joke.primaryCategory = topMatch.category
+                    }
+                    
+                    // Store all categories
+                    joke.allCategories = allMatches.map { $0.category }
+                    
+                    // Store all categorization results for persistence
+                    joke.categorizationResults = allMatches
+                    joke.saveCategorizationResults()
 
-                        // Assign joke to MULTIPLE folders (one per matching category)
-                        var assignedFolderNames: Set<String> = []
+                    // Assign joke to MULTIPLE folders (one per matching category)
+                    var assignedFolderNames: Set<String> = []
+                    
+                    for match in allMatches {
+                        // Skip if we've already assigned to a folder with this name (prevent duplicates)
+                        guard !assignedFolderNames.contains(match.category) else { continue }
                         
-                        for match in allMatches {
-                            // Skip if we've already assigned to a folder with this name (prevent duplicates)
-                            guard !assignedFolderNames.contains(match.category) else { continue }
-                            
-                            // Find or create the folder
-                            var targetFolder = folders.first(where: { $0.name == match.category })
-                            if targetFolder == nil {
-                                let newFolder = JokeFolder(name: match.category)
-                                modelContext.insert(newFolder)
-                                targetFolder = newFolder
-                                #if DEBUG
-                                print(" [AutoOrganize] Created new folder: \(match.category)")
-                                #endif
-                            }
-                            
-                            // Add joke to this folder (if not already in it)
-                            if let folder = targetFolder, !(joke.folders ?? []).contains(where: { $0.id == folder.id }) {
-                                var current = joke.folders ?? []
-                                current.append(folder)
-                                joke.folders = current
-                                assignedFolderNames.insert(match.category)
-                                totalFolderAssignments += 1
-                                #if DEBUG
-                                print(" [AutoOrganize] Assigned joke '\(joke.title.prefix(20))'  folder '\(folder.name)'")
-                                #endif
-                            }
+                        // Find or create the folder
+                        var targetFolder = folders.first(where: { $0.name == match.category })
+                        if targetFolder == nil {
+                            let newFolder = JokeFolder(name: match.category)
+                            modelContext.insert(newFolder)
+                            targetFolder = newFolder
+                            #if DEBUG
+                            print(" [AutoOrganize] Created new folder: \(match.category)")
+                            #endif
                         }
                         
-                        if !assignedFolderNames.isEmpty {
-                            organizedCount += 1
+                        // Add joke to this folder (if not already in it)
+                        if let folder = targetFolder, !(joke.folders ?? []).contains(where: { $0.id == folder.id }) {
+                            var current = joke.folders ?? []
+                            current.append(folder)
+                            joke.folders = current
+                            assignedFolderNames.insert(match.category)
+                            totalFolderAssignments += 1
+                            #if DEBUG
+                            print(" [AutoOrganize] Assigned joke '\(joke.title.prefix(20))'  folder '\(folder.name)'")
+                            #endif
                         }
+                    }
+                    
+                    if !assignedFolderNames.isEmpty {
+                        organizedCount += 1
                     }
                 }
                 
                 // Save all changes
-                await MainActor.run {
-                    do {
-                        try modelContext.save()
-                        #if DEBUG
-                        print(" [AutoOrganize] Saved \(organizedCount) jokes to \(totalFolderAssignments) folder assignments")
-                        #endif
-                        organizationStats = (organizedCount, totalFolderAssignments)
-                        showOrganizationSummary = true
-                        isAnalyzing = false
-                    } catch {
-                        #if DEBUG
-                        print(" [AutoOrganize] Save failed: \(error)")
-                        #endif
-                        errorMessage = "Failed to save: \(error.localizedDescription)"
-                        showError = true
-                        isAnalyzing = false
-                    }
-                }
-            } catch {
-                await MainActor.run {
+                do {
+                    try modelContext.save()
                     #if DEBUG
-                    print(" [AutoOrganize] Analysis failed: \(error)")
+                    print(" [AutoOrganize] Saved \(organizedCount) jokes to \(totalFolderAssignments) folder assignments")
                     #endif
-                    errorMessage = error.localizedDescription
+                    organizationStats = (organizedCount, totalFolderAssignments)
+                    showOrganizationSummary = true
+                    isAnalyzing = false
+                } catch {
+                    #if DEBUG
+                    print(" [AutoOrganize] Save failed: \(error)")
+                    #endif
+                    errorMessage = "Failed to save: \(error.localizedDescription)"
                     showError = true
                     isAnalyzing = false
                 }
-            }
         }
     }
     
@@ -659,58 +634,53 @@ struct AutoOrganizeView: View {
         print(" [Reorganize] Delete empty folders after: \(deleteOldFoldersOnReorganize)")
         #endif
         
-        Task {
-            do {
+        Task { @MainActor in
                 // STEP 1: Clear all folder assignments from all jokes
-                await MainActor.run {
+                #if DEBUG
+                print(" [Reorganize] Step 1: Clearing all folder assignments...")
+                #endif
+                
+                for joke in allActiveJokes {
+                    joke.folders = []
+                    joke.category = nil
+                    joke.primaryCategory = nil
+                    joke.allCategories = []
+                    joke.categorizationResults = []
+                    joke.saveCategorizationResults()
+                }
+                
+                // Save the cleared state
+                do {
+                    try modelContext.save()
                     #if DEBUG
-                    print(" [Reorganize] Step 1: Clearing all folder assignments...")
+                    print(" [Reorganize] Cleared folder assignments from \(allActiveJokes.count) jokes")
                     #endif
-                    
-                    for joke in allActiveJokes {
-                        joke.folders = []
-                        joke.category = nil
-                        joke.primaryCategory = nil
-                        joke.allCategories = []
-                        joke.categorizationResults = []
-                        joke.saveCategorizationResults()
-                    }
-                    
-                    // Save the cleared state
-                    do {
-                        try modelContext.save()
-                        #if DEBUG
-                        print(" [Reorganize] Cleared folder assignments from \(allActiveJokes.count) jokes")
-                        #endif
-                    } catch {
-                        print(" [Reorganize] Failed to clear assignments: \(error)")
-                    }
+                } catch {
+                    print(" [Reorganize] Failed to clear assignments: \(error)")
                 }
                 
                 // STEP 2: Delete empty folders if requested
                 if deleteOldFoldersOnReorganize {
-                    await MainActor.run {
-                        let emptyFolders = folders.filter { folder in
-                            // A folder is empty if no jokes reference it
-                            !allActiveJokes.contains(where: { ($0.folders ?? []).contains(where: { $0.id == folder.id }) })
-                        }
-                        
+                    let emptyFolders = folders.filter { folder in
+                        // A folder is empty if no jokes reference it
+                        !allActiveJokes.contains(where: { ($0.folders ?? []).contains(where: { $0.id == folder.id }) })
+                    }
+                    
+                    #if DEBUG
+                    print(" [Reorganize] Deleting \(emptyFolders.count) empty folders...")
+                    #endif
+                    
+                    for folder in emptyFolders {
+                        modelContext.delete(folder)
+                    }
+                    
+                    do {
+                        try modelContext.save()
                         #if DEBUG
-                        print(" [Reorganize] Deleting \(emptyFolders.count) empty folders...")
+                        print(" [Reorganize] Deleted empty folders")
                         #endif
-                        
-                        for folder in emptyFolders {
-                            modelContext.delete(folder)
-                        }
-                        
-                        do {
-                            try modelContext.save()
-                            #if DEBUG
-                            print(" [Reorganize] Deleted empty folders")
-                            #endif
-                        } catch {
-                            print(" [Reorganize] Failed to delete folders: \(error)")
-                        }
+                    } catch {
+                        print(" [Reorganize] Failed to delete folders: \(error)")
                     }
                 }
                 
@@ -720,104 +690,75 @@ struct AutoOrganizeView: View {
                 var totalFolderAssignments = 0
                 
                 for joke in allActiveJokes {
-                    await MainActor.run {
-                        analysisProgress += 1
-                    }
+                    analysisProgress += 1
                     
                     // Get ALL matching categories for this joke
                     let allMatches: [CategoryMatch]
                     if let custom = availableFolders, useCustomFoldersOnly {
                         allMatches = await matchJokeToMultipleFolders(joke.content, folders: custom)
                     } else {
-                        // Use AI + local heuristics
-                        let aiAnalysis = try await categorizationService.analyzeJoke(joke.content)
-                        let localMatches = AutoOrganizeService.categorize(content: joke.content)
-                        
-                        var combined: [CategoryMatch] = []
-                        combined.append(CategoryMatch(
-                            category: aiAnalysis.category,
-                            confidence: 0.9,
-                            reasoning: "AI-suggested primary category",
-                            matchedKeywords: [],
-                            styleTags: [],
-                            emotionalTone: nil,
-                            craftSignals: [],
-                            structureScore: 0
-                        ))
-                        
-                        for match in localMatches where match.confidence >= 0.35 && match.category != aiAnalysis.category {
-                            combined.append(match)
-                        }
-                        
-                        allMatches = combined
+                        // Use AI categorization (falls back to local if no provider configured)
+                        let existingFolderNames = folders.map { $0.name }
+                        allMatches = await AutoOrganizeService.aiCategorize(
+                            content: joke.content,
+                            existingFolders: existingFolderNames + (availableFolders ?? [])
+                        )
                     }
                     
                     // Assign to folders
-                    await MainActor.run {
-                        if let topMatch = allMatches.first {
-                            joke.category = topMatch.category
-                            joke.primaryCategory = topMatch.category
-                        }
-                        
-                        joke.allCategories = allMatches.map { $0.category }
-                        
-                        // Store all categorization results for persistence
-                        joke.categorizationResults = allMatches
-                        joke.saveCategorizationResults()
+                    if let topMatch = allMatches.first {
+                        joke.category = topMatch.category
+                        joke.primaryCategory = topMatch.category
+                    }
+                    
+                    joke.allCategories = allMatches.map { $0.category }
+                    
+                    // Store all categorization results for persistence
+                    joke.categorizationResults = allMatches
+                    joke.saveCategorizationResults()
 
-                        var assignedFolderNames: Set<String> = []
+                    var assignedFolderNames: Set<String> = []
+                    
+                    for match in allMatches {
+                        guard !assignedFolderNames.contains(match.category) else { continue }
                         
-                        for match in allMatches {
-                            guard !assignedFolderNames.contains(match.category) else { continue }
-                            
-                            var targetFolder = folders.first(where: { $0.name == match.category })
-                            if targetFolder == nil {
-                                let newFolder = JokeFolder(name: match.category)
-                                modelContext.insert(newFolder)
-                                targetFolder = newFolder
-                            }
-                            
-                            if let folder = targetFolder, !(joke.folders ?? []).contains(where: { $0.id == folder.id }) {
-                                var current = joke.folders ?? []
-                                current.append(folder)
-                                joke.folders = current
-                                assignedFolderNames.insert(match.category)
-                                totalFolderAssignments += 1
-                            }
+                        var targetFolder = folders.first(where: { $0.name == match.category })
+                        if targetFolder == nil {
+                            let newFolder = JokeFolder(name: match.category)
+                            modelContext.insert(newFolder)
+                            targetFolder = newFolder
                         }
                         
-                        if !assignedFolderNames.isEmpty {
-                            organizedCount += 1
+                        if let folder = targetFolder, !(joke.folders ?? []).contains(where: { $0.id == folder.id }) {
+                            var current = joke.folders ?? []
+                            current.append(folder)
+                            joke.folders = current
+                            assignedFolderNames.insert(match.category)
+                            totalFolderAssignments += 1
                         }
+                    }
+                    
+                    if !assignedFolderNames.isEmpty {
+                        organizedCount += 1
                     }
                 }
                 
                 // Save all changes
-                await MainActor.run {
-                    do {
-                        try modelContext.save()
-                        #if DEBUG
-                        print(" [Reorganize] Complete! Organized \(organizedCount) jokes into \(totalFolderAssignments) folder assignments")
-                        #endif
-                        organizationStats = (organizedCount, totalFolderAssignments)
-                        showOrganizationSummary = true
-                        isAnalyzing = false
-                        hasPopulatedCategorizationResults = false // Reset so cards refresh
-                    } catch {
-                        print(" [Reorganize] Failed to save: \(error)")
-                        errorMessage = "Failed to save: \(error.localizedDescription)"
-                        showError = true
-                        isAnalyzing = false
-                    }
-                }
-            } catch {
-                await MainActor.run {
-                    print(" [Reorganize] Failed: \(error)")
-                    errorMessage = error.localizedDescription
+                do {
+                    try modelContext.save()
+                    #if DEBUG
+                    print(" [Reorganize] Complete! Organized \(organizedCount) jokes into \(totalFolderAssignments) folder assignments")
+                    #endif
+                    organizationStats = (organizedCount, totalFolderAssignments)
+                    showOrganizationSummary = true
+                    isAnalyzing = false
+                    hasPopulatedCategorizationResults = false // Reset so cards refresh
+                } catch {
+                    print(" [Reorganize] Failed to save: \(error)")
+                    errorMessage = "Failed to save: \(error.localizedDescription)"
                     showError = true
                     isAnalyzing = false
                 }
-            }
         }
     }
 }
@@ -884,7 +825,7 @@ struct JokeOrganizationCard: View {
                              .foregroundColor(.white)
                              .padding(.horizontal, 12)
                              .padding(.vertical, 6)
-                             .background(.green)
+                             .background(.blue)
                              .cornerRadius(6)
                         }
                         
@@ -914,13 +855,17 @@ struct JokeOrganizationCard: View {
                     if !hasPopulatedResults {
                         ProgressView()
                             .onAppear {
-                                // Try to populate results if empty
+                                // Try to populate results using AI if empty
                                 if joke.categorizationResults.isEmpty {
-                                    let matches = AutoOrganizeService.categorize(content: joke.content)
-                                    joke.categorizationResults = matches
-                                    joke.saveCategorizationResults()
+                                    Task { @MainActor in
+                                        let matches = await AutoOrganizeService.aiCategorize(content: joke.content)
+                                        joke.categorizationResults = matches
+                                        joke.saveCategorizationResults()
+                                        hasPopulatedResults = true
+                                    }
+                                } else {
+                                    hasPopulatedResults = true
                                 }
-                                hasPopulatedResults = true
                             }
                     } else {
                         Text("No automatic suggestion")
@@ -943,7 +888,7 @@ struct JokeOrganizationCard: View {
             }
         }
         .padding(12)
-        .background(Color.orange.opacity(0.05))
+        .background(Color.blue.opacity(0.05))
         .cornerRadius(8)
             }
         }
@@ -955,11 +900,11 @@ struct JokeOrganizationCard: View {
     private func confidenceColor(_ confidence: Double) -> Color {
         switch confidence {
         case 0.8...:
-            return .green
+            return .blue
         case 0.6..<0.8:
             return .blue
         case 0.4..<0.6:
-            return .orange
+            return .blue
         default:
             return .gray
         }
@@ -1082,9 +1027,11 @@ struct CategorySuggestionDetail: View {
             }
             .onAppear {
                 if joke.categorizationResults.isEmpty {
-                    let matches = AutoOrganizeService.categorize(content: joke.content)
-                    joke.categorizationResults = matches
-                    joke.saveCategorizationResults()
+                    Task { @MainActor in
+                        let matches = await AutoOrganizeService.aiCategorize(content: joke.content)
+                        joke.categorizationResults = matches
+                        joke.saveCategorizationResults()
+                    }
                 }
             }
         }
@@ -1093,11 +1040,11 @@ struct CategorySuggestionDetail: View {
     private func confidenceColor(_ confidence: Double) -> Color {
         switch confidence {
         case 0.8...:
-            return .green
+            return .blue
         case 0.6..<0.8:
             return .blue
         case 0.4..<0.6:
-            return .orange
+            return .blue
         default:
             return .gray
         }
@@ -1192,7 +1139,7 @@ struct FolderSetupView: View {
                                 Spacer()
                                 if customFolders.contains(folder) {
                                     Image(systemName: "checkmark.circle.fill")
-                                        .foregroundColor(.green)
+                                        .foregroundColor(.blue)
                                 } else {
                                     Button("Add") {
                                         if !customFolders.contains(folder) {
@@ -1262,7 +1209,7 @@ struct FolderSetupView: View {
                                 Spacer()
                                 if customFolders.contains(folder) {
                                     Image(systemName: "checkmark.circle.fill")
-                                        .foregroundColor(.green)
+                                        .foregroundColor(.blue)
                                 } else {
                                     Button("Use") {
                                         if !customFolders.contains(folder) {
@@ -1320,7 +1267,7 @@ struct FolderSetupView: View {
     private func generateAIFolders() {
         isGeneratingFolders = true
         
-        Task {
+        Task { @MainActor in
             do {
                 let sampleJokes = Array(unorganizedJokes.prefix(20))
                 var buckets: [String: Int] = [:]
@@ -1340,14 +1287,10 @@ struct FolderSetupView: View {
                     .map(\.key)
                     .filter { !$0.isEmpty }
                 
-                await MainActor.run {
-                    suggestedFolders = Array(suggestions.prefix(6))
-                    isGeneratingFolders = false
-                }
+                suggestedFolders = Array(suggestions.prefix(6))
+                isGeneratingFolders = false
             } catch {
-                await MainActor.run {
-                    isGeneratingFolders = false
-                }
+                isGeneratingFolders = false
             }
         }
     }

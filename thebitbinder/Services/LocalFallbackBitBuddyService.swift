@@ -24,9 +24,6 @@ final class LocalFallbackBitBuddyService: BitBuddyBackend {
         session: BitBuddySessionSnapshot,
         dataContext: BitBuddyDataContext
     ) async throws -> String {
-        // Simulate typing delay for UX
-        try? await Task.sleep(nanoseconds: 800_000_000)
-        
         // Refresh profile on every request since it's local and fast
         updateProfile(from: dataContext.recentJokes)
         
@@ -228,7 +225,7 @@ final class LocalFallbackBitBuddyService: BitBuddyBackend {
         case "shorten_joke":
             let fillerList = BitBuddyResources.fillerWords.prefix(6).joined(separator: ", ")
             return """
-             **Tightening Mode — v2.3**
+             **Tightening Mode**
             • Cut the setup to the absolute minimum context needed.
             • Kill these filler words: \(fillerList).
             • End on the funniest word — don't explain after the punchline.
@@ -238,7 +235,7 @@ final class LocalFallbackBitBuddyService: BitBuddyBackend {
         case "expand_joke":
             let technique = BitBuddyResources.jokeProTechniques.randomElement() ?? "Callback"
             return """
-             **Expansion Mode — v2.3**
+             **Expansion Mode**
             • Add a second beat — what happens next?
             • Tag it: find 2–3 additional angles on the same premise.
             • Build a callback you can use later in the set.
@@ -255,7 +252,7 @@ final class LocalFallbackBitBuddyService: BitBuddyBackend {
         case "crowdwork_help":
             let nycFlavor = BitBuddyResources.vocabNYCFlavored.randomElement() ?? "subway-speed"
             return """
-             **Crowdwork — Master Framework v2.3**
+             **Crowdwork — Master Guide**
             • "Where are you guys from?" → Riff on the city/neighborhood. NYC? Go \(nycFlavor).
             • "What do you do for work?" → Find the absurd angle. Exaggerate to \(BitBuddyResources.vocabExaggeration.randomElement() ?? "apocalyptic") proportions.
             • "How long have you two been together?" → The answer is always comedy gold.
@@ -267,7 +264,7 @@ final class LocalFallbackBitBuddyService: BitBuddyBackend {
             let example = BitBuddyResources.randomRoastExample(intensity: "medium") ?? ""
             let vocabHit = BitBuddyResources.vocabPunchyAdjectives.randomElement() ?? "razor-sharp"
             return """
-             **Master Roast Framework v2.3**
+             **Master Roast Guide**
             
             **The 4-Step Structure:**
             \(BitBuddyResources.roastStructure.joined(separator: "\n"))
@@ -284,7 +281,7 @@ final class LocalFallbackBitBuddyService: BitBuddyBackend {
         case "compare_versions":
             let adj = BitBuddyResources.vocabPunchyAdjectives.randomElement() ?? "razor-sharp"
             return """
-             **Version Compare — v2.3**
+             **Version Compare**
             • Read both out loud — which one flows better?
             • Which setup is shorter? Shorter usually wins.
             • Which punchline has a harder consonant at the end? (K, T, P sounds hit harder.)
@@ -655,7 +652,7 @@ final class LocalFallbackBitBuddyService: BitBuddyBackend {
         guard !text.isEmpty else { return "Please provide a joke to improve." }
         let suggestions = JokeAnalyzer.suggestEdits(text)
         
-        var response = " **Improvement Mode — v2.3 Framework**\n\n"
+        var response = " **Improvement Mode**\n\n"
         
         // Core structural suggestions
         if suggestions.isEmpty {
@@ -748,10 +745,9 @@ final class LocalFallbackBitBuddyService: BitBuddyBackend {
         joke = joke.replacingOccurrences(of: "[Trait]", with: traits.randomElement()!)
         joke = joke.replacingOccurrences(of: "[Opposite Trait]", with: opposites.randomElement()!)
         
-        // v2.3: Enrich with framework reference
         let technique = BitBuddyResources.jokeProTechniques.randomElement() ?? "Misdirection"
         let twist = BitBuddyResources.vocabTwistPhrases.randomElement() ?? "except the plot twist is"
-        var response = " **Generated using: \(technique)**\n\n"
+        var response = " **Technique: \(technique)**\n\n"
         response += "\"\(joke)\"\n\n"
         response += " **Upgrade idea:** Try adding a tag line — \(twist)...\n"
         response += "Say **\"expand this\"** to build it into a full bit, or **\"analyze this\"** for a full breakdown."

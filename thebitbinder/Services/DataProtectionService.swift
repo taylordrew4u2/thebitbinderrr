@@ -259,8 +259,9 @@ final class DataProtectionService: ObservableObject {
     
     // MARK: - Emergency Backup Cleanup
     
-    /// Cleans up emergency_backup_*.store and corrupted_store_backup_*.store files.
-    /// Keeps only the 3 most recent and deletes any older than 7 days.
+    /// Cleans up emergency_backup_*.store and corrupted_store_backup_* files/directories.
+    /// Keeps only the 3 most recent *backup sets* and deletes any older than 7 days.
+    /// A backup set groups the main store file with its companion files (-shm, -wal, _Files).
     /// Nonisolated because this is pure FileManager I/O — no UI state touched.
     nonisolated func cleanupEmergencyBackups() {
         let fm = FileManager.default
@@ -272,40 +273,76 @@ final class DataProtectionService: ObservableObject {
         do {
             let allFiles = try fm.contentsOfDirectory(
                 at: supportDir,
-                includingPropertiesForKeys: [.creationDateKey, .fileSizeKey]
+                includingPropertiesForKeys: [.creationDateKey, .fileSizeKey, .isDirectoryKey]
             )
             
-            // Find emergency and corrupted store backups
-            let emergencyFiles = allFiles.filter {
+            // Find all emergency/corrupted backup items
+            let emergencyItems = allFiles.filter {
                 $0.lastPathComponent.hasPrefix("emergency_backup_") ||
                 $0.lastPathComponent.hasPrefix("corrupted_store_backup_")
             }
-            .sorted { url1, url2 in
-                let date1 = (try? url1.resourceValues(forKeys: [.creationDateKey]).creationDate) ?? Date.distantPast
-                let date2 = (try? url2.resourceValues(forKeys: [.creationDateKey]).creationDate) ?? Date.distantPast
-                return date1 > date2 // newest first
+            
+            guard !emergencyItems.isEmpty else { return }
+            
+            // Group companion files into backup sets by their base name.
+            // emergency_backup_<ts>.store, .store-shm, .store-wal, .store_Files → same set
+            // corrupted_store_backup_<ts>/ → already a directory, is its own set
+            var backupSets: [String: [URL]] = [:]
+            for item in emergencyItems {
+                let name = item.lastPathComponent
+                // Strip SQLite companion suffixes to find the base key
+                let base: String
+                if name.hasSuffix("-shm") || name.hasSuffix("-wal") {
+                    base = String(name.dropLast(4)) // remove -shm / -wal
+                } else if name.hasSuffix("_Files") {
+                    base = String(name.dropLast(6)) // remove _Files
+                } else {
+                    base = name
+                }
+                backupSets[base, default: []].append(item)
             }
             
-            guard !emergencyFiles.isEmpty else { return }
+            // Sort sets by the creation date of the primary file (newest first)
+            let sortedSets = backupSets.sorted { set1, set2 in
+                let date1 = set1.value.compactMap { try? $0.resourceValues(forKeys: [.creationDateKey]).creationDate }.max() ?? Date.distantPast
+                let date2 = set2.value.compactMap { try? $0.resourceValues(forKeys: [.creationDateKey]).creationDate }.max() ?? Date.distantPast
+                return date1 > date2
+            }
             
             var deletedCount = 0
             var freedBytes: Int64 = 0
             
-            for (index, fileURL) in emergencyFiles.enumerated() {
-                let creationDate = (try? fileURL.resourceValues(forKeys: [.creationDateKey]).creationDate) ?? Date.distantPast
-                let fileSize = Int64((try? fileURL.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0)
+            for (index, (_, urls)) in sortedSets.enumerated() {
+                let setDate = urls.compactMap { try? $0.resourceValues(forKeys: [.creationDateKey]).creationDate }.max() ?? Date.distantPast
                 
-                // Delete if: beyond the max keep count OR older than cutoff date
-                if index >= maxEmergencyBackups || creationDate < cutoffDate {
-                    try fm.removeItem(at: fileURL)
+                // Delete entire set if: beyond the max keep count OR older than cutoff
+                if index >= maxEmergencyBackups || setDate < cutoffDate {
+                    for fileURL in urls {
+                        let isDir = (try? fileURL.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) ?? false
+                        let size: Int64
+                        if isDir {
+                            var dirSize: Int64 = 0
+                            if let enumerator = fm.enumerator(at: fileURL, includingPropertiesForKeys: [.fileSizeKey]) {
+                                for case let child as URL in enumerator {
+                                    if let s = try? child.resourceValues(forKeys: [.fileSizeKey]).fileSize {
+                                        dirSize += Int64(s)
+                                    }
+                                }
+                            }
+                            size = dirSize
+                        } else {
+                            size = Int64((try? fileURL.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0)
+                        }
+                        try fm.removeItem(at: fileURL)
+                        freedBytes += size
+                    }
                     deletedCount += 1
-                    freedBytes += fileSize
                 }
             }
             
             if deletedCount > 0 {
                 let freedMB = ByteCountFormatter.string(fromByteCount: freedBytes, countStyle: .file)
-                print(" [DataProtection] Cleaned up \(deletedCount) emergency backup(s), freed \(freedMB)")
+                print(" [DataProtection] Cleaned up \(deletedCount) emergency backup set(s), freed \(freedMB)")
             }
         } catch {
             print(" [DataProtection] Failed to cleanup emergency backups: \(error)")
@@ -314,13 +351,16 @@ final class DataProtectionService: ObservableObject {
     
     // MARK: - Data Recovery
     
-    /// Lists available backups for recovery
+    /// Lists available backups for recovery.
+    /// Includes structured backups from `DataBackups/`, plus emergency and
+    /// corrupted-store backups stored directly in Application Support.
     func getAvailableBackups() -> [BackupInfo] {
+        var backups: [BackupInfo] = []
+        
+        // ── 1. Structured backups (DataBackups/) ───────────────────────
         do {
             let backupFolders = try fileManager.contentsOfDirectory(at: backupDirectory, includingPropertiesForKeys: [.creationDateKey])
                 .filter { $0.hasDirectoryPath }
-            
-            var backups: [BackupInfo] = []
             
             for folder in backupFolders {
                 let manifestURL = folder.appending(path: "backup_manifest.json")
@@ -346,12 +386,88 @@ final class DataProtectionService: ObservableObject {
                 
                 backups.append(backupInfo)
             }
-            
-            return backups.sorted { $0.createdAt > $1.createdAt }
         } catch {
-            print(" [DataProtection] Failed to list backups: \(error)")
-            return []
+            print(" [DataProtection] Failed to list structured backups: \(error)")
         }
+        
+        // ── 2. Emergency & corrupted-store backups (Application Support/) ──
+        do {
+            let supportDir = URL.applicationSupportDirectory
+            let allItems = try fileManager.contentsOfDirectory(
+                at: supportDir,
+                includingPropertiesForKeys: [.creationDateKey, .isDirectoryKey]
+            )
+            
+            // Group emergency_backup_* companions into sets (same logic as cleanup)
+            var emergencySets: [String: [URL]] = [:]
+            let emergencyItems = allItems.filter { $0.lastPathComponent.hasPrefix("emergency_backup_") }
+            for item in emergencyItems {
+                let name = item.lastPathComponent
+                let base: String
+                if name.hasSuffix("-shm") || name.hasSuffix("-wal") {
+                    base = String(name.dropLast(4))
+                } else if name.hasSuffix("_Files") {
+                    base = String(name.dropLast(6))
+                } else {
+                    base = name
+                }
+                emergencySets[base, default: []].append(item)
+            }
+            
+            for (baseName, urls) in emergencySets {
+                // The primary file is the .store file (without companion suffix)
+                let primaryURL = urls.first { $0.lastPathComponent == baseName } ?? urls[0]
+                let creationDate = (try? primaryURL.resourceValues(forKeys: [.creationDateKey]).creationDate) ?? Date.distantPast
+                let totalSize = urls.reduce(Int64(0)) { sum, url in
+                    let isDir = (try? url.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) ?? false
+                    if isDir {
+                        return sum + calculateDirectorySize(url)
+                    }
+                    return sum + Int64((try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0)
+                }
+                
+                backups.append(BackupInfo(
+                    name: baseName,
+                    url: primaryURL,
+                    createdAt: creationDate,
+                    appVersion: "Unknown",
+                    reason: "emergency",
+                    size: totalSize
+                ))
+            }
+            
+            // Corrupted-store backups are directories: corrupted_store_backup_<ts>/
+            let corruptedDirs = allItems.filter {
+                $0.lastPathComponent.hasPrefix("corrupted_store_backup_") &&
+                ((try? $0.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) ?? false)
+            }
+            for dir in corruptedDirs {
+                let storeFile = dir.appending(path: "default.store")
+                guard fileManager.fileExists(atPath: storeFile.path) else { continue }
+                
+                let creationDate = (try? dir.resourceValues(forKeys: [.creationDateKey]).creationDate) ?? Date.distantPast
+                
+                backups.append(BackupInfo(
+                    name: dir.lastPathComponent,
+                    url: dir,
+                    createdAt: creationDate,
+                    appVersion: "Unknown",
+                    reason: "corruption_recovery",
+                    size: calculateDirectorySize(dir)
+                ))
+            }
+        } catch {
+            print(" [DataProtection] Failed to list emergency/corrupted backups: \(error)")
+        }
+        
+        return backups.sorted { $0.createdAt > $1.createdAt }
+    }
+    
+    /// Returns true if the backup is an emergency or corrupted-store backup
+    /// (flat layout: store file at root, no manifest).
+    private func isEmergencyOrCorruptionBackup(_ backupURL: URL) -> Bool {
+        let name = backupURL.lastPathComponent
+        return name.hasPrefix("emergency_backup_") || name.hasPrefix("corrupted_store_backup_")
     }
     
     private func calculateDirectorySize(_ url: URL) -> Int64 {
@@ -370,7 +486,9 @@ final class DataProtectionService: ObservableObject {
     
     // MARK: - Emergency Recovery
     
-    /// Recovers data from a backup (use with extreme caution)
+    /// Recovers data from a backup (use with extreme caution).
+    /// Supports both structured backups (from DataBackups/) and flat-format
+    /// emergency/corrupted-store backups.
     func recoverFromBackup(_ backupInfo: BackupInfo) async throws {
         print(" [DataProtection] EMERGENCY RECOVERY: Restoring from backup \(backupInfo.name)")
         guard isBackupRestorable(backupInfo.url) else {
@@ -380,23 +498,29 @@ final class DataProtectionService: ObservableObject {
         // Create a backup of current state before recovery
         await createBackup(named: "PreRecovery_\(ISO8601DateFormatter().string(from: Date()))", reason: .preRecovery)
         
-        let swiftDataSource = backupInfo.url.appending(path: "SwiftData")
-        let userDefaultsSource = backupInfo.url.appending(path: "UserDefaults.plist")
-        let appFilesSource = backupInfo.url.appending(path: "AppFiles")
-        
-        // Restore SwiftData
-        if fileManager.fileExists(atPath: swiftDataSource.path) {
-            try await restoreSwiftDataStore(from: swiftDataSource)
-        }
-        
-        // Restore UserDefaults
-        if fileManager.fileExists(atPath: userDefaultsSource.path) {
-            try restoreUserDefaults(from: userDefaultsSource)
-        }
-        
-        // Restore app files
-        if fileManager.fileExists(atPath: appFilesSource.path) {
-            try restoreAppFiles(from: appFilesSource)
+        if isEmergencyOrCorruptionBackup(backupInfo.url) {
+            // ── Flat-format restore ─────────────────────────────────────
+            try await restoreFromFlatBackup(backupInfo)
+        } else {
+            // ── Structured restore ──────────────────────────────────────
+            let swiftDataSource = backupInfo.url.appending(path: "SwiftData")
+            let userDefaultsSource = backupInfo.url.appending(path: "UserDefaults.plist")
+            let appFilesSource = backupInfo.url.appending(path: "AppFiles")
+            
+            // Restore SwiftData
+            if fileManager.fileExists(atPath: swiftDataSource.path) {
+                try await restoreSwiftDataStore(from: swiftDataSource)
+            }
+            
+            // Restore UserDefaults
+            if fileManager.fileExists(atPath: userDefaultsSource.path) {
+                try restoreUserDefaults(from: userDefaultsSource)
+            }
+            
+            // Restore app files
+            if fileManager.fileExists(atPath: appFilesSource.path) {
+                try restoreAppFiles(from: appFilesSource)
+            }
         }
         
         UserDefaults.standard.set(true, forKey: pendingRestoreRestartKey)
@@ -412,13 +536,93 @@ final class DataProtectionService: ObservableObject {
     }
 
     private func isBackupRestorable(_ backupURL: URL) -> Bool {
+        // Structured backup: has manifest + SwiftData/default.store
         let manifestURL = backupURL.appending(path: "backup_manifest.json")
         let swiftDataStoreURL = backupURL
             .appending(path: "SwiftData", directoryHint: .isDirectory)
             .appending(path: "default.store")
-
-        return fileManager.fileExists(atPath: manifestURL.path) &&
-            fileManager.fileExists(atPath: swiftDataStoreURL.path)
+        
+        if fileManager.fileExists(atPath: manifestURL.path) &&
+            fileManager.fileExists(atPath: swiftDataStoreURL.path) {
+            return true
+        }
+        
+        // Flat-format: emergency backup file (the URL IS the .store file)
+        let name = backupURL.lastPathComponent
+        if name.hasPrefix("emergency_backup_") && name.hasSuffix(".store") {
+            return fileManager.fileExists(atPath: backupURL.path)
+        }
+        
+        // Flat-format: corrupted store backup directory (default.store at root)
+        if name.hasPrefix("corrupted_store_backup_") {
+            let storeFile = backupURL.appending(path: "default.store")
+            return fileManager.fileExists(atPath: storeFile.path)
+        }
+        
+        return false
+    }
+    
+    /// Restores from a flat-format emergency or corrupted-store backup.
+    /// Emergency backups: the URL points to the `.store` file; companions
+    /// sit alongside it with the same base name.
+    /// Corrupted backups: the URL is a directory containing `default.store`
+    /// plus optional companions.
+    private func restoreFromFlatBackup(_ backupInfo: BackupInfo) async throws {
+        let storeURL = URL.applicationSupportDirectory.appending(path: "default.store")
+        let extensions = ["", "-shm", "-wal"]
+        
+        // Step 1: Remove existing store files & external storage
+        for ext in extensions {
+            let destFile = URL(fileURLWithPath: storeURL.path + ext)
+            if fileManager.fileExists(atPath: destFile.path) {
+                try fileManager.removeItem(at: destFile)
+                print(" [DataProtection] Removed existing: default.store\(ext)")
+            }
+        }
+        let externalStorageURL = URL(fileURLWithPath: storeURL.path + "_Files")
+        if fileManager.fileExists(atPath: externalStorageURL.path) {
+            try fileManager.removeItem(at: externalStorageURL)
+            print(" [DataProtection] Removed existing external storage directory")
+        }
+        
+        // Step 2: Determine source layout and copy files
+        let name = backupInfo.url.lastPathComponent
+        
+        if name.hasPrefix("emergency_backup_") && name.hasSuffix(".store") {
+            // Emergency backup: URL is the .store file, companions are siblings
+            let basePath = backupInfo.url.path
+            for ext in extensions {
+                let src = URL(fileURLWithPath: basePath + ext)
+                let dst = URL(fileURLWithPath: storeURL.path + ext)
+                if fileManager.fileExists(atPath: src.path) {
+                    try fileManager.copyItem(at: src, to: dst)
+                    print(" [DataProtection] Restored: default.store\(ext) (from emergency backup)")
+                }
+            }
+            // External storage companion
+            let srcExternal = URL(fileURLWithPath: basePath + "_Files")
+            if fileManager.fileExists(atPath: srcExternal.path) {
+                try fileManager.copyItem(at: srcExternal, to: externalStorageURL)
+                print(" [DataProtection] Restored external storage directory (from emergency backup)")
+            }
+        } else if name.hasPrefix("corrupted_store_backup_") {
+            // Corrupted backup: URL is a directory containing default.store + companions
+            for ext in extensions {
+                let src = backupInfo.url.appending(path: "default.store\(ext)")
+                let dst = URL(fileURLWithPath: storeURL.path + ext)
+                if fileManager.fileExists(atPath: src.path) {
+                    try fileManager.copyItem(at: src, to: dst)
+                    print(" [DataProtection] Restored: default.store\(ext) (from corrupted backup)")
+                }
+            }
+            let srcExternal = backupInfo.url.appending(path: "default.store_Files")
+            if fileManager.fileExists(atPath: srcExternal.path) {
+                try fileManager.copyItem(at: srcExternal, to: externalStorageURL)
+                print(" [DataProtection] Restored external storage directory (from corrupted backup)")
+            }
+        }
+        
+        print(" [DataProtection] Flat-format store restored — app must restart to load")
     }
     
     private func restoreSwiftDataStore(from sourceURL: URL) async throws {

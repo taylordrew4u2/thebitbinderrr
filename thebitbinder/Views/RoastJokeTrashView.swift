@@ -87,7 +87,7 @@ struct RoastJokeTrashView: View {
                             } label: {
                                 Label("Restore", systemImage: "arrow.uturn.backward")
                             }
-                            .tint(.green)
+                            .tint(.blue)
                         }
                         .contextMenu {
                             Button {

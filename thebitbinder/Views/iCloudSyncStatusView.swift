@@ -155,7 +155,7 @@ struct iCloudSyncStatusView: View {
         } label: {
             HStack {
                 Image(systemName: "arrow.up.arrow.down")
-                    .foregroundColor(.orange)
+                    .foregroundColor(.blue)
                 Text("Force Settings Sync")
                     .foregroundColor(.primary)
             }
@@ -168,7 +168,7 @@ struct iCloudSyncStatusView: View {
         } label: {
             HStack {
                 Image(systemName: "stethoscope")
-                    .foregroundColor(.green)
+                    .foregroundColor(.blue)
                 Text("Run Diagnostics")
                     .foregroundColor(.primary)
                 
@@ -221,7 +221,7 @@ struct iCloudSyncStatusView: View {
         case .syncing:
             return .blue
         case .success:
-            return .green
+            return .blue
         case .error:
             return .red
         }
@@ -292,7 +292,7 @@ struct IssueRowView: View {
         case .critical:
             return .red
         case .warning:
-            return .orange
+            return .blue
         case .info:
             return .blue
         }

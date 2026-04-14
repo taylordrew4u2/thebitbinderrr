@@ -102,7 +102,7 @@ struct TrashView: View {
                                     } label: {
                                         Label("Restore", systemImage: "arrow.uturn.backward")
                                     }
-                                    .tint(.green)
+                                    .tint(.blue)
                                 }
                                 .contextMenu {
                                     Button {
@@ -135,11 +135,11 @@ struct TrashView: View {
                                     HStack(spacing: 6) {
                                         Image(systemName: "flame.fill")
                                             .font(.caption)
-                                            .foregroundColor(.orange)
+                                            .foregroundColor(.blue)
                                         if let targetName = roast.target?.name {
                                             Text(targetName)
                                                 .font(.caption.bold())
-                                                .foregroundColor(.orange)
+                                                .foregroundColor(.blue)
                                         }
                                     }
                                     
@@ -173,7 +173,7 @@ struct TrashView: View {
                                     } label: {
                                         Label("Restore", systemImage: "arrow.uturn.backward")
                                     }
-                                    .tint(.green)
+                                    .tint(.blue)
                                 }
                                 .contextMenu {
                                     Button {
@@ -193,7 +193,7 @@ struct TrashView: View {
                         } header: {
                             HStack {
                                 Image(systemName: "flame.fill")
-                                    .foregroundColor(.orange)
+                                    .foregroundColor(.blue)
                                 Text("Roasts (\(filteredRoastJokes.count))")
                             }
                         }

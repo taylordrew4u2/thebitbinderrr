@@ -131,7 +131,7 @@ struct BrainstormView: View {
         } message: {
             Text(persistenceError ?? "An unknown error occurred")
         }
-        .tint(roastMode ? .orange : .accentColor)
+        .tint(.blue)
         .onChange(of: speechManager.isRecording) { oldValue, newValue in
             if oldValue && !newValue && isRecording {
                 isRecording = false
@@ -506,7 +506,7 @@ struct IdeaCard: View {
         if !hex.isEmpty, let parsed = Color(hex: hex) {
             return parsed
         }
-        return roastMode ? .orange : .accentColor
+        return .blue
     }
     
     var body: some View {
@@ -525,7 +525,7 @@ struct IdeaCard: View {
                         Text("Voice")
                             .font(.caption2.weight(.medium))
                     }
-                    .foregroundStyle(roastMode ? .orange.opacity(0.7) : .accentColor.opacity(0.6))
+                    .foregroundStyle(roastMode ? .blue.opacity(0.7) : .accentColor.opacity(0.6))
                 }
                 
                 // Content

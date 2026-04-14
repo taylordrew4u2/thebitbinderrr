@@ -86,14 +86,16 @@ final class iCloudSyncService: NSObject, ObservableObject {
         )
     }
     
-    @objc private func handleRemoteChange(_ notification: Notification) {
-        syncDebouncer?.invalidate()
-        syncDebouncer = Timer.scheduledTimer(
-            withTimeInterval: 1.0, // Reduced from 2.0 for faster sync
-            repeats: false
-        ) { [weak self] _ in
-            Task { @MainActor in
-                await self?.processRemoteChangeAsync()
+    @objc nonisolated private func handleRemoteChange(_ notification: Notification) {
+        Task { @MainActor [weak self] in
+            self?.syncDebouncer?.invalidate()
+            self?.syncDebouncer = Timer.scheduledTimer(
+                withTimeInterval: 1.0, // Reduced from 2.0 for faster sync
+                repeats: false
+            ) { [weak self] _ in
+                Task { @MainActor in
+                    await self?.processRemoteChangeAsync()
+                }
             }
         }
     }
@@ -158,7 +160,7 @@ final class iCloudSyncService: NSObject, ObservableObject {
         hapticFeedback()
     }
     
-    @objc private func handleAccountChange(_ notification: Notification) {
+    @objc nonisolated private func handleAccountChange(_ notification: Notification) {
         Task { @MainActor in
             print(" [iCloud] Account change detected")
             syncStatus = .syncing

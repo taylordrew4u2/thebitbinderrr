@@ -22,6 +22,25 @@ struct HomeView: View {
     @State private var showTalkToText = false
     @State private var showQuickRecord = false
     @AppStorage("roastModeEnabled") private var roastMode = false
+    @AppStorage("userName") private var userName = ""
+    
+    // Time-aware greeting
+    private var greeting: String {
+        let hour = Calendar.current.component(.hour, from: Date())
+        switch hour {
+        case 0..<5:   return "Late night session"
+        case 5..<12:  return "Good morning"
+        case 12..<17: return "Good afternoon"
+        case 17..<21: return "Good evening"
+        default:      return "Night owl mode"
+        }
+    }
+    
+    private var greetingName: String {
+        let name = userName.trimmingCharacters(in: .whitespacesAndNewlines)
+        if name.isEmpty { return greeting }
+        return "\(greeting), \(name)"
+    }
     
     // Stats
     private var hitsCount: Int {
@@ -39,6 +58,31 @@ struct HomeView: View {
 
     var body: some View {
         List {
+            // MARK: - Greeting Header with BitBuddy
+            Section {
+                HStack(spacing: 14) {
+                    BitBuddyAvatar(roastMode: roastMode, size: 48, symbolSize: 20)
+                    
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(greetingName)
+                            .font(.title3.weight(.semibold))
+                            .foregroundColor(.primary)
+                        
+                        if allJokes.isEmpty {
+                            Text("Let's get your first joke on paper")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                        } else {
+                            Text(motivationalSubtitle)
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                }
+                .listRowBackground(Color.clear)
+                .listRowInsets(EdgeInsets(top: 12, leading: 20, bottom: 12, trailing: 20))
+            }
+            
             // MARK: - Quick Actions
             Section {
                 Button {
@@ -61,7 +105,7 @@ struct HomeView: View {
                         Text("Capture Idea")
                     } icon: {
                         Image(systemName: "mic.fill")
-                            .foregroundColor(.purple)
+                            .foregroundColor(.blue)
                     }
                 }
 
@@ -73,7 +117,7 @@ struct HomeView: View {
                         Text("Record Set")
                     } icon: {
                         Image(systemName: "record.circle")
-                            .foregroundColor(.red)
+                            .foregroundColor(.blue)
                     }
                 }
             }
@@ -91,19 +135,19 @@ struct HomeView: View {
                         label: "Hits",
                         value: hitsCount,
                         icon: "star.fill",
-                        tint: .yellow
+                        tint: .blue
                     )
                     StatCard(
                         label: "Sets",
                         value: allSets.count,
                         icon: "list.bullet.rectangle.portrait",
-                        tint: .green
+                        tint: .blue
                     )
                     StatCard(
                         label: "This Week",
                         value: thisWeekCount,
                         icon: "flame.fill",
-                        tint: .orange
+                        tint: .blue
                     )
                 }
                 .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
@@ -118,7 +162,7 @@ struct HomeView: View {
                             HStack(spacing: 12) {
                                 // Hit indicator
                                 RoundedRectangle(cornerRadius: 2, style: .continuous)
-                                    .fill(joke.isHit ? Color.yellow : Color(UIColor.separator))
+                                    .fill(joke.isHit ? Color.blue : Color(UIColor.separator))
                                     .frame(width: 3, height: 32)
                                 
                                 VStack(alignment: .leading, spacing: 3) {
@@ -135,7 +179,7 @@ struct HomeView: View {
                                         if joke.isHit {
                                             Label("Hit", systemImage: "star.fill")
                                                 .font(.caption2.weight(.medium))
-                                                .foregroundColor(.yellow)
+                                                .foregroundColor(.blue)
                                         }
                                     }
                                 }
@@ -163,7 +207,7 @@ struct HomeView: View {
                                     Text("Brainstorm Ideas")
                                 } icon: {
                                     Image(systemName: "lightbulb.fill")
-                                        .foregroundColor(.yellow)
+                                        .foregroundColor(.blue)
                                 }
                             }
                         }
@@ -184,7 +228,7 @@ struct HomeView: View {
                                     Text("Recordings")
                                 } icon: {
                                     Image(systemName: "waveform")
-                                        .foregroundColor(.red)
+                                        .foregroundColor(.blue)
                                 }
                             }
                         }
@@ -207,6 +251,15 @@ struct HomeView: View {
         }
     }
     
+    private var motivationalSubtitle: String {
+        if thisWeekCount > 0 {
+            return "\(thisWeekCount) new joke\(thisWeekCount == 1 ? "" : "s") this week — keep it going"
+        } else if hitsCount > 0 {
+            return "You've got \(hitsCount) hit\(hitsCount == 1 ? "" : "s") in your set"
+        } else {
+            return "\(allJokes.count) joke\(allJokes.count == 1 ? "" : "s") and counting"
+        }
+    }
 }
 
 // MARK: - Stat Card

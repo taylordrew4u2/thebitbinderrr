@@ -14,6 +14,24 @@ xcuserdata/
 # Derived Data
 DerivedData/
 
+# Xcode build caches and indexes
+CompilationCache.noindex/
+ModuleCache.noindex/
+SDKStatCaches.noindex/
+SymbolCache.noindex/
+*.noindex/
+
+# Xcode workspace data (SPM resolved packages, indexes, etc.)
+**/Index.noindex/
+**/SourcePackages/
+**/TextIndex/
+**/SymbolCache/
+**/info.plist
+thebitbinder-eckpwvqsvkpfeseqgsmnxnbnrulh/
+
+# macOS resource forks
+._*
+
 # SPM
 .build/
 

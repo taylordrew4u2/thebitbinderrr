@@ -151,7 +151,7 @@ struct TalkToTextView: View {
                                 .frame(maxWidth: .infinity)
                             }
                             .buttonStyle(.borderedProminent)
-                            .tint(saveToBrainstorm ? .orange : .green)
+                            .tint(saveToBrainstorm ? .blue : .blue)
                             .controlSize(.large)
                             .disabled(isSaving)
                         }
@@ -203,7 +203,7 @@ struct TalkToTextView: View {
                         VStack(spacing: 12) {
                             Image(systemName: "checkmark.circle.fill")
                                 .font(.system(size: 48))
-                                .foregroundColor(saveToBrainstorm ? .orange : .green)
+                                .foregroundColor(saveToBrainstorm ? .blue : .blue)
                             Text(saveToBrainstorm ? "Idea Saved!" : "Joke Saved!")
                                 .font(.headline)
                         }

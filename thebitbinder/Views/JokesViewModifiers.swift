@@ -17,6 +17,7 @@ struct JokesSheetsModifier: ViewModifier {
     @Binding var showingScanner: Bool
     @Binding var showingCreateFolder: Bool
     @Binding var showingAutoOrganize: Bool
+    @Binding var showingGuidedOrganize: Bool
     @Binding var showingAudioImport: Bool
     @Binding var showingTalkToText: Bool
     @Binding var showingFilePicker: Bool
@@ -50,6 +51,9 @@ struct JokesSheetsModifier: ViewModifier {
             }
             .sheet(isPresented: $showingAutoOrganize) {
                 AutoOrganizeView()
+            }
+            .sheet(isPresented: $showingGuidedOrganize) {
+                GuidedOrganizeView()
             }
             .sheet(isPresented: $showingAudioImport) {
                 AudioImportView(selectedFolder: selectedFolder)
@@ -254,7 +258,7 @@ struct ReviewImportsSheet: View {
                                     if !possibleDuplicates.isEmpty {
                                         Text("\(possibleDuplicates.count) possible duplicate\(possibleDuplicates.count == 1 ? "" : "s") detected")
                                             .font(.caption)
-                                            .foregroundColor(.orange)
+                                            .foregroundColor(.blue)
                                     }
                                 }
                                 Spacer()
@@ -267,7 +271,7 @@ struct ReviewImportsSheet: View {
                                     HStack(spacing: 10) {
                                         Image(systemName: "exclamationmark.triangle.fill")
                                             .font(.subheadline)
-                                            .foregroundColor(.orange)
+                                            .foregroundColor(.blue)
                                         Text(dup)
                                             .font(.subheadline)
                                     }
@@ -364,8 +368,8 @@ struct UnresolvedFragmentRow: View {
     
     private var confidenceColor: Color {
         switch fragment.confidence.lowercased() {
-        case "high": return .green
-        case "medium": return .orange
+        case "high": return .blue
+        case "medium": return .blue
         default: return .red
         }
     }

@@ -234,7 +234,8 @@ final class iCloudKeyValueStore {
                 local.set(cloudValue, forKey: key)
             }
         }
-        local.synchronize()
+        // Note: synchronize() is deprecated since iOS 12 — UserDefaults
+        // auto-saves changes. Removing to avoid console warnings.
         print(" [iCloudKV] Pulled \(SyncedKeys.all.count) keys from iCloud")
     }
     

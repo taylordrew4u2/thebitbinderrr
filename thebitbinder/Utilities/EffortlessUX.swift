@@ -215,7 +215,7 @@ struct SaveStatusIndicator: View {
             } else if autoSave.hasUnsavedChanges {
                 HStack(spacing: 4) {
                     Circle()
-                        .fill(Color.orange)
+                        .fill(Color.blue)
                         .frame(width: 6, height: 6)
                     Text("Editing")
                         .font(.caption2.weight(.medium))
@@ -226,11 +226,11 @@ struct SaveStatusIndicator: View {
                 HStack(spacing: 4) {
                     Image(systemName: "checkmark.circle.fill")
                         .font(.caption2)
-                        .foregroundColor(.green)
+                        .foregroundColor(.blue)
                     Text("Saved")
                         .font(.caption2.weight(.medium))
                 }
-                .foregroundColor(.green)
+                .foregroundColor(.blue)
                 .transition(.opacity.combined(with: .scale(scale: 0.9)))
             }
         }
@@ -252,7 +252,7 @@ struct SuccessToast: View {
             HStack(spacing: 10) {
                 Image(systemName: icon)
                     .font(.subheadline.weight(.semibold))
-                    .foregroundColor(roastMode ? .orange : .green)
+                    .foregroundColor(.blue)
                 
                 Text(message)
                     .font(.subheadline.weight(.medium))

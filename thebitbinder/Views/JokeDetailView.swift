@@ -41,9 +41,13 @@ struct JokeDetailView: View {
                         Text(joke.title.isEmpty ? KeywordTitleGenerator.displayTitle(from: joke.content) : joke.title)
                             .font(.title3.weight(.semibold))
                         Spacer()
+                        if joke.isOpenMic {
+                            Image(systemName: "mic.fill")
+                                .foregroundColor(.blue)
+                        }
                         if joke.isHit {
                             Image(systemName: roastMode ? "flame.fill" : "star.fill")
-                                .foregroundColor(roastMode ? .orange : .yellow)
+                                .foregroundColor(.blue)
                         }
                     }
                 }
@@ -111,7 +115,25 @@ struct JokeDetailView: View {
                         joke.isHit ? "Remove from Hits" : "Add to Hits",
                         systemImage: roastMode ? (joke.isHit ? "flame.fill" : "flame") : (joke.isHit ? "star.fill" : "star")
                     )
-                    .foregroundColor(joke.isHit ? (roastMode ? .orange : .yellow) : .accentColor)
+                    .foregroundColor(joke.isHit ? (.blue) : .accentColor)
+                }
+                
+                Button {
+                    withAnimation {
+                        joke.isOpenMic.toggle()
+                        joke.dateModified = Date()
+                    }
+                    haptic(.medium)
+                    do { try modelContext.save() } catch {
+                        saveError = "Couldn't save open mic status: \(error.localizedDescription)"
+                        showingSaveError = true
+                    }
+                } label: {
+                    Label(
+                        joke.isOpenMic ? "Remove from Open Mic" : "Label for Open Mic",
+                        systemImage: joke.isOpenMic ? "mic.slash" : "mic.fill"
+                    )
+                    .foregroundColor(joke.isOpenMic ? .blue : .blue)
                 }
                 
                 Button {
@@ -153,7 +175,7 @@ struct JokeDetailView: View {
                     if let confidence = joke.importConfidence, !confidence.isEmpty {
                         LabeledContent("Confidence") {
                             Text(confidence.capitalized)
-                                .foregroundColor(confidence == "high" ? .green : (confidence == "medium" ? .blue : .orange))
+                                .foregroundColor(confidence == "high" ? .blue : (confidence == "medium" ? .blue : .blue))
                         }
                     }
                 }
@@ -161,7 +183,7 @@ struct JokeDetailView: View {
         }
         .navigationBarTitleDisplayMode(.inline)
         .toolbar { toolbarContent }
-        .tint(roastMode ? .orange : .accentColor)
+        .tint(.blue)
         .alert(joke.isDeleted ? "Restore Joke" : "Move to Trash", isPresented: $showingDeleteAlert) {
             deleteAlertButtons
         } message: {
@@ -256,7 +278,7 @@ struct JokeDetailView: View {
                         dismiss()
                     } label: {
                         Image(systemName: "arrow.uturn.backward.circle.fill")
-                            .foregroundColor(.green)
+                            .foregroundColor(.blue)
                     }
                 } else {
                     Button {
@@ -310,7 +332,7 @@ struct FolderPickerView: View {
                         Spacer()
                         if selectedFolder == nil {
                             Image(systemName: "checkmark")
-                                .foregroundColor(roastMode ? .orange : .accentColor)
+                                .foregroundColor(.blue)
                         }
                     }
                 }
@@ -325,7 +347,7 @@ struct FolderPickerView: View {
                             Spacer()
                             if selectedFolder?.id == folder.id {
                                 Image(systemName: "checkmark")
-                                    .foregroundColor(roastMode ? .orange : .accentColor)
+                                    .foregroundColor(.blue)
                             }
                         }
                     }
@@ -406,7 +428,7 @@ struct MultiFolderPickerView: View {
                                 Label(folder.name, systemImage: "folder")
                                 Spacer()
                                 Image(systemName: "plus.circle")
-                                    .foregroundColor(roastMode ? .orange : .accentColor)
+                                    .foregroundColor(.blue)
                             }
                         }
                     }

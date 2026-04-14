@@ -42,7 +42,7 @@ struct CreateSetListView: View {
                 }
             }
         }
-        .tint(roastMode ? .orange : .accentColor)
+        .tint(.blue)
         .alert("Save Failed", isPresented: $showSaveError) {
             Button("OK", role: .cancel) { }
         } message: {

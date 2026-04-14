@@ -145,11 +145,15 @@ final class BackgroundDownloadScheduler: ObservableObject {
     
     // MARK: - Private
     
-    private var sharedDefaults: UserDefaults? {
+    /// Cached shared UserDefaults instance for the app group.
+    /// Creating a new UserDefaults(suiteName:) on every access can trigger
+    /// CFPrefs warnings ("Using kCFPreferencesAnyUser with a container...").
+    /// Cache the instance once after validating the container exists.
+    private lazy var sharedDefaults: UserDefaults? = {
         guard FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupIdentifier) != nil else {
             logger.warning(" [BackgroundDownload] App Group container unavailable for: \(self.appGroupIdentifier, privacy: .public)")
             return nil
         }
         return UserDefaults(suiteName: appGroupIdentifier)
-    }
+    }()
 }

@@ -78,6 +78,183 @@ let doubleMeaningWords: [(String, String)] = [
 
 class AutoOrganizeService {
 
+    // MARK: - AI-Powered Categorization
+
+    /// Uses a configured AI provider to categorize a joke into comedy categories.
+    /// Falls back to local heuristics if no AI provider is available or the call fails.
+    /// - Parameters:
+    ///   - content: The joke text to categorize.
+    ///   - existingFolders: Optional list of existing folder names to prefer.
+    /// - Returns: An array of `CategoryMatch` with AI-powered suggestions.
+    static func aiCategorize(content: String, existingFolders: [String] = []) async -> [CategoryMatch] {
+        // Try AI providers in the user's preferred order
+        let manager = AIJokeExtractionManager.shared
+        let providerOrder = manager.providerOrder
+        let disabledProviders = manager.disabledProviders
+
+        for providerType in providerOrder {
+            guard !disabledProviders.contains(providerType) else { continue }
+            guard AIKeyLoader.loadKey(for: providerType) != nil else { continue }
+
+            do {
+                let matches = try await callAIForCategorization(content: content, provider: providerType, existingFolders: existingFolders)
+                if !matches.isEmpty {
+                    #if DEBUG
+                    print(" [AutoOrganize-AI] Got \(matches.count) categories from \(providerType.displayName)")
+                    #endif
+                    return matches
+                }
+            } catch {
+                #if DEBUG
+                print(" [AutoOrganize-AI] \(providerType.displayName) failed: \(error.localizedDescription)")
+                #endif
+                continue
+            }
+        }
+
+        // Fallback to local heuristics if no AI provider worked
+        #if DEBUG
+        print(" [AutoOrganize-AI] No AI provider available, falling back to local heuristics")
+        #endif
+        return categorize(content: content)
+    }
+
+    /// Sends a categorization request to an AI provider and parses the response.
+    private static func callAIForCategorization(content: String, provider: AIProviderType, existingFolders: [String]) async throws -> [CategoryMatch] {
+        guard let apiKey = AIKeyLoader.loadKey(for: provider) else {
+            throw AIProviderError.keyNotConfigured(provider)
+        }
+
+        let folderContext: String
+        if !existingFolders.isEmpty {
+            folderContext = "\n\nExisting folders the user has: \(existingFolders.joined(separator: ", ")). Prefer these when they fit, but suggest new ones if needed."
+        } else {
+            folderContext = ""
+        }
+
+        let prompt = """
+        You are a comedy categorization assistant. Analyze this joke/bit and suggest 1-3 comedy categories that best describe it.
+
+        For each category, provide:
+        - category: A short category name (e.g. "Observational", "Self-Deprecating", "Dark Humor", "Puns", "Anecdotal", "One-Liners", "Roasts", "Satire", "Sarcasm", "Dad Jokes", "Wordplay", "Storytelling", "Crowd Work", "Physical Comedy", "Topical", "Absurdist", or any fitting comedy category)
+        - confidence: A number from 0.0 to 1.0
+        - reasoning: A brief explanation of why this category fits\(folderContext)
+
+        Return ONLY a valid JSON array, no markdown fences, no extra text:
+        [{"category":"<name>","confidence":<0.0-1.0>,"reasoning":"<why>","keywords":["keyword1"]}]
+
+        --- JOKE ---
+        \(content)
+        """
+
+        let endpoint: String
+        var headers: [String: String] = [
+            "Content-Type": "application/json",
+            "Authorization": "Bearer \(apiKey)"
+        ]
+
+        switch provider {
+        case .openAI:
+            endpoint = "https://api.openai.com/v1/chat/completions"
+        case .arceeAI, .openRouter:
+            endpoint = "https://openrouter.ai/api/v1/chat/completions"
+            headers["HTTP-Referer"] = "https://openrouter.ai"
+            headers["X-Title"] = "thebitbinder"
+        }
+
+        let model = provider.defaultModel
+
+        let requestBody: [String: Any] = [
+            "model": model,
+            "messages": [
+                ["role": "system", "content": "You are a JSON API. Output ONLY valid JSON arrays. No markdown, no prose."],
+                ["role": "user", "content": prompt]
+            ],
+            "temperature": 0.3,
+            "max_tokens": 1024
+        ]
+
+        var request = URLRequest(url: URL(string: endpoint)!)
+        request.httpMethod = "POST"
+        for (key, value) in headers {
+            request.setValue(value, forHTTPHeaderField: key)
+        }
+        request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
+        request.timeoutInterval = 30
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        if let httpResponse = response as? HTTPURLResponse,
+           !(200...299).contains(httpResponse.statusCode) {
+            let body = String(data: data, encoding: .utf8) ?? "Unknown"
+            throw AIProviderError.apiError(provider, "HTTP \(httpResponse.statusCode): \(body)")
+        }
+
+        // Parse response
+        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let choices = json["choices"] as? [[String: Any]],
+              let firstChoice = choices.first,
+              let message = firstChoice["message"] as? [String: Any],
+              let rawContent = message["content"] as? String else {
+            throw AIProviderError.apiError(provider, "Invalid response format")
+        }
+
+        return parseCategorizationResponse(rawContent)
+    }
+
+    /// Parses the AI response JSON into CategoryMatch objects.
+    private static func parseCategorizationResponse(_ raw: String) -> [CategoryMatch] {
+        var cleaned = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        // Strip markdown fences
+        if cleaned.hasPrefix("```") {
+            if let startRange = cleaned.range(of: "\n") {
+                cleaned = String(cleaned[startRange.upperBound...])
+            }
+            if let endRange = cleaned.range(of: "```", options: .backwards) {
+                cleaned = String(cleaned[..<endRange.lowerBound])
+            }
+            cleaned = cleaned.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+
+        guard let data = cleaned.data(using: .utf8),
+              let parsed = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] else {
+            return []
+        }
+
+        return parsed.compactMap { entry -> CategoryMatch? in
+            guard let category = entry["category"] as? String else { return nil }
+            let confidence = (entry["confidence"] as? Double) ?? 0.7
+            let reasoning = (entry["reasoning"] as? String) ?? "AI-suggested category"
+            let keywords = (entry["keywords"] as? [String]) ?? []
+
+            return CategoryMatch(
+                category: category,
+                confidence: confidence,
+                reasoning: reasoning,
+                matchedKeywords: keywords,
+                styleTags: [],
+                emotionalTone: nil,
+                craftSignals: [],
+                structureScore: 0
+            )
+        }
+    }
+
+    /// Returns true if at least one AI provider is configured and enabled.
+    static var isAIAvailable: Bool {
+        let manager = AIJokeExtractionManager.shared
+        let disabled = manager.disabledProviders
+        for provider in manager.providerOrder {
+            if !disabled.contains(provider), AIKeyLoader.loadKey(for: provider) != nil {
+                return true
+            }
+        }
+        return false
+    }
+
+    // MARK: - Local Categorization
+
     /// Categorizes a single joke content into categories with detailed metadata.
     /// - Parameter content: The joke content to categorize.
     /// - Returns: An array of `CategoryMatch` representing the best matching categories.

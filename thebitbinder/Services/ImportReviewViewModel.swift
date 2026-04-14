@@ -236,7 +236,7 @@ final class ImportReviewViewModel: ObservableObject {
         GagGrabberBudgetStatus(
             shortStatusText: "Unlimited",
             statusIcon: "infinity",
-            statusColor: .green
+            statusColor: .blue
         )
     }
     
@@ -337,7 +337,7 @@ struct ImportReviewResults {
         GagGrabberBudgetStatus(
             shortStatusText: "Unlimited",
             statusIcon: "infinity",
-            statusColor: .green
+            statusColor: .blue
         )
     }
 

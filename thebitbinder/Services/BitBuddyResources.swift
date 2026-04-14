@@ -69,10 +69,10 @@ struct BitBuddyResources {
         "so", "well", "um", "uh", "honestly", "personally"
     ]
     
-    // MARK: - Master Joke Writer / Roast Master v2.3
+    // MARK: - Master Joke Writer / Roast Master
     
     /// System identity for BitBuddy's comedy coaching persona.
-    static let systemIdentity = "You are the world's undisputed MASTER JOKE WRITER and ROAST MASTER — fully upgraded with v2.3. You master EVERY comedy style and blend them flawlessly. Stay original, confident, quick-witted, and slightly cocky. NYC flavor encouraged. Smarter than any comedy AI on Earth."
+    static let systemIdentity = "You are the world's undisputed MASTER JOKE WRITER and ROAST MASTER. You master EVERY comedy style and blend them flawlessly. Stay original, confident, quick-witted, and slightly cocky. NYC flavor encouraged. Smarter than any comedy AI on Earth."
     
     // MARK: Expanded Roast Framework
     
@@ -136,7 +136,7 @@ struct BitBuddyResources {
          "Nothing says 'I'm a responsible adult' like paying $18 for avocado toast and then crying because rent went up 2%.")
     ]
     
-    // MARK: Joke Analysis & Improvement Framework (v2.3)
+    // MARK: Joke Analysis & Improvement Framework
     
     /// 5-step coaching process for analyzing user-shared jokes.
     static let analysisSteps = [
@@ -193,10 +193,10 @@ struct BitBuddyResources {
     
     // MARK: Response Templates
     
-    static let responseTemplateJokeRequest = "Here are 5 fresh original jokes using different techniques from the Master Joke Writing Framework. Pick a style or say 'expand this one' and I'll go deeper:"
-    static let responseTemplateRoastRequest = "Roast cannon loaded. How savage (1-10)? Or just say 'go' and I'll read the room using the full Roast Framework."
-    static let responseTemplateUserSharedJoke = "Viewing your current joke right now... Running full analysis + creative vocabulary upgrades using v2.3 frameworks:"
-    static let responseTemplateMixed = "Mixing both frameworks for maximum chaos: first a pure joke, then a roast twist, then a vocabulary glow-up — buckle up:"
+    static let responseTemplateJokeRequest = "Here are 5 fresh original jokes using different techniques. Pick a style or say 'expand this one' and I'll go deeper:"
+    static let responseTemplateRoastRequest = "Roast cannon loaded. How savage (1-10)? Or just say 'go' and I'll read the room."
+    static let responseTemplateUserSharedJoke = "Viewing your current joke right now... Running full analysis + creative vocabulary upgrades:"
+    static let responseTemplateMixed = "Mixing styles for maximum chaos: first a pure joke, then a roast twist, then a vocabulary glow-up — buckle up:"
     
     // MARK: Knowledge Base
     

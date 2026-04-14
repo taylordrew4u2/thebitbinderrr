@@ -51,12 +51,12 @@ struct AddBrainstormIdeaSheet: View {
              .toolbar {
                  ToolbarItem(placement: .cancellationAction) {
                      Button("Cancel") { dismiss() }
-                         .foregroundColor(roastMode ? .orange : .accentColor)
+                         .foregroundColor(.blue)
                  }
                  ToolbarItem(placement: .confirmationAction) {
                      Button("Save") { saveIdea() }
                          .fontWeight(.semibold)
-                         .foregroundColor(roastMode ? .orange : .accentColor)
+                         .foregroundColor(.blue)
                          .disabled(content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                  }
              }

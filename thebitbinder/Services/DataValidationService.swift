@@ -315,6 +315,10 @@ final class DataValidationService: ObservableObject {
                 if await repairBrokenRelationships(context: context) {
                     repairedIssues.append(issue)
                 }
+            } else if issue.contains("recordings with missing files") {
+                if await repairRecordingsWithMissingFiles(context: context) {
+                    repairedIssues.append(issue)
+                }
             }
         }
         
@@ -424,6 +428,58 @@ final class DataValidationService: ObservableObject {
             return (repairedCount + roastRepaired) > 0
         } catch {
             print(" [DataValidation] Failed to repair relationships: \(error)")
+            return false
+        }
+    }
+    
+    /// Soft-deletes (moves to trash) recording records whose audio file no longer
+    /// exists on disk. This handles orphaned metadata from cloud-synced records
+    /// where the audio file is device-local and was never transferred.
+    ///
+    /// Records are NOT permanently deleted — they go to the 30-day trash so the
+    /// user can see what was cleaned up and restore if the file reappears
+    /// (e.g. after an iCloud Drive sync completes).
+    private func repairRecordingsWithMissingFiles(context: ModelContext) async -> Bool {
+        do {
+            let recordings = try context.fetch(
+                FetchDescriptor<Recording>(predicate: #Predicate { $0.isDeleted == false })
+            )
+            
+            var trashedCount = 0
+            
+            for recording in recordings {
+                // Skip recordings with empty fileURL — those are caught by
+                // the "invalid file URLs" check and are a different issue.
+                guard !recording.fileURL.isEmpty else { continue }
+                
+                let resolved = recording.resolvedURL
+                if !FileManager.default.fileExists(atPath: resolved.path) {
+                    // Normalize stale absolute paths → bare filename so that
+                    // if the user restores from trash later, resolvedURL can
+                    // find the file in Documents without the stale sandbox prefix.
+                    if recording.fileURL.hasPrefix("/") {
+                        let bareFilename = URL(fileURLWithPath: recording.fileURL).lastPathComponent
+                        recording.fileURL = bareFilename
+                        print(" [DataValidation] Normalized stale path to: \(bareFilename)")
+                    }
+                    
+                    recording.moveToTrash()
+                    trashedCount += 1
+                    print(" [DataValidation] Trashed recording '\(recording.title)' (id: \(recording.id)) — audio file missing at: \(resolved.lastPathComponent)")
+                }
+            }
+            
+            if trashedCount > 0 {
+                try context.save()
+                print(" [DataValidation] Moved \(trashedCount) recording(s) with missing files to trash (recoverable for 30 days)")
+                DataOperationLogger.shared.logSuccess(
+                    "Auto-trashed \(trashedCount) recording(s) with missing audio files — recoverable in trash"
+                )
+            }
+            
+            return trashedCount > 0
+        } catch {
+            print(" [DataValidation] Failed to repair recordings with missing files: \(error)")
             return false
         }
     }

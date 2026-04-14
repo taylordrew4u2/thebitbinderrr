@@ -261,7 +261,7 @@ struct LivePerformanceView: View {
                                 Text(targetName.uppercased())
                                     .font(.system(size: 16, weight: .bold))
                             }
-                            .foregroundColor(.orange)
+                            .foregroundColor(.blue)
                             .padding(.bottom, 8)
                         }
                         
@@ -273,7 +273,7 @@ struct LivePerformanceView: View {
                                     VStack(alignment: .leading, spacing: 6) {
                                         Text("SETUP")
                                             .font(.system(size: 12, weight: .bold))
-                                            .foregroundColor(.yellow)
+                                            .foregroundColor(.blue)
                                         Text(item.setup)
                                             .font(.system(size: fontSize, weight: .regular))
                                             .foregroundColor(.white.opacity(0.95))
@@ -285,7 +285,7 @@ struct LivePerformanceView: View {
                                     VStack(alignment: .leading, spacing: 6) {
                                         Text("PUNCHLINE")
                                             .font(.system(size: 12, weight: .bold))
-                                            .foregroundColor(.green)
+                                            .foregroundColor(.blue)
                                         Text(item.punchline)
                                             .font(.system(size: fontSize + 4, weight: .semibold))
                                             .foregroundColor(.white)
@@ -380,7 +380,7 @@ struct LivePerformanceView: View {
                         }
                         .foregroundColor(.white)
                         .frame(width: 100, height: 75)
-                        .background(.orange)
+                        .background(.blue)
                         .cornerRadius(12)
                     }
                 }
@@ -421,7 +421,7 @@ struct LivePerformanceView: View {
                         }
                         .foregroundColor(.white)
                         .frame(width: 80, height: 60)
-                        .background(Color.orange.opacity(0.8))
+                        .background(Color.blue.opacity(0.8))
                         .cornerRadius(10)
                     }
                 }
@@ -590,7 +590,7 @@ struct LivePerformanceView: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("BACKUP JOKES")
                             .font(.system(size: 18, weight: .bold))
-                            .foregroundColor(.orange)
+                            .foregroundColor(.blue)
                         Text("Tap any joke to view it")
                             .font(.system(size: 12))
                             .foregroundColor(.white.opacity(0.5))
@@ -634,10 +634,10 @@ struct LivePerformanceView: View {
                             HStack {
                                 Image(systemName: "flame.fill")
                                     .font(.system(size: 12))
-                                    .foregroundColor(.orange)
+                                    .foregroundColor(.blue)
                                 Text("Roast Jokes (\(backupRoasts.count))")
                                     .font(.system(size: 13, weight: .semibold))
-                                    .foregroundColor(.orange.opacity(0.8))
+                                    .foregroundColor(.blue.opacity(0.8))
                                 Spacer()
                             }
                             .padding(.horizontal, 16)
@@ -760,11 +760,11 @@ struct LivePerformanceView: View {
                     HStack(spacing: 10) {
                         Image(systemName: "flame.fill")
                             .font(.system(size: 24))
-                            .foregroundColor(.orange)
+                            .foregroundColor(.blue)
                         VStack(alignment: .leading, spacing: 2) {
                             Text("ROAST TARGETS")
                                 .font(.system(size: 20, weight: .bold))
-                                .foregroundColor(.orange)
+                                .foregroundColor(.blue)
                             Text("\(allTargetsWithRoasts.count) target\(allTargetsWithRoasts.count == 1 ? "" : "s")")
                                 .font(.system(size: 12))
                                 .foregroundColor(.white.opacity(0.5))
@@ -999,7 +999,7 @@ struct FinalizeSetSheet: View {
                     VStack(alignment: .leading, spacing: 12) {
                         Label("What Finalizing Does", systemImage: "checkmark.seal.fill")
                             .font(.headline)
-                            .foregroundColor(.green)
+                            .foregroundColor(.blue)
                         
                         VStack(alignment: .leading, spacing: 8) {
                             FeatureRow(icon: "lock.fill", text: "Locks set order - no accidental changes")
@@ -1068,7 +1068,7 @@ struct FeatureRow: View {
         HStack(spacing: 10) {
             Image(systemName: icon)
                 .font(.caption)
-                .foregroundColor(.green)
+                .foregroundColor(.blue)
                 .frame(width: 20)
             Text(text)
                 .font(.subheadline)
@@ -1090,7 +1090,7 @@ struct FinalizedBadge: View {
         .foregroundColor(.white)
         .padding(.horizontal, 8)
         .padding(.vertical, 4)
-        .background(Color.green)
+        .background(Color.blue)
         .clipShape(Capsule())
     }
 }
@@ -1118,7 +1118,7 @@ struct JokeListRow: View {
                         .font(.system(size: 14, weight: .bold, design: .rounded))
                         .foregroundColor(isCurrentIndex ? .black : .white)
                         .frame(width: 32, height: 32)
-                        .background(isCurrentIndex ? Color.green : Color.white.opacity(0.2))
+                        .background(isCurrentIndex ? Color.blue : Color.white.opacity(0.2))
                         .clipShape(Circle())
                     
                     // Joke preview
@@ -1127,10 +1127,10 @@ struct JokeListRow: View {
                             HStack(spacing: 4) {
                                 Image(systemName: "flame.fill")
                                     .font(.system(size: 12))
-                                    .foregroundColor(.orange)
+                                    .foregroundColor(.blue)
                                 Text(target.uppercased())
                                     .font(.system(size: 12, weight: .bold))
-                                    .foregroundColor(.orange)
+                                    .foregroundColor(.blue)
                             }
                         }
                         
@@ -1148,10 +1148,10 @@ struct JokeListRow: View {
                         if isCurrentIndex {
                             Text("NOW")
                                 .font(.system(size: 10, weight: .bold))
-                                .foregroundColor(.green)
+                                .foregroundColor(.blue)
                                 .padding(.horizontal, 8)
                                 .padding(.vertical, 4)
-                                .background(Color.green.opacity(0.2))
+                                .background(Color.blue.opacity(0.2))
                                 .cornerRadius(4)
                         }
                         
@@ -1171,7 +1171,7 @@ struct JokeListRow: View {
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)
-                .background(isCurrentIndex ? Color.green.opacity(0.15) : Color.clear)
+                .background(isCurrentIndex ? Color.blue.opacity(0.15) : Color.clear)
             }
             
             // Expanded details for roasts
@@ -1181,7 +1181,7 @@ struct JokeListRow: View {
                         VStack(alignment: .leading, spacing: 4) {
                             Text("SETUP")
                                 .font(.system(size: 11, weight: .bold))
-                                .foregroundColor(.yellow)
+                                .foregroundColor(.blue)
                             Text(item.setup)
                                 .font(.system(size: fontSize - 4))
                                 .foregroundColor(.white.opacity(0.95))
@@ -1193,7 +1193,7 @@ struct JokeListRow: View {
                         VStack(alignment: .leading, spacing: 4) {
                             Text("PUNCHLINE")
                                 .font(.system(size: 11, weight: .bold))
-                                .foregroundColor(.green)
+                                .foregroundColor(.blue)
                             Text(item.punchline)
                                 .font(.system(size: fontSize + 2, weight: .semibold))
                                 .foregroundColor(.white)
@@ -1226,7 +1226,7 @@ struct JokeListRow: View {
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 10)
-                        .background(item.isRoast ? .orange : Color.blue)
+                        .background(item.isRoast ? .blue : Color.blue)
                         .cornerRadius(8)
                     }
                 }
@@ -1277,14 +1277,14 @@ struct BackupJokeRow: View {
                     if isRoast {
                         Image(systemName: "flame.fill")
                             .font(.system(size: 14))
-                            .foregroundColor(.orange)
+                            .foregroundColor(.blue)
                     }
                     
                     // Target name if roast
                     if let target = targetName {
                         Text(target.uppercased())
                             .font(.system(size: 13, weight: .bold))
-                            .foregroundColor(.orange)
+                            .foregroundColor(.blue)
                     }
                     
                     Spacer()
@@ -1305,7 +1305,7 @@ struct BackupJokeRow: View {
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text("SETUP")
                                         .font(.system(size: 11, weight: .bold))
-                                        .foregroundColor(.yellow)
+                                        .foregroundColor(.blue)
                                     Text(setup)
                                         .font(.system(size: fontSize))
                                         .foregroundColor(.white.opacity(0.95))
@@ -1317,7 +1317,7 @@ struct BackupJokeRow: View {
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text("PUNCHLINE")
                                         .font(.system(size: 11, weight: .bold))
-                                        .foregroundColor(.green)
+                                        .foregroundColor(.blue)
                                     Text(punchline)
                                         .font(.system(size: fontSize + 2, weight: .semibold))
                                         .foregroundColor(.white)
@@ -1434,7 +1434,7 @@ struct TargetSection: View {
                     // Flame icon
                     Image(systemName: "flame.fill")
                         .font(.system(size: 24))
-                        .foregroundColor(.orange)
+                        .foregroundColor(.blue)
                     
                     // Target name
                     VStack(alignment: .leading, spacing: 2) {
@@ -1446,7 +1446,7 @@ struct TargetSection: View {
                             let openingCount = openingRoasts.compactMap { $0.joke }.count
                             Text("\(openingCount)/\(openingRoastCount) openers")
                                 .font(.system(size: 12, weight: .medium))
-                                .foregroundColor(.yellow)
+                                .foregroundColor(.blue)
                             
                             let totalBackups = openingRoasts.compactMap { $0.joke }.reduce(0) { 
                                 $0 + backupsFor(openingID: $1.id).count 
@@ -1454,7 +1454,7 @@ struct TargetSection: View {
                             if totalBackups > 0 {
                                 Text("\(totalBackups) backup\(totalBackups == 1 ? "" : "s")")
                                     .font(.system(size: 12))
-                                    .foregroundColor(.orange)
+                                    .foregroundColor(.blue)
                             }
                         }
                     }
@@ -1467,7 +1467,7 @@ struct TargetSection: View {
                         .foregroundColor(.white.opacity(0.4))
                 }
                 .padding()
-                .background(.orange.opacity(0.15))
+                .background(.blue.opacity(0.15))
             }
             
             // Opening Roast Sections (based on openingRoastCount) with their backups
@@ -1528,13 +1528,13 @@ struct OpeningRoastSection: View {
                         .font(.system(size: 16, weight: .bold, design: .rounded))
                         .foregroundColor(openingJoke != nil ? .black : .white.opacity(0.4))
                         .frame(width: 28, height: 28)
-                        .background(openingJoke != nil ? Color.yellow : Color.white.opacity(0.1))
+                        .background(openingJoke != nil ? Color.blue : Color.white.opacity(0.1))
                         .clipShape(Circle())
                     
                     VStack(alignment: .leading, spacing: 2) {
                         Text("OPENING ROAST \(slotNumber)")
                             .font(.system(size: 12, weight: .bold))
-                            .foregroundColor(.yellow)
+                            .foregroundColor(.blue)
                         
                         if let joke = openingJoke {
                             Text(joke.content.prefix(50) + (joke.content.count > 50 ? "..." : ""))
@@ -1559,10 +1559,10 @@ struct OpeningRoastSection: View {
                             Text("\(backupJokes.count)")
                                 .font(.system(size: 12, weight: .bold))
                         }
-                        .foregroundColor(.orange)
+                        .foregroundColor(.blue)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
-                        .background(Color.orange.opacity(0.2))
+                        .background(Color.blue.opacity(0.2))
                         .cornerRadius(6)
                     }
                     
@@ -1575,7 +1575,7 @@ struct OpeningRoastSection: View {
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 10)
-                .background(Color.yellow.opacity(0.08))
+                .background(Color.blue.opacity(0.08))
             }
             
             // Expanded content: Opening roast details + backup roasts
@@ -1601,10 +1601,10 @@ struct OpeningRoastSection: View {
                                     .font(.system(size: 10, weight: .bold))
                                 Spacer()
                             }
-                            .foregroundColor(.orange.opacity(0.8))
+                            .foregroundColor(.blue.opacity(0.8))
                             .padding(.horizontal, 32)
                             .padding(.vertical, 6)
-                            .background(Color.orange.opacity(0.05))
+                            .background(Color.blue.opacity(0.05))
                             
                             ForEach(backupJokes) { backup in
                                 BackupRoastDetailRow(
@@ -1648,7 +1648,7 @@ struct OpeningRoastDetailRow: View {
                     // In-set indicator
                     Image(systemName: "star.fill")
                         .font(.system(size: 12))
-                        .foregroundColor(.yellow)
+                        .foregroundColor(.blue)
                     
                     // Preview
                     Text(joke.content.prefix(80) + (joke.content.count > 80 ? "..." : ""))
@@ -1663,10 +1663,10 @@ struct OpeningRoastDetailRow: View {
                     if item != nil {
                         Text("IN SET")
                             .font(.system(size: 9, weight: .bold))
-                            .foregroundColor(.green)
+                            .foregroundColor(.blue)
                             .padding(.horizontal, 6)
                             .padding(.vertical, 3)
-                            .background(Color.green.opacity(0.2))
+                            .background(Color.blue.opacity(0.2))
                             .cornerRadius(4)
                     }
                     
@@ -1677,7 +1677,7 @@ struct OpeningRoastDetailRow: View {
                 }
                 .padding(.horizontal, 24)
                 .padding(.vertical, 10)
-                .background(Color.yellow.opacity(0.05))
+                .background(Color.blue.opacity(0.05))
             }
             
             // Expanded content
@@ -1689,7 +1689,7 @@ struct OpeningRoastDetailRow: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("SETUP")
                                     .font(.system(size: 11, weight: .bold))
-                                    .foregroundColor(.yellow)
+                                    .foregroundColor(.blue)
                                 Text(joke.setup)
                                     .font(.system(size: fontSize))
                                     .foregroundColor(.white.opacity(0.95))
@@ -1701,7 +1701,7 @@ struct OpeningRoastDetailRow: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("PUNCHLINE")
                                     .font(.system(size: 11, weight: .bold))
-                                    .foregroundColor(.green)
+                                    .foregroundColor(.blue)
                                 Text(joke.punchline)
                                     .font(.system(size: fontSize + 2, weight: .semibold))
                                     .foregroundColor(.white)
@@ -1743,7 +1743,7 @@ struct OpeningRoastDetailRow: View {
                             .foregroundColor(.black)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 12)
-                            .background(Color.yellow)
+                            .background(Color.blue)
                             .cornerRadius(8)
                         }
                     }
@@ -1781,7 +1781,7 @@ struct BackupRoastDetailRow: View {
                 HStack(spacing: 12) {
                     // Backup indicator
                     Circle()
-                        .fill(Color.orange)
+                        .fill(Color.blue)
                         .frame(width: 8, height: 8)
                     
                     // Preview
@@ -1800,7 +1800,7 @@ struct BackupRoastDetailRow: View {
                 }
                 .padding(.horizontal, 36)
                 .padding(.vertical, 8)
-                .background(Color.orange.opacity(0.03))
+                .background(Color.blue.opacity(0.03))
             }
             
             // Expanded content
@@ -1812,7 +1812,7 @@ struct BackupRoastDetailRow: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("SETUP")
                                     .font(.system(size: 10, weight: .bold))
-                                    .foregroundColor(.yellow)
+                                    .foregroundColor(.blue)
                                 Text(joke.setup)
                                     .font(.system(size: fontSize - 2))
                                     .foregroundColor(.white.opacity(0.9))
@@ -1824,7 +1824,7 @@ struct BackupRoastDetailRow: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("PUNCHLINE")
                                     .font(.system(size: 10, weight: .bold))
-                                    .foregroundColor(.green)
+                                    .foregroundColor(.blue)
                                 Text(joke.punchline)
                                     .font(.system(size: fontSize, weight: .semibold))
                                     .foregroundColor(.white)
@@ -1866,7 +1866,7 @@ struct BackupRoastDetailRow: View {
                             .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 10)
-                            .background(Color.orange)
+                            .background(Color.blue)
                             .cornerRadius(6)
                         }
                     } else {
@@ -1877,10 +1877,10 @@ struct BackupRoastDetailRow: View {
                                 .fontWeight(.medium)
                         }
                         .font(.system(size: 11))
-                        .foregroundColor(.orange.opacity(0.7))
+                        .foregroundColor(.blue.opacity(0.7))
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 8)
-                        .background(Color.orange.opacity(0.1))
+                        .background(Color.blue.opacity(0.1))
                         .cornerRadius(6)
                     }
                 }

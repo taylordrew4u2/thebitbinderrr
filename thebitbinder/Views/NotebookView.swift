@@ -339,7 +339,7 @@ struct NotebookView: View {
             .background(
                 Capsule()
                     .fill(isSelected
-                          ? (roastMode ? Color.orange : Color.accentColor)
+                          ? (Color.blue)
                           : Color(UIColor.secondarySystemGroupedBackground))
             )
             .foregroundColor(isSelected ? .white : .primary)
@@ -968,7 +968,7 @@ struct CreateNotebookFolderSheet: View {
                         .fontWeight(.semibold)
                 }
             }
-            .tint(roastMode ? .orange : .accentColor)
+            .tint(.blue)
             .alert("Save Failed", isPresented: $showSaveError) {
                 Button("OK", role: .cancel) {}
             } message: {
@@ -1097,7 +1097,7 @@ struct MoveToNotebookFolderSheet: View {
                     Button("Cancel") { dismiss() }
                 }
             }
-            .tint(roastMode ? .orange : .accentColor)
+            .tint(.blue)
             .alert("Save Failed", isPresented: $showSaveError) {
                 Button("OK", role: .cancel) {}
             } message: {

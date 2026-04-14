@@ -27,7 +27,7 @@ struct BitBinderEmptyState: View {
             if let actionTitle = actionTitle, let action = action {
                 Button(actionTitle, action: action)
                     .buttonStyle(.borderedProminent)
-                    .tint(roastMode ? .orange : .accentColor)
+                    .tint(.blue)
             }
         }
     }
@@ -48,10 +48,10 @@ struct BitBinderBadge: View {
         var backgroundColor: Color {
             switch self {
             case .neutral: return Color(UIColor.secondarySystemBackground)
-            case .success: return Color.green.opacity(0.12)
-            case .warning: return Color.orange.opacity(0.12)
+            case .success: return Color.blue.opacity(0.12)
+            case .warning: return Color.blue.opacity(0.12)
             case .error: return Color.red.opacity(0.12)
-            case .gold: return Color.yellow.opacity(0.15)
+            case .gold: return Color.blue.opacity(0.15)
             case .info: return Color.blue.opacity(0.12)
             }
         }
@@ -59,10 +59,10 @@ struct BitBinderBadge: View {
         var foregroundColor: Color {
             switch self {
             case .neutral: return .secondary
-            case .success: return .green
-            case .warning: return .orange
+            case .success: return .blue
+            case .warning: return .blue
             case .error: return .red
-            case .gold: return .yellow
+            case .gold: return .blue
             case .info: return .blue
             }
         }

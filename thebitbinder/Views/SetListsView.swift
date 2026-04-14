@@ -133,7 +133,7 @@ struct SetListRowView: View {
                     if setList.isFinalized {
                         Image(systemName: "checkmark.circle.fill")
                             .font(.caption2)
-                            .foregroundColor(.green)
+                            .foregroundColor(.blue)
                     }
                 }
 

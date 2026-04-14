@@ -98,7 +98,7 @@ enum AppScreen: String, CaseIterable {
 
     var roastColor: Color {
         switch self {
-        case .jokes:         return .orange
+        case .jokes:         return .blue
         default:             return .accentColor
         }
     }
@@ -181,7 +181,7 @@ struct MainTabView: View {
                 .tag(screen)
             }
         }
-        .tint(roastMode ? .orange : .accentColor)
+        .tint(.blue)
         .onAppear {
             // Mark first launch complete after showing Home
             if !hasLaunchedBefore {

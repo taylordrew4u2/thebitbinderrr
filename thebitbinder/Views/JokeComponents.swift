@@ -17,17 +17,18 @@ struct JokeCardView: View {
     var showFullContent: Bool = true
     
     private var isHit: Bool { joke.isHit }
+    private var isOpenMic: Bool { joke.isOpenMic }
     
     var body: some View {
         HStack(spacing: 0) {
-            // Hit accent strip
+            // Hit / Open Mic accent strip
             RoundedRectangle(cornerRadius: 2, style: .continuous)
-                .fill(isHit ? Color.yellow : .clear)
+                .fill(isHit ? Color.blue : (isOpenMic ? Color.blue : .clear))
                 .frame(width: 3)
                 .padding(.vertical, 8)
             
             VStack(alignment: .leading, spacing: 8) {
-                // Header: Title + Hit indicator
+                // Header: Title + Hit / Open Mic indicator
                 HStack(alignment: .top, spacing: 6) {
                     Text(joke.title.isEmpty ? KeywordTitleGenerator.displayTitle(from: joke.content) : joke.title)
                         .font(.headline)
@@ -36,10 +37,16 @@ struct JokeCardView: View {
                     
                     Spacer(minLength: 4)
                     
+                    if isOpenMic {
+                        Image(systemName: "mic.fill")
+                            .font(.caption)
+                            .foregroundColor(.blue)
+                    }
+                    
                     if isHit {
                         Image(systemName: "star.fill")
                             .font(.caption)
-                            .foregroundColor(.yellow)
+                            .foregroundColor(.blue)
                     }
                 }
                 
@@ -87,12 +94,13 @@ struct JokeRowView: View {
     var showFullContent: Bool = true
     
     private var isHit: Bool { joke.isHit }
+    private var isOpenMic: Bool { joke.isOpenMic }
     
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
-            // Hit accent strip
+            // Hit / Open Mic accent strip
             RoundedRectangle(cornerRadius: 2, style: .continuous)
-                .fill(isHit ? Color.yellow : .clear)
+                .fill(isHit ? Color.blue : (isOpenMic ? Color.blue : .clear))
                 .frame(width: 3, height: showFullContent ? 36 : 20)
                 .padding(.top, 2)
             
@@ -104,10 +112,16 @@ struct JokeRowView: View {
                         .foregroundColor(.primary)
                         .lineLimit(1)
                     
+                    if isOpenMic {
+                        Image(systemName: "mic.fill")
+                            .font(.caption2)
+                            .foregroundColor(.blue)
+                    }
+                    
                     if isHit {
                         Image(systemName: "star.fill")
                             .font(.caption2)
-                            .foregroundColor(.yellow)
+                            .foregroundColor(.blue)
                     }
                 }
                 
@@ -189,7 +203,7 @@ struct TheHitsChip: View {
             HStack(spacing: 4) {
                 Image(systemName: "star.fill")
                     .font(.caption.weight(.semibold))
-                    .foregroundColor(isSelected ? .white : .yellow)
+                    .foregroundColor(isSelected ? .white : .blue)
                 
                 Text("Hits")
                     .font(.subheadline.weight(.semibold))
@@ -197,7 +211,7 @@ struct TheHitsChip: View {
                 if count > 0 && !isSelected {
                     Text("\(count)")
                         .font(.caption.weight(.bold))
-                        .foregroundColor(.yellow)
+                        .foregroundColor(.blue)
                 }
             }
             .foregroundColor(isSelected ? .white : .primary)
@@ -205,7 +219,49 @@ struct TheHitsChip: View {
             .padding(.vertical, 8)
             .background(
                 isSelected
-                    ? AnyShapeStyle(Color.yellow)
+                    ? AnyShapeStyle(Color.blue)
+                    : AnyShapeStyle(Color(UIColor.tertiarySystemFill))
+            )
+            .clipShape(Capsule())
+            .animation(.easeInOut(duration: 0.2), value: isSelected)
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+// MARK: - Open Mic Chip
+
+struct OpenMicChip: View {
+    let count: Int
+    let isSelected: Bool
+    var roastMode: Bool = false
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: {
+            haptic(.selection)
+            action()
+        }) {
+            HStack(spacing: 4) {
+                Image(systemName: "mic.fill")
+                    .font(.caption.weight(.semibold))
+                    .foregroundColor(isSelected ? .white : .blue)
+                
+                Text("Open Mic")
+                    .font(.subheadline.weight(.semibold))
+                
+                if count > 0 && !isSelected {
+                    Text("\(count)")
+                        .font(.caption.weight(.bold))
+                        .foregroundColor(.blue)
+                }
+            }
+            .foregroundColor(isSelected ? .white : .primary)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .background(
+                isSelected
+                    ? AnyShapeStyle(Color.blue)
                     : AnyShapeStyle(Color(UIColor.tertiarySystemFill))
             )
             .clipShape(Capsule())
@@ -313,7 +369,7 @@ struct ImportProgressCard: View {
                         HStack(spacing: 4) {
                             Image(systemName: "checkmark.circle.fill")
                                 .font(.caption2)
-                                .foregroundColor(.green)
+                                .foregroundColor(.blue)
                             Text(name)
                                 .font(.caption)
                                 .lineLimit(1)
@@ -353,7 +409,7 @@ struct ImportProgressCard: View {
                 .fontWeight(isActive ? .semibold : .regular)
         }
         .foregroundColor(
-            isActive ? .white : (isComplete ? .green : .secondary)
+            isActive ? .white : (isComplete ? .blue : .secondary)
         )
         .padding(.horizontal, 6)
         .padding(.vertical, 3)
@@ -361,7 +417,7 @@ struct ImportProgressCard: View {
             isActive
                 ? AnyShapeStyle(Color.accentColor)
                 : (isComplete
-                    ? AnyShapeStyle(Color.green.opacity(0.12))
+                    ? AnyShapeStyle(Color.blue.opacity(0.12))
                     : AnyShapeStyle(Color(UIColor.tertiarySystemFill)))
         )
         .clipShape(Capsule())

@@ -134,7 +134,7 @@ struct RecordingRowView: View {
             // Play icon
             Image(systemName: "play.circle.fill")
                 .font(.title)
-                .foregroundStyle(roastMode ? .orange : .red)
+                .foregroundStyle(.blue)
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(recording.title)
@@ -150,7 +150,7 @@ struct RecordingRowView: View {
                     if recording.transcription != nil {
                         Text("Transcribed")
                             .font(.caption2)
-                            .foregroundColor(.green)
+                            .foregroundColor(.blue)
                     }
                 }
             }

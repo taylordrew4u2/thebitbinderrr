@@ -97,15 +97,38 @@ struct thebitbinderApp: App {
             print(" [ModelContainer] Local store failed (\(error)) — attempting data preservation backup")
             DataOperationLogger.shared.logError(error, operation: "ModelContainer_Local_Creation")
             
-            //  CRITICAL: Back up corrupted store with more detail before wiping
+            //  CRITICAL: Back up ALL corrupted store components before wiping.
+            // This includes -shm, -wal journal files and the _Files external
+            // storage directory (@Attribute(.externalStorage) blobs like photos).
             let timestamp = Int(Date().timeIntervalSince1970)
-            let backupURL = URL.applicationSupportDirectory
-                .appending(path: "corrupted_store_backup_\(timestamp).store")
+            let backupDir = URL.applicationSupportDirectory
+                .appending(path: "corrupted_store_backup_\(timestamp)", directoryHint: .isDirectory)
             
             do {
-                try FileManager.default.copyItem(at: storeURL, to: backupURL)
-                print(" [ModelContainer] Corrupted store backed up to: \(backupURL.lastPathComponent)")
-                DataOperationLogger.shared.logCritical("Corrupted store backed up before cleanup")
+                try FileManager.default.createDirectory(at: backupDir, withIntermediateDirectories: true)
+                var backedUpComponents = 0
+                
+                for ext in ["", "-shm", "-wal"] {
+                    let src = URL(fileURLWithPath: storeURL.path + ext)
+                    if FileManager.default.fileExists(atPath: src.path) {
+                        let dst = backupDir.appending(path: "default.store\(ext)")
+                        try FileManager.default.copyItem(at: src, to: dst)
+                        backedUpComponents += 1
+                        print(" [ModelContainer] Backed up: default.store\(ext)")
+                    }
+                }
+                
+                // Back up external storage directory (RoastTarget photos, etc.)
+                let externalStorageURL = URL(fileURLWithPath: storeURL.path + "_Files")
+                if FileManager.default.fileExists(atPath: externalStorageURL.path) {
+                    let dst = backupDir.appending(path: "default.store_Files")
+                    try FileManager.default.copyItem(at: externalStorageURL, to: dst)
+                    backedUpComponents += 1
+                    print(" [ModelContainer] Backed up: default.store_Files (external storage)")
+                }
+                
+                print(" [ModelContainer] Corrupted store backed up (\(backedUpComponents) components) to: \(backupDir.lastPathComponent)")
+                DataOperationLogger.shared.logCritical("Corrupted store backed up before cleanup (\(backedUpComponents) components)")
             } catch {
                 print(" [ModelContainer] Could not backup corrupted store: \(error)")
                 DataOperationLogger.shared.logError(error, operation: "Corrupted_Store_Backup")
@@ -128,6 +151,19 @@ struct thebitbinderApp: App {
             }
         }
         
+        // Also clean up the external storage directory — a fresh store
+        // cannot reference blobs from the corrupted store, so leaving them
+        // creates orphaned files. They were already backed up above.
+        let externalStorageURL = URL(fileURLWithPath: storeURL.path + "_Files")
+        if FileManager.default.fileExists(atPath: externalStorageURL.path) {
+            do {
+                try FileManager.default.removeItem(at: externalStorageURL)
+                print("   Removed: default.store_Files (external storage)")
+            } catch {
+                print("   Failed to remove default.store_Files: \(error)")
+            }
+        }
+        
         do {
             let config = ModelConfiguration(
                 schema: schema,
@@ -139,6 +175,10 @@ struct thebitbinderApp: App {
             print(" [ModelContainer] Fresh store at same URL (corrupted store was backed up)")
             
             DataOperationLogger.shared.logCritical("Fresh store created after corruption cleanup - data may be lost but backups available")
+            
+            // Set flag so the startup coordinator can inform the user on next launch
+            UserDefaults.standard.set(true, forKey: "ModelContainer_CorruptionCleanupPerformed")
+            UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: "ModelContainer_CorruptionCleanupTimestamp")
             
             return container
         } catch {
@@ -155,6 +195,11 @@ struct thebitbinderApp: App {
                 let container = try ModelContainer(for: schema, configurations: [config])
                 print(" [ModelContainer] EMERGENCY: Created in-memory container - DATA WILL BE LOST ON APP CLOSE")
                 DataOperationLogger.shared.logCritical("EMERGENCY: Created in-memory container - all data will be lost")
+                
+                // Flag so user sees a warning even in the in-memory scenario
+                UserDefaults.standard.set(true, forKey: "ModelContainer_CorruptionCleanupPerformed")
+                UserDefaults.standard.set(true, forKey: "ModelContainer_InMemoryFallback")
+                UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: "ModelContainer_CorruptionCleanupTimestamp")
                 
                 return container
             } catch {
@@ -258,7 +303,7 @@ struct thebitbinderApp: App {
                 
                 // Always trigger a sync check when app becomes active
                 // This ensures cross-device changes are picked up immediately
-                Task {
+                Task { @MainActor in
                     let syncService = iCloudSyncService.shared
                     if syncService.isSyncEnabled {
                         // Check if iCloud is available before syncing
@@ -312,6 +357,12 @@ struct thebitbinderApp: App {
                     if FileManager.default.fileExists(atPath: src.path) {
                         try FileManager.default.copyItem(at: src, to: dst)
                     }
+                }
+                // Also back up external storage directory (photos, etc.)
+                let externalSrc = URL(fileURLWithPath: storeURL.path + "_Files")
+                let externalDst = URL(fileURLWithPath: emergencyBackupURL.path + "_Files")
+                if FileManager.default.fileExists(atPath: externalSrc.path) {
+                    try FileManager.default.copyItem(at: externalSrc, to: externalDst)
                 }
                 print(" [DataProtection] Deferred emergency backup created")
                 UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: lastEmergencyBackupKey)

@@ -21,7 +21,7 @@ struct AddRoastJokeView: View {
     @State private var showSavedFeedback = false
     @FocusState private var isTextFocused: Bool
 
-    private let accentColor: Color = .orange
+    private let accentColor: Color = .blue
     
     /// Safe property accessors to prevent crashes on invalidated models
     private var safeName: String { target.isValid ? target.name : "Target" }
@@ -54,10 +54,10 @@ struct AddRoastJokeView: View {
                     if savedCount > 0 {
                         Text("\(savedCount) added")
                             .font(.caption.bold())
-                            .foregroundColor(.green)
+                            .foregroundColor(.blue)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 4)
-                            .background(Color.green.opacity(0.15))
+                            .background(Color.blue.opacity(0.15))
                             .clipShape(Capsule())
                     }
                 }

@@ -52,7 +52,7 @@ struct AudioImportView: View {
                 VStack(spacing: 20) {
                 // Drop zone for drag and drop
                     DropZoneView { urls in
-                        Task {
+                        Task { @MainActor in
                             await processAudioFiles(urls)
                         }
                     }
@@ -86,7 +86,7 @@ struct AudioImportView: View {
                             .foregroundColor(.secondary)
                         
                         Button {
-                            Task {
+                            Task { @MainActor in
                                 await checkAuthorizationAndShowPicker()
                             }
                         } label: {
@@ -120,7 +120,7 @@ struct AudioImportView: View {
                     if !authorizationStatus.isEmpty {
                         Text(authorizationStatus)
                             .font(.caption)
-                            .foregroundColor(.orange)
+                            .foregroundColor(.blue)
                             .padding(.horizontal)
                     }
                 }
@@ -137,7 +137,7 @@ struct AudioImportView: View {
             }
             .sheet(isPresented: $showingFilePicker) {
                 AudioDocumentPickerView { urls in
-                    Task {
+                    Task { @MainActor in
                         await processAudioFiles(urls)
                     }
                 }
@@ -186,20 +186,17 @@ struct AudioImportView: View {
         }
     }
     
+    @MainActor
     private func processAudioFiles(_ urls: [URL]) async {
         guard !urls.isEmpty else { return }
         
-        await MainActor.run {
-            isProcessing = true
-            processingTotal = urls.count
-            processingCurrent = 0
-            results = []
-        }
+        isProcessing = true
+        processingTotal = urls.count
+        processingCurrent = 0
+        results = []
         
         for url in urls {
-            await MainActor.run {
-                currentFilename = url.lastPathComponent
-            }
+            currentFilename = url.lastPathComponent
             
             do {
                 let result = try await transcriptionService.transcribe(audioURL: url)
@@ -207,30 +204,26 @@ struct AudioImportView: View {
                 let title = AudioTranscriptionService.generateTitle(from: result.transcription)
                 let joke = Joke(content: result.transcription, title: title, folder: selectedFolder)
                 
-                await MainActor.run {
-                    modelContext.insert(joke)
-                    results.append(AudioImportResult(
-                        filename: result.originalFilename,
-                        success: true,
-                        transcription: result.transcription,
-                        confidence: result.confidence,
-                        error: nil,
-                        duration: result.duration
-                    ))
-                    processingCurrent += 1
-                }
+                modelContext.insert(joke)
+                results.append(AudioImportResult(
+                    filename: result.originalFilename,
+                    success: true,
+                    transcription: result.transcription,
+                    confidence: result.confidence,
+                    error: nil,
+                    duration: result.duration
+                ))
+                processingCurrent += 1
             } catch {
-                await MainActor.run {
-                    results.append(AudioImportResult(
-                        filename: url.lastPathComponent,
-                        success: false,
-                        transcription: nil,
-                        confidence: nil,
-                        error: error.localizedDescription,
-                        duration: nil
-                    ))
-                    processingCurrent += 1
-                }
+                results.append(AudioImportResult(
+                    filename: url.lastPathComponent,
+                    success: false,
+                    transcription: nil,
+                    confidence: nil,
+                    error: error.localizedDescription,
+                    duration: nil
+                ))
+                processingCurrent += 1
             }
             
             try? FileManager.default.removeItem(at: url)
@@ -242,10 +235,8 @@ struct AudioImportView: View {
             print("Failed to save: \(error)")
         }
         
-        await MainActor.run {
-            isProcessing = false
-            showingResults = true
-        }
+        isProcessing = false
+        showingResults = true
     }
 }
 
@@ -387,7 +378,7 @@ struct AudioImportResultsView: View {
                             Text("\(successCount)")
                                 .font(.largeTitle)
                                 .fontWeight(.bold)
-                                .foregroundColor(.green)
+                                .foregroundColor(.blue)
                             Text("Imported")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
@@ -414,7 +405,7 @@ struct AudioImportResultsView: View {
                             VStack(alignment: .leading, spacing: 8) {
                                 HStack {
                                     Image(systemName: "checkmark.circle.fill")
-                                        .foregroundColor(.green)
+                                        .foregroundColor(.blue)
                                     Text(result.filename)
                                         .font(.subheadline)
                                         .fontWeight(.medium)

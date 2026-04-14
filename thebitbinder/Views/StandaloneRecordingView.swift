@@ -266,7 +266,7 @@ struct StandaloneRecordingView: View {
                 VStack(spacing: 12) {
                     HStack(spacing: 12) {
                         Image(systemName: "lightbulb.fill")
-                            .foregroundStyle(.yellow)
+                            .foregroundStyle(.blue)
                         Text("Record your practice sessions, ideas, or full sets")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)

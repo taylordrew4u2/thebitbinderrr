@@ -28,12 +28,12 @@ struct SettingsView: View {
                     // Avatar circle with initial
                     ZStack {
                         Circle()
-                            .fill(roastMode ? Color.orange.opacity(0.15) : Color.accentColor.opacity(0.12))
+                            .fill(roastMode ? Color.blue.opacity(0.15) : Color.accentColor.opacity(0.12))
                             .frame(width: 52, height: 52)
                         
                         Text(userPreferences.userName.isEmpty ? "?" : String(userPreferences.userName.prefix(1)).uppercased())
                             .font(.title2.weight(.semibold))
-                            .foregroundColor(roastMode ? .orange : .accentColor)
+                            .foregroundColor(.blue)
                     }
                     
                     VStack(alignment: .leading, spacing: 4) {
@@ -84,7 +84,7 @@ struct SettingsView: View {
                 Toggle(isOn: $roastMode) {
                     Label("Roast Mode", systemImage: roastMode ? "flame.fill" : "flame")
                 }
-                .tint(.orange)
+                .tint(.blue)
             } footer: {
                 Text("Organize material by roast target instead of folder.")
             }

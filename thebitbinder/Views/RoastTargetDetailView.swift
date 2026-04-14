@@ -39,7 +39,7 @@ struct RoastTargetDetailView: View {
     // Edit mode for drag-to-reorder
     @State private var isEditMode = false
 
-    private let accentColor: Color = .orange
+    private let accentColor: Color = .blue
     
     enum RoastFilterMode: String, CaseIterable {
         case all = "All"
@@ -260,7 +260,7 @@ struct RoastTargetDetailView: View {
                         count: target.killerCount,
                         label: "killer",
                         icon: "star.fill",
-                        color: .yellow
+                        color: .blue
                     )
                 }
                 
@@ -269,7 +269,7 @@ struct RoastTargetDetailView: View {
                         count: target.testedCount,
                         label: "tested",
                         icon: "checkmark.circle.fill",
-                        color: .green
+                        color: .blue
                     )
                 }
             }
@@ -734,7 +734,7 @@ struct DraggableRoastCard: View {
             HStack {
                 ZStack {
                     RoundedRectangle(cornerRadius: cardCornerRadius)
-                        .fill(Color.yellow)
+                        .fill(Color.blue)
                     
                     HStack(spacing: 8) {
                         Image(systemName: joke.isKiller ? "star.slash.fill" : "star.fill")
@@ -798,7 +798,7 @@ struct DraggableRoastCard: View {
                 .overlay(
                     RoundedRectangle(cornerRadius: cardCornerRadius, style: .continuous)
                         .strokeBorder(
-                            isDragging ? accentColor : (joke.isKiller ? Color.yellow.opacity(0.4) : Color.clear),
+                            isDragging ? accentColor : (joke.isKiller ? Color.blue.opacity(0.4) : Color.clear),
                             lineWidth: isDragging ? 2 : 1
                         )
                 )
@@ -911,11 +911,11 @@ struct DraggableRoastCard: View {
             } label: {
                 ZStack {
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(joke.isKiller ? Color.yellow.opacity(0.2) : accentColor.opacity(0.12))
+                        .fill(joke.isKiller ? Color.blue.opacity(0.2) : accentColor.opacity(0.12))
                         .frame(width: 44, height: 44)
                     Image(systemName: joke.isKiller ? "star.fill" : "flame.fill")
                         .font(.system(size: 20))
-                        .foregroundColor(joke.isKiller ? .yellow : accentColor)
+                        .foregroundColor(joke.isKiller ? .blue : accentColor)
                 }
             }
             .buttonStyle(.plain)
@@ -938,9 +938,9 @@ struct DraggableRoastCard: View {
                 HStack(spacing: 6) {
                     // Opening roast badge
                     if joke.isOpeningRoast {
-                        BadgePill(text: "OPENER", icon: "star.circle.fill", color: .yellow)
+                        BadgePill(text: "OPENER", icon: "star.circle.fill", color: .blue)
                     } else if joke.parentOpeningRoastID != nil {
-                        BadgePill(text: "BACKUP", icon: "arrow.turn.down.right", color: .orange)
+                        BadgePill(text: "BACKUP", icon: "arrow.turn.down.right", color: .blue)
                     }
                     
                     // Tested badge - tappable
@@ -948,7 +948,7 @@ struct DraggableRoastCard: View {
                         Button {
                             onToggleTested?()
                         } label: {
-                            BadgePill(text: "\(joke.performanceCount)×", icon: "checkmark.circle.fill", color: .green)
+                            BadgePill(text: "\(joke.performanceCount)×", icon: "checkmark.circle.fill", color: .blue)
                         }
                         .buttonStyle(.plain)
                     }
@@ -1195,11 +1195,11 @@ struct RoastJokeRow: View {
                 ZStack(alignment: .bottomTrailing) {
                     ZStack {
                         RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .fill(joke.isKiller ? Color.yellow.opacity(0.2) : accentColor.opacity(0.12))
+                            .fill(joke.isKiller ? Color.blue.opacity(0.2) : accentColor.opacity(0.12))
                             .frame(width: 42, height: 42)
                         Image(systemName: joke.isKiller ? "star.fill" : "flame.fill")
                             .font(.system(size: 18))
-                            .foregroundColor(joke.isKiller ? .yellow : accentColor)
+                            .foregroundColor(joke.isKiller ? .blue : accentColor)
                     }
                 }
             }
@@ -1229,19 +1229,19 @@ struct RoastJokeRow: View {
                         HStack(spacing: 2) {
                             Image(systemName: "star.circle.fill")
                                 .font(.system(size: 9))
-                                .foregroundColor(.yellow)
+                                .foregroundColor(.blue)
                             Text("OPENER")
                                 .font(.system(size: 9, weight: .bold))
-                                .foregroundColor(.yellow)
+                                .foregroundColor(.blue)
                         }
                     } else if joke.parentOpeningRoastID != nil {
                         HStack(spacing: 2) {
                             Image(systemName: "arrow.turn.down.right")
                                 .font(.system(size: 8))
-                                .foregroundColor(.orange)
+                                .foregroundColor(.blue)
                             Text("BACKUP")
                                 .font(.system(size: 9, weight: .bold))
-                                .foregroundColor(.orange)
+                                .foregroundColor(.blue)
                         }
                     }
                     
@@ -1253,10 +1253,10 @@ struct RoastJokeRow: View {
                             HStack(spacing: 2) {
                                 Image(systemName: "checkmark.circle.fill")
                                     .font(.system(size: 9))
-                                    .foregroundColor(.green)
+                                    .foregroundColor(.blue)
                                 Text("\(joke.performanceCount)x")
                                     .font(.caption2)
-                                    .foregroundColor(.green)
+                                    .foregroundColor(.blue)
                             }
                         }
                         .buttonStyle(.plain)
@@ -1275,7 +1275,7 @@ struct RoastJokeRow: View {
                     if joke.hasStructure {
                         Image(systemName: "text.alignleft")
                             .font(.system(size: 9))
-                            .foregroundColor(.purple)
+                            .foregroundColor(.blue)
                     }
                 }
             }
@@ -1437,7 +1437,7 @@ struct RoastExportSheet: View {
                         if target.killerCount > 0 {
                             Text("Including \(target.killerCount) killer\(target.killerCount == 1 ? "" : "s") ⭐️")
                                 .font(.caption)
-                                .foregroundColor(.yellow)
+                                .foregroundColor(.blue)
                         }
                     }
                 }
@@ -1735,7 +1735,7 @@ struct EditRoastJokeView: View {
     @State private var showOpeningAssignment = false
     @FocusState private var isContentFocused: Bool
     
-    private let accentColor: Color = .orange
+    private let accentColor: Color = .blue
     
     /// Safe content accessor
     private var safeContent: String {
@@ -1885,11 +1885,11 @@ struct EditRoastJokeView: View {
                                             }
                                         }
                                     ))
-                                    .toggleStyle(SwitchToggleStyle(tint: .yellow))
+                                    .toggleStyle(SwitchToggleStyle(tint: .blue))
                                     .labelsHidden()
                                 }
                                 .padding(12)
-                                .background(joke.isOpeningRoast ? Color.yellow.opacity(0.1) : Color(.secondarySystemBackground))
+                                .background(joke.isOpeningRoast ? Color.blue.opacity(0.1) : Color(.secondarySystemBackground))
                                 .cornerRadius(10)
                                 
                                 // Backup assignment (only if not an opening roast)
@@ -1921,7 +1921,7 @@ struct EditRoastJokeView: View {
                                                     Spacer()
                                                     if joke.parentOpeningRoastID == nil {
                                                         Image(systemName: "checkmark.circle.fill")
-                                                            .foregroundColor(.green)
+                                                            .foregroundColor(.blue)
                                                     }
                                                 }
                                                 .padding(12)
@@ -1940,7 +1940,7 @@ struct EditRoastJokeView: View {
                                                             .font(.system(size: 14, weight: .bold, design: .rounded))
                                                             .foregroundColor(.black)
                                                             .frame(width: 24, height: 24)
-                                                            .background(Color.yellow)
+                                                            .background(Color.blue)
                                                             .clipShape(Circle())
                                                         
                                                         Text(opening.content.prefix(40) + (opening.content.count > 40 ? "..." : ""))
@@ -1953,11 +1953,11 @@ struct EditRoastJokeView: View {
                                                         
                                                         if joke.parentOpeningRoastID == opening.id {
                                                             Image(systemName: "checkmark.circle.fill")
-                                                                .foregroundColor(.orange)
+                                                                .foregroundColor(.blue)
                                                         }
                                                     }
                                                     .padding(12)
-                                                    .background(joke.parentOpeningRoastID == opening.id ? Color.orange.opacity(0.15) : Color(.secondarySystemBackground))
+                                                    .background(joke.parentOpeningRoastID == opening.id ? Color.blue.opacity(0.15) : Color(.secondarySystemBackground))
                                                     .cornerRadius(8)
                                                 }
                                                 .buttonStyle(.plain)
@@ -1971,11 +1971,11 @@ struct EditRoastJokeView: View {
                             HStack(spacing: 6) {
                                 Image(systemName: joke.isOpeningRoast ? "star.circle.fill" : "arrow.turn.down.right")
                                     .font(.subheadline)
-                                    .foregroundColor(joke.isOpeningRoast ? .yellow : .orange)
+                                    .foregroundColor(joke.isOpeningRoast ? .blue : .blue)
                                 Text(joke.isOpeningRoast ? "Opening Roast" : (joke.parentOpeningRoastID != nil ? "Backup Roast" : "Set Type"))
                                     .font(.subheadline.weight(.medium))
                             }
-                            .foregroundColor(joke.isOpeningRoast ? .yellow : (joke.parentOpeningRoastID != nil ? .orange : accentColor))
+                            .foregroundColor(joke.isOpeningRoast ? .blue : (joke.parentOpeningRoastID != nil ? .blue : accentColor))
                         }
                         .padding(.horizontal, 16)
                         
@@ -2040,7 +2040,7 @@ struct EditRoastJokeView: View {
                 isOn: $joke.isKiller,
                 icon: "star.fill",
                 label: "Killer",
-                activeColor: .yellow
+                activeColor: .blue
             )
             
             Divider()
@@ -2051,7 +2051,7 @@ struct EditRoastJokeView: View {
                 isOn: $joke.isTested,
                 icon: "checkmark.circle.fill",
                 label: "Tested",
-                activeColor: .green
+                activeColor: .blue
             )
             
             Divider()
@@ -2075,7 +2075,7 @@ struct EditRoastJokeView: View {
                     Text("-1")
                         .font(.caption2)
                 }
-                .foregroundColor(joke.performanceCount > 0 ? .orange : .secondary.opacity(0.3))
+                .foregroundColor(joke.performanceCount > 0 ? .blue : .secondary.opacity(0.3))
                 .frame(width: 44)
                 .padding(.vertical, 8)
             }
@@ -2100,7 +2100,7 @@ struct EditRoastJokeView: View {
                     Text("Performed")
                         .font(.caption2)
                 }
-                .foregroundColor(joke.performanceCount > 0 ? .green : .secondary)
+                .foregroundColor(joke.performanceCount > 0 ? .blue : .secondary)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 8)
             }
@@ -2117,7 +2117,7 @@ struct EditRoastJokeView: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Image(systemName: "chart.line.uptrend.xyaxis")
-                    .foregroundColor(.green)
+                    .foregroundColor(.blue)
                 Text("Performance")
                     .font(.subheadline.bold())
                 Spacer()
@@ -2127,7 +2127,7 @@ struct EditRoastJokeView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("\(joke.performanceCount)")
                         .font(.title2.bold().monospacedDigit())
-                        .foregroundColor(.green)
+                        .foregroundColor(.blue)
                     Text("times")
                         .font(.caption)
                         .foregroundColor(.secondary)
@@ -2147,7 +2147,7 @@ struct EditRoastJokeView: View {
             }
         }
         .padding(12)
-        .background(Color.green.opacity(0.08))
+        .background(Color.blue.opacity(0.08))
         .cornerRadius(12)
         .padding(.horizontal, 16)
     }
@@ -2213,7 +2213,7 @@ struct EditRoastTargetView: View {
     @State private var showSaveError = false
     @State private var saveErrorMessage = ""
 
-    private let accentColor: Color = .orange
+    private let accentColor: Color = .blue
 
     var body: some View {
         NavigationStack {

@@ -111,7 +111,7 @@ struct SetListDetailView: View {
                     } actions: {
                         Button("Add Roast Jokes") { showingAddJokes = true }
                             .buttonStyle(.borderedProminent)
-                            .tint(.orange)
+                            .tint(.blue)
                     }
                 } else {
                     List {
@@ -164,7 +164,7 @@ struct SetListDetailView: View {
                         .foregroundColor(.white)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 6)
-                        .background(setList.isFinalized ? Color.green : Color.blue)
+                        .background(setList.isFinalized ? Color.blue : Color.blue)
                         .clipShape(Capsule())
                     }
                 }
@@ -348,7 +348,7 @@ struct SetListDetailView: View {
             HStack(alignment: .top, spacing: 12) {
                  Image(systemName: "flame.fill")
                      .font(.system(size: 14))
-                     .foregroundColor(.orange)
+                     .foregroundColor(.blue)
                      .padding(.top, 3)
                  
                  VStack(alignment: .leading, spacing: 4) {
@@ -366,7 +366,7 @@ struct SetListDetailView: View {
                      if let targetName = joke.target?.name {
                          Text("for \(targetName)")
                              .font(.system(size: 12, weight: .medium))
-                             .foregroundColor(.orange.opacity(0.8))
+                             .foregroundColor(.blue.opacity(0.8))
                      }
                  }
              }
@@ -446,7 +446,7 @@ struct SetListDetailView: View {
             } label: {
                 Text("GO LIVE")
                     .font(.caption.bold())
-                    .foregroundColor(.green)
+                    .foregroundColor(.blue)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 6)
                     .background(Color.white)
@@ -454,7 +454,7 @@ struct SetListDetailView: View {
             }
         }
         .padding()
-        .background(Color.green)
+        .background(Color.blue)
     }
     
     // MARK: - Quick Perform Banner (for unfinalized sets)

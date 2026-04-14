@@ -582,7 +582,7 @@ final class BitBuddyService: NSObject, ObservableObject {
             print(" [BitBuddy] check_sync_status routed")
         case "sync_now":
             print(" [BitBuddy] sync_now — triggering manual sync")
-            Task { await iCloudSyncService.shared.syncNow() }
+            Task { @MainActor in await iCloudSyncService.shared.syncNow() }
         case "toggle_icloud_sync":
             print(" [BitBuddy] toggle_icloud_sync routed")
 

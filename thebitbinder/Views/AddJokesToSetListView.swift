@@ -123,7 +123,7 @@ struct AddJokesToSetListView: View {
                     Button("Cancel") {
                         dismiss()
                     }
-                    .foregroundColor(roastMode ? .orange : .accentColor)
+                    .foregroundColor(.blue)
                 }
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -131,11 +131,11 @@ struct AddJokesToSetListView: View {
                         addJokes()
                     }
                     .disabled(selectedJokeIDs.isEmpty)
-                    .foregroundColor(roastMode ? .orange : .accentColor)
+                    .foregroundColor(.blue)
                 }
             }
         }
-        .tint(roastMode ? .orange : .accentColor)
+        .tint(.blue)
     }
     
     private func addJokes() {

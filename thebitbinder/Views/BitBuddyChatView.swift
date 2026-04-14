@@ -17,7 +17,6 @@ struct BitBuddyChatView: View {
     @StateObject private var bitBuddy = BitBuddyService.shared
     @AppStorage("roastModeEnabled") private var roastMode = false
     
-    @StateObject private var authService = AuthService.shared
     @State private var messages: [ChatBubbleMessage] = []
     @State private var inputText = ""
     @State private var conversationId = UUID().uuidString
@@ -168,7 +167,7 @@ struct BitBuddyChatView: View {
                     .font(.title2.bold())
                     .foregroundColor(.primary)
                 
-                Text("I can help with your jokes, set lists, brainstorms, recordings, imports, and more — all on-device.")
+                Text("I can help with your jokes, set lists, brainstorms, recordings, imports, and more.")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
@@ -282,11 +281,7 @@ struct BitBuddyChatView: View {
     }
     
     private func handleAppear() {
-        if !authService.isAuthenticated {
-            Task {
-                try? await authService.signInAnonymously()
-            }
-        }
+        // No-op — auth is always available for local-only BitBuddy
     }
     
     private func scrollToBottom(proxy: ScrollViewProxy) {
@@ -497,22 +492,247 @@ struct BitBuddyAvatar: View {
     let symbolSize: CGFloat
 
     var body: some View {
-        ZStack {
-            Circle()
-                .fill(Color(UIColor.secondarySystemBackground))
-                .overlay(
-                    Circle()
-                        .stroke(
-                            roastMode ? Color.orange.opacity(0.35) : Color.accentColor.opacity(0.2),
-                            lineWidth: 1
-                        )
-                )
+        Canvas { context, canvasSize in
+            let s = min(canvasSize.width, canvasSize.height)
+            let cx = canvasSize.width / 2
+            let cy = canvasSize.height / 2
 
-            Image(systemName: roastMode ? "flame.fill" : "sparkles")
-                .font(.system(size: symbolSize, weight: .semibold))
-                .foregroundStyle(roastMode ? .orange : .accentColor)
+            // Background circle
+            let bgRect = CGRect(x: cx - s / 2, y: cy - s / 2, width: s, height: s)
+            let bgCircle = Path(ellipseIn: bgRect)
+            context.fill(bgCircle, with: .color(Color(UIColor.secondarySystemBackground)))
+            context.stroke(
+                bgCircle,
+                with: .color(roastMode ? Color.orange.opacity(0.35) : Color.accentColor.opacity(0.2)),
+                lineWidth: s * 0.02
+            )
+
+            if roastMode {
+                drawDevilFace(context: &context, cx: cx, cy: cy, s: s)
+            } else {
+                drawClownFace(context: &context, cx: cx, cy: cy, s: s)
+            }
         }
         .frame(width: size, height: size)
+    }
+
+    // MARK: - Clown Face (normal mode)
+
+    private func drawClownFace(context: inout GraphicsContext, cx: CGFloat, cy: CGFloat, s: CGFloat) {
+        // --- Hair tufts (blue puffs on sides + top) ---
+        let tuftRadius = s * 0.13
+        let tuftColor = Color(red: 0.0, green: 0.48, blue: 1.0)
+        // Left tuft
+        context.fill(
+            Path(ellipseIn: CGRect(x: cx - s * 0.42, y: cy - s * 0.18, width: tuftRadius * 2, height: tuftRadius * 2)),
+            with: .color(tuftColor)
+        )
+        // Right tuft
+        context.fill(
+            Path(ellipseIn: CGRect(x: cx + s * 0.42 - tuftRadius * 2, y: cy - s * 0.18, width: tuftRadius * 2, height: tuftRadius * 2)),
+            with: .color(tuftColor)
+        )
+        // Top tuft
+        context.fill(
+            Path(ellipseIn: CGRect(x: cx - tuftRadius, y: cy - s * 0.44, width: tuftRadius * 2, height: tuftRadius * 1.8)),
+            with: .color(tuftColor)
+        )
+
+        // --- Face (cream/white circle) ---
+        let faceR = s * 0.32
+        let faceRect = CGRect(x: cx - faceR, y: cy - faceR + s * 0.02, width: faceR * 2, height: faceR * 2)
+        context.fill(Path(ellipseIn: faceRect), with: .color(Color(red: 1.0, green: 0.95, blue: 0.88)))
+        context.stroke(Path(ellipseIn: faceRect), with: .color(Color.black.opacity(0.08)), lineWidth: s * 0.008)
+
+        let faceCY = cy + s * 0.02
+
+        // --- Eyes (white ovals with black pupils) ---
+        let eyeW = s * 0.1
+        let eyeH = s * 0.12
+        let eyeY = faceCY - s * 0.1
+        let leftEyeRect = CGRect(x: cx - s * 0.12 - eyeW / 2, y: eyeY - eyeH / 2, width: eyeW, height: eyeH)
+        let rightEyeRect = CGRect(x: cx + s * 0.12 - eyeW / 2, y: eyeY - eyeH / 2, width: eyeW, height: eyeH)
+        context.fill(Path(ellipseIn: leftEyeRect), with: .color(.white))
+        context.fill(Path(ellipseIn: rightEyeRect), with: .color(.white))
+        context.stroke(Path(ellipseIn: leftEyeRect), with: .color(Color.black.opacity(0.3)), lineWidth: s * 0.006)
+        context.stroke(Path(ellipseIn: rightEyeRect), with: .color(Color.black.opacity(0.3)), lineWidth: s * 0.006)
+
+        // Pupils
+        let pupilR = s * 0.03
+        context.fill(
+            Path(ellipseIn: CGRect(x: cx - s * 0.12 - pupilR, y: eyeY - pupilR * 0.5, width: pupilR * 2, height: pupilR * 2)),
+            with: .color(.black)
+        )
+        context.fill(
+            Path(ellipseIn: CGRect(x: cx + s * 0.12 - pupilR, y: eyeY - pupilR * 0.5, width: pupilR * 2, height: pupilR * 2)),
+            with: .color(.black)
+        )
+
+        // --- Eyebrows (small arcs above eyes) ---
+        var leftBrow = Path()
+        leftBrow.move(to: CGPoint(x: cx - s * 0.18, y: eyeY - eyeH * 0.7))
+        leftBrow.addQuadCurve(
+            to: CGPoint(x: cx - s * 0.06, y: eyeY - eyeH * 0.7),
+            control: CGPoint(x: cx - s * 0.12, y: eyeY - eyeH * 1.1)
+        )
+        context.stroke(leftBrow, with: .color(Color.black.opacity(0.5)), lineWidth: s * 0.012)
+
+        var rightBrow = Path()
+        rightBrow.move(to: CGPoint(x: cx + s * 0.06, y: eyeY - eyeH * 0.7))
+        rightBrow.addQuadCurve(
+            to: CGPoint(x: cx + s * 0.18, y: eyeY - eyeH * 0.7),
+            control: CGPoint(x: cx + s * 0.12, y: eyeY - eyeH * 1.1)
+        )
+        context.stroke(rightBrow, with: .color(Color.black.opacity(0.5)), lineWidth: s * 0.012)
+
+        // --- Blue nose ---
+        let noseR = s * 0.065
+        context.fill(
+            Path(ellipseIn: CGRect(x: cx - noseR, y: faceCY - noseR * 0.3, width: noseR * 2, height: noseR * 2)),
+            with: .color(Color(red: 0.0, green: 0.48, blue: 1.0))
+        )
+        // Nose highlight
+        let highlightR = noseR * 0.35
+        context.fill(
+            Path(ellipseIn: CGRect(x: cx - noseR * 0.4, y: faceCY + noseR * 0.05, width: highlightR, height: highlightR)),
+            with: .color(.white.opacity(0.5))
+        )
+
+        // --- Big smile (blue arc with white teeth) ---
+        let smileY = faceCY + s * 0.1
+        let smileW = s * 0.22
+        let smileH = s * 0.12
+
+        // Blue lip area
+        var smilePath = Path()
+        smilePath.move(to: CGPoint(x: cx - smileW, y: smileY))
+        smilePath.addQuadCurve(
+            to: CGPoint(x: cx + smileW, y: smileY),
+            control: CGPoint(x: cx, y: smileY + smileH * 2)
+        )
+        smilePath.addQuadCurve(
+            to: CGPoint(x: cx - smileW, y: smileY),
+            control: CGPoint(x: cx, y: smileY + smileH * 0.4)
+        )
+        context.fill(smilePath, with: .color(Color(red: 0.0, green: 0.4, blue: 0.85)))
+
+        // White teeth stripe
+        var teethPath = Path()
+        teethPath.move(to: CGPoint(x: cx - smileW * 0.7, y: smileY + s * 0.02))
+        teethPath.addQuadCurve(
+            to: CGPoint(x: cx + smileW * 0.7, y: smileY + s * 0.02),
+            control: CGPoint(x: cx, y: smileY + smileH * 1.2)
+        )
+        teethPath.addQuadCurve(
+            to: CGPoint(x: cx - smileW * 0.7, y: smileY + s * 0.02),
+            control: CGPoint(x: cx, y: smileY + smileH * 0.5)
+        )
+        context.fill(teethPath, with: .color(.white))
+
+        // --- Cheek dots (light blue circles) ---
+        let cheekR = s * 0.05
+        context.fill(
+            Path(ellipseIn: CGRect(x: cx - s * 0.26, y: faceCY + s * 0.02, width: cheekR * 2, height: cheekR * 1.5)),
+            with: .color(Color.blue.opacity(0.25))
+        )
+        context.fill(
+            Path(ellipseIn: CGRect(x: cx + s * 0.26 - cheekR * 2, y: faceCY + s * 0.02, width: cheekR * 2, height: cheekR * 1.5)),
+            with: .color(Color.blue.opacity(0.25))
+        )
+    }
+
+    // MARK: - Devil Face (roast mode)
+
+    private func drawDevilFace(context: inout GraphicsContext, cx: CGFloat, cy: CGFloat, s: CGFloat) {
+        // --- Horns ---
+        let hornColor = Color(red: 0.8, green: 0.1, blue: 0.1)
+        var leftHorn = Path()
+        leftHorn.move(to: CGPoint(x: cx - s * 0.2, y: cy - s * 0.22))
+        leftHorn.addLine(to: CGPoint(x: cx - s * 0.32, y: cy - s * 0.44))
+        leftHorn.addLine(to: CGPoint(x: cx - s * 0.08, y: cy - s * 0.26))
+        leftHorn.closeSubpath()
+        context.fill(leftHorn, with: .color(hornColor))
+
+        var rightHorn = Path()
+        rightHorn.move(to: CGPoint(x: cx + s * 0.2, y: cy - s * 0.22))
+        rightHorn.addLine(to: CGPoint(x: cx + s * 0.32, y: cy - s * 0.44))
+        rightHorn.addLine(to: CGPoint(x: cx + s * 0.08, y: cy - s * 0.26))
+        rightHorn.closeSubpath()
+        context.fill(rightHorn, with: .color(hornColor))
+
+        // --- Face (dark red/maroon circle) ---
+        let faceR = s * 0.3
+        let faceRect = CGRect(x: cx - faceR, y: cy - faceR + s * 0.04, width: faceR * 2, height: faceR * 2)
+        context.fill(Path(ellipseIn: faceRect), with: .color(Color(red: 0.55, green: 0.08, blue: 0.08)))
+
+        let faceCY = cy + s * 0.04
+
+        // --- Eyes (yellow/orange slanted) ---
+        let eyeW = s * 0.09
+        let eyeH = s * 0.1
+        let eyeY = faceCY - s * 0.08
+        let leftEyeRect = CGRect(x: cx - s * 0.13 - eyeW / 2, y: eyeY - eyeH / 2, width: eyeW, height: eyeH)
+        let rightEyeRect = CGRect(x: cx + s * 0.13 - eyeW / 2, y: eyeY - eyeH / 2, width: eyeW, height: eyeH)
+        context.fill(Path(ellipseIn: leftEyeRect), with: .color(Color(red: 1.0, green: 0.75, blue: 0.0)))
+        context.fill(Path(ellipseIn: rightEyeRect), with: .color(Color(red: 1.0, green: 0.75, blue: 0.0)))
+
+        // Slit pupils
+        let slitW = s * 0.015
+        let slitH = s * 0.06
+        context.fill(
+            Path(ellipseIn: CGRect(x: cx - s * 0.13 - slitW / 2, y: eyeY - slitH / 2, width: slitW, height: slitH)),
+            with: .color(.black)
+        )
+        context.fill(
+            Path(ellipseIn: CGRect(x: cx + s * 0.13 - slitW / 2, y: eyeY - slitH / 2, width: slitW, height: slitH)),
+            with: .color(.black)
+        )
+
+        // --- Angry eyebrows (angled down toward center) ---
+        var leftBrow = Path()
+        leftBrow.move(to: CGPoint(x: cx - s * 0.22, y: eyeY - eyeH * 0.5))
+        leftBrow.addLine(to: CGPoint(x: cx - s * 0.06, y: eyeY - eyeH * 0.9))
+        context.stroke(leftBrow, with: .color(Color.orange), lineWidth: s * 0.018)
+
+        var rightBrow = Path()
+        rightBrow.move(to: CGPoint(x: cx + s * 0.22, y: eyeY - eyeH * 0.5))
+        rightBrow.addLine(to: CGPoint(x: cx + s * 0.06, y: eyeY - eyeH * 0.9))
+        context.stroke(rightBrow, with: .color(Color.orange), lineWidth: s * 0.018)
+
+        // --- Devious grin ---
+        let smileY = faceCY + s * 0.08
+        let smileW = s * 0.2
+        var grin = Path()
+        grin.move(to: CGPoint(x: cx - smileW, y: smileY))
+        grin.addQuadCurve(
+            to: CGPoint(x: cx + smileW, y: smileY),
+            control: CGPoint(x: cx, y: smileY + s * 0.14)
+        )
+        context.stroke(grin, with: .color(Color.orange), lineWidth: s * 0.015)
+
+        // --- Flame wisps at bottom ---
+        let flameColors: [Color] = [
+            Color(red: 1.0, green: 0.4, blue: 0.0),
+            Color(red: 1.0, green: 0.6, blue: 0.0),
+            Color(red: 1.0, green: 0.25, blue: 0.0)
+        ]
+        let flamePositions: [CGFloat] = [-0.15, 0.0, 0.15]
+        for (i, xOff) in flamePositions.enumerated() {
+            var flame = Path()
+            let fx = cx + s * xOff
+            let fy = cy + s * 0.36
+            flame.move(to: CGPoint(x: fx - s * 0.04, y: fy + s * 0.06))
+            flame.addQuadCurve(
+                to: CGPoint(x: fx, y: fy - s * 0.06),
+                control: CGPoint(x: fx - s * 0.06, y: fy - s * 0.02)
+            )
+            flame.addQuadCurve(
+                to: CGPoint(x: fx + s * 0.04, y: fy + s * 0.06),
+                control: CGPoint(x: fx + s * 0.06, y: fy - s * 0.02)
+            )
+            flame.closeSubpath()
+            context.fill(flame, with: .color(flameColors[i % flameColors.count].opacity(0.7)))
+        }
     }
 }
 

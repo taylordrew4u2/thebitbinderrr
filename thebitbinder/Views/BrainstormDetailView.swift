@@ -32,7 +32,7 @@ struct BrainstormDetailView: View {
     @State private var showPromotedToast = false
 
     private var accentColor: Color {
-        roastMode ? .orange : .yellow
+        .blue
     }
 
     private var wordCount: Int {
@@ -232,7 +232,7 @@ struct BrainstormDetailView: View {
                 .frame(maxWidth: .infinity)
         }
         .buttonStyle(.borderedProminent)
-        .tint(roastMode ? .orange : .accentColor)
+        .tint(.blue)
         .controlSize(.large)
         .disabled(idea.content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
         .padding(.bottom, 16)

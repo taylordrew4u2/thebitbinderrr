@@ -25,7 +25,7 @@ struct RecordRoastSetView: View {
     @State private var showSaveError = false
     @State private var saveErrorMessage = ""
     
-    private let accentColor: Color = .orange
+    private let accentColor: Color = .blue
     
     /// Safe access to target name
     private var safeTargetName: String {
@@ -127,7 +127,7 @@ struct RecordRoastSetView: View {
                             }
                             .frame(maxWidth: .infinity)
                              .padding(.vertical, 16)
-                             .background(.green)
+                             .background(.blue)
                              .foregroundColor(.white)
                              .clipShape(RoundedRectangle(cornerRadius: 14))
                         }

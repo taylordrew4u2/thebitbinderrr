@@ -22,7 +22,7 @@ struct AddRoastJokesToSetListView: View {
     @State private var expandedTargets: Set<UUID> = []
     @State private var searchText = ""
 
-    private let accent = Color.orange
+    private let accent = Color.blue
 
     // MARK: - Filtered Data
 

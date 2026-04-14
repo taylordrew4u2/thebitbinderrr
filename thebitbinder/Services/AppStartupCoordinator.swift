@@ -91,6 +91,51 @@ final class AppStartupCoordinator: ObservableObject {
     func completeDataProtectionWithContext(_ context: ModelContext) async {
         print(" [AppStartup] Completing data protection with model context...")
         
+        // ── Post-restore confirmation ─────────────────────────────────────
+        // If the user restored from a backup and the app restarted, confirm
+        // the restore succeeded now that the store is loaded.
+        if dataProtection.hasPendingRestoreRestart() {
+            dataProtection.clearPendingRestoreRestart()
+            print(" [AppStartup] Post-restore startup — data restored successfully")
+            DataOperationLogger.shared.logSuccess("App restarted after backup restore — store loaded OK")
+            
+            // Reset validation counts since the restored store may have different
+            // entity counts than the pre-restore baseline.
+            UserDefaults.standard.removeObject(forKey: "DataValidation_Counts")
+        }
+        
+        // ── Corruption cleanup detection ────────────────────────────────
+        // If the ModelContainer initializer had to wipe the store and create
+        // a fresh one, inform the user so they can restore from a backup.
+        if UserDefaults.standard.bool(forKey: "ModelContainer_CorruptionCleanupPerformed") {
+            let isInMemory = UserDefaults.standard.bool(forKey: "ModelContainer_InMemoryFallback")
+            let cleanupTimestamp = UserDefaults.standard.double(forKey: "ModelContainer_CorruptionCleanupTimestamp")
+            let cleanupDate = Date(timeIntervalSince1970: cleanupTimestamp)
+            let formatter = DateFormatter()
+            formatter.dateStyle = .medium
+            formatter.timeStyle = .short
+            let dateStr = formatter.string(from: cleanupDate)
+            
+            print(" [AppStartup] CRITICAL: Store corruption cleanup was performed at \(dateStr)")
+            DataOperationLogger.shared.logCritical("Post-corruption startup detected — alerting user")
+            
+            if isInMemory {
+                dataLossDetails = "Your data store was corrupted and could not be recovered. The app is running in temporary mode — any changes will be lost when the app closes. Please restore from a backup immediately in Settings → Data Safety."
+            } else {
+                dataLossDetails = "Your data store was corrupted on \(dateStr) and had to be rebuilt. A backup of the corrupted store was saved automatically. You can restore from a recent backup in Settings → Data Safety."
+            }
+            showDataLossAlert = true
+            
+            // Clear the one-shot flag so the alert only shows once
+            UserDefaults.standard.removeObject(forKey: "ModelContainer_CorruptionCleanupPerformed")
+            UserDefaults.standard.removeObject(forKey: "ModelContainer_InMemoryFallback")
+            // Keep the timestamp for audit trail
+            
+            // Reset validation counts — the fresh store is empty so comparing
+            // against the old baseline would falsely trigger a second "data loss" alert.
+            UserDefaults.standard.removeObject(forKey: "DataValidation_Counts")
+        }
+        
         // NOTE: CloudKit zone cleanup (repairCorruptedZone) already runs in
         // thebitbinderApp.performAggressiveCloudKitCleanup() before this method
         // is called. No need to duplicate it here — both used the same guard key.
