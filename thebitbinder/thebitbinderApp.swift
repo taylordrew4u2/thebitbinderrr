@@ -317,10 +317,9 @@ struct thebitbinderApp: App {
         // Check memory pressure before starting expensive file I/O
         MemoryManager.shared.ensureMemoryHeadroom()
         
-        // Capture the @MainActor-isolated singleton on MainActor BEFORE
-        // entering the detached task — avoids unsafeForcedSync runtime warning.
-        let protectionService = DataProtectionService.shared
-        
+        // Run heavy file I/O on a detached (non-MainActor) task.
+        // Do NOT access any @MainActor-isolated objects inside the detached
+        // closure — that triggers unsafeForcedSync at runtime.
         await Task.detached(priority: .utility) {
             let storeURL = URL.applicationSupportDirectory.appending(path: "default.store")
             let lastEmergencyBackupKey = "lastEmergencyBackupTimestamp"
@@ -354,11 +353,12 @@ struct thebitbinderApp: App {
             } catch {
                 print(" [DataProtection] Could not create emergency backup: \(error)")
             }
-            
-            // Clean up old backups — nonisolated method, safe from detached context.
-            // Reference was captured on MainActor above to avoid unsafeForcedSync.
-            protectionService.cleanupEmergencyBackups()
         }.value
+        
+        // Clean up old backups AFTER the detached task completes.
+        // Called on MainActor (where we are now), which is safe because
+        // cleanupEmergencyBackups() is nonisolated — no actor hop needed.
+        DataProtectionService.shared.cleanupEmergencyBackups()
     }
     
     /// One-time CloudKit cleanup — deletes the corrupted zone so CoreData

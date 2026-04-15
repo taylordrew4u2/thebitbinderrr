@@ -19,7 +19,9 @@ final class iCloudSyncService: NSObject, ObservableObject {
     @Published var syncStatus: SyncStatus = .idle
     @Published var errorMessage: String?
     
-    private var syncDebouncer: Timer?
+    /// Task-based debounce — replaces Timer to stay within structured
+    /// concurrency and avoid `unsafeForcedSync` from non-@MainActor Timer callbacks.
+    private var debouncedSyncTask: Task<Void, Never>?
     private var lastSyncCompletionDate: Date = .distantPast
     private let syncCooldown: TimeInterval = 3.0 // 3 seconds (reduced from 5 for faster sync)
 
@@ -88,14 +90,16 @@ final class iCloudSyncService: NSObject, ObservableObject {
     
     @objc nonisolated private func handleRemoteChange(_ notification: Notification) {
         Task { @MainActor [weak self] in
-            self?.syncDebouncer?.invalidate()
-            self?.syncDebouncer = Timer.scheduledTimer(
-                withTimeInterval: 1.0, // Reduced from 2.0 for faster sync
-                repeats: false
-            ) { [weak self] _ in
-                Task { @MainActor in
-                    await self?.processRemoteChangeAsync()
-                }
+            guard let self else { return }
+            // Cancel any pending debounce and schedule a new one.
+            // Using Task.sleep keeps the debounce inside structured
+            // concurrency on @MainActor — avoids the unsafeForcedSync
+            // that occurred when a Timer callback captured @MainActor self.
+            self.debouncedSyncTask?.cancel()
+            self.debouncedSyncTask = Task { @MainActor [weak self] in
+                try? await Task.sleep(nanoseconds: 1_000_000_000) // 1 second debounce
+                guard !Task.isCancelled else { return }
+                await self?.processRemoteChangeAsync()
             }
         }
     }

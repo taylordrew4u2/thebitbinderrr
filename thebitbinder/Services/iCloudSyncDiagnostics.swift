@@ -209,7 +209,8 @@ final class iCloudSyncDiagnostics: ObservableObject {
         }
         
         // Check if remote notifications are registered
-        if await MainActor.run(body: { UIApplication.shared.isRegisteredForRemoteNotifications }) {
+        // Already on @MainActor — no need for MainActor.run (avoids re-entrant unsafeForcedSync).
+        if UIApplication.shared.isRegisteredForRemoteNotifications {
             diagnosticResults.append("✅ Registered for remote notifications")
         } else {
             diagnosticResults.append("❌ Not registered for remote notifications")

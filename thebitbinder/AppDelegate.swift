@@ -4,6 +4,7 @@ import UserNotifications
 import CloudKit
 import BackgroundTasks
 
+@MainActor
 class AppDelegate: NSObject, UIApplicationDelegate {
     
     // MARK: - Background Task Identifiers (must match Info.plist BGTaskSchedulerPermittedIdentifiers)
@@ -11,11 +12,13 @@ class AppDelegate: NSObject, UIApplicationDelegate {
     static let syncTaskIdentifier    = "The-BitBinder.thebitbinder.sync"
     
     // MARK: - Background Task Scheduling State
-    // These flags are accessed from BGTask background closures — use MainActor
-    // isolation (via Task { @MainActor }) for all reads/writes to avoid
-    // `unsafeForcedSync` runtime warnings from Swift's concurrency checker.
-    @MainActor private var isRefreshTaskScheduled = false
-    @MainActor private var isSyncTaskScheduled = false
+    // The whole class is @MainActor — UIKit always calls delegate methods on
+    // the main thread, and making the class @MainActor ensures the Swift
+    // concurrency runtime recognises the correct isolation context. BGTask
+    // handler closures run on background queues and must hop to MainActor
+    // (via Task { @MainActor }) before touching any instance state.
+    private var isRefreshTaskScheduled = false
+    private var isSyncTaskScheduled = false
     
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
@@ -142,10 +145,8 @@ class AppDelegate: NSObject, UIApplicationDelegate {
     
     /// Called when the app moves to background — schedule pending background tasks.
     func applicationDidEnterBackground(_ application: UIApplication) {
-        Task { @MainActor in
-            scheduleBackgroundRefresh()
-            scheduleBackgroundSync()
-        }
+        scheduleBackgroundRefresh()
+        scheduleBackgroundSync()
     }
     
     // MARK: - Background Task Registration
@@ -186,7 +187,6 @@ class AppDelegate: NSObject, UIApplicationDelegate {
     
     // MARK: - Background Task Handlers
     
-    @MainActor
     private func handleAppRefresh(_ task: BGAppRefreshTask) {
         let startTime = Date()
         print(" [BGTask] App refresh STARTED at \(startTime.formatted(date: .omitted, time: .standard))")
@@ -196,9 +196,8 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         
         let refreshTask = Task {
             // Refresh background download status
-            await MainActor.run {
-                BackgroundDownloadScheduler.shared.refresh()
-            }
+            // Task inherits @MainActor from handleAppRefresh — no hop needed.
+            BackgroundDownloadScheduler.shared.refresh()
             let elapsed = Date().timeIntervalSince(startTime)
             print(" [BGTask] App refresh COMPLETED in \(String(format: "%.1f", elapsed))s")
             task.setTaskCompleted(success: true)
@@ -215,7 +214,6 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         }
     }
     
-    @MainActor
     private func handleBackgroundSync(_ task: BGProcessingTask) {
         let startTime = Date()
         print(" [BGTask] Background sync STARTED at \(startTime.formatted(date: .omitted, time: .standard))")
@@ -229,9 +227,8 @@ class AppDelegate: NSObject, UIApplicationDelegate {
             // persistent store coordinator runs its history processing.
             // Do NOT manually post .NSPersistentStoreRemoteChange — that
             // cascades into handleRemoteChange and triggers a redundant sync cycle.
-            await MainActor.run {
-                BackgroundDownloadScheduler.shared.refresh()
-            }
+            // Task inherits @MainActor from handleBackgroundSync — no hop needed.
+            BackgroundDownloadScheduler.shared.refresh()
             
             // Allow a brief window for SwiftData to process any pending merges
             try? await Task.sleep(nanoseconds: 2_000_000_000) // 2 seconds
@@ -255,7 +252,6 @@ class AppDelegate: NSObject, UIApplicationDelegate {
     
     // MARK: - Background Task Scheduling
     
-    @MainActor
     private func scheduleBackgroundRefresh() {
         if isRefreshTaskScheduled {
             print(" [BGTask] Refresh already scheduled, skipping")
@@ -279,7 +275,6 @@ class AppDelegate: NSObject, UIApplicationDelegate {
             isRefreshTaskScheduled = false
         }
     }
-    @MainActor
     private func scheduleBackgroundSync() {
         if isSyncTaskScheduled {
             print(" [BGTask] Sync already scheduled, skipping")

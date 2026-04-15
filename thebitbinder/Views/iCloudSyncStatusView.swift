@@ -9,8 +9,8 @@ import SwiftUI
 import SwiftData
 
 struct iCloudSyncStatusView: View {
-    @ObservedObject private var syncService = iCloudSyncService.shared
-    @ObservedObject private var diagnostics = iCloudSyncDiagnostics.shared
+    @StateObject private var syncService = iCloudSyncService.shared
+    @StateObject private var diagnostics = iCloudSyncDiagnostics.shared
     @Environment(\.modelContext) private var modelContext
     
     @State private var showingDiagnostics = false
@@ -382,7 +382,7 @@ struct IssueRowView: View {
 }
 
 struct DiagnosticsDetailView: View {
-    @ObservedObject private var diagnostics = iCloudSyncDiagnostics.shared
+    @StateObject private var diagnostics = iCloudSyncDiagnostics.shared
     @Environment(\.dismiss) private var dismiss
     @State private var isManualSyncing = false
     
