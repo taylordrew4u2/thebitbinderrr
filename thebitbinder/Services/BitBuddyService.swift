@@ -24,6 +24,9 @@ final class BitBuddyService: NSObject, ObservableObject {
     
     // MARK: - State
     @Published var isLoading = false
+    /// Human-readable status message shown in the chat while BitBuddy is working.
+    /// Updated at each processing stage so the user knows the app hasn't frozen.
+    @Published var statusMessage: String = ""
     /// Whether the backend is reachable. Always `true` for the local engine.
     @Published var isConnected: Bool
     @Published private(set) var backendName: String
@@ -71,7 +74,11 @@ final class BitBuddyService: NSObject, ObservableObject {
         try await authService.ensureAuthenticated()
         
         isLoading = true
-        defer { isLoading = false }
+        statusMessage = "Thinking…"
+        defer {
+            isLoading = false
+            statusMessage = ""
+        }
         
         lastActions = []
         pendingNavigation = nil
@@ -88,6 +95,11 @@ final class BitBuddyService: NSObject, ObservableObject {
         // Route the intent
         let routeResult = intentRouter.route(message)
         
+        // Update status based on what we're about to do
+        if let route = routeResult {
+            statusMessage = statusHint(for: route.intent.id)
+        }
+        
         var dataContext = BitBuddyDataContext()
         dataContext.userName = UserDefaults.standard.string(forKey: "userName") ?? "Comedian"
         dataContext.recentJokes = recentJokeProvider?() ?? []
@@ -97,6 +109,7 @@ final class BitBuddyService: NSObject, ObservableObject {
         
         do {
             let rawResponse: String
+            statusMessage = statusMessage.isEmpty ? "Thinking…" : statusMessage
             do {
                 rawResponse = try await backend.send(message: message, session: session, dataContext: dataContext)
             } catch {
@@ -351,13 +364,18 @@ final class BitBuddyService: NSObject, ObservableObject {
         try await authService.ensureAuthenticated()
         
         isLoading = true
-        defer { isLoading = false }
+        statusMessage = "Processing audio…"
+        defer {
+            isLoading = false
+            statusMessage = ""
+        }
         
         guard FileManager.default.fileExists(atPath: audioURL.path) else {
             throw BitBuddyError.invalidResponse
         }
         
         // Transcribe the audio using on-device speech recognition
+        statusMessage = "Transcribing your recording…"
         let transcriptionService = AudioTranscriptionService.shared
         do {
             let result = try await transcriptionService.transcribe(audioURL: audioURL)
@@ -366,6 +384,7 @@ final class BitBuddyService: NSObject, ObservableObject {
                 return try await sendMessage("I recorded something but couldn't make out any words. Could you help me brainstorm instead?")
             }
             // Send the actual transcribed text for analysis
+            statusMessage = "Analyzing your idea…"
             return try await sendMessage("Analyze this idea I just recorded: \(transcript)")
         } catch {
             print(" [BitBuddy] Transcription failed: \(error.localizedDescription)")
@@ -717,6 +736,48 @@ final class BitBuddyService: NSObject, ObservableObject {
     }
     
     // MARK: - Private helpers
+    
+    /// Returns a user-facing status hint for the given intent so the chat
+    /// shows what BitBuddy is working on instead of a generic spinner.
+    private func statusHint(for intentId: String) -> String {
+        switch intentId {
+        // Joke writing / analysis
+        case "analyze_joke":                     return "Analyzing your joke…"
+        case "improve_joke":                     return "Crafting improvements…"
+        case "generate_premise":                 return "Brainstorming premises…"
+        case "generate_joke":                    return "Writing jokes…"
+        case "shorten_joke":                     return "Tightening the punchline…"
+        case "expand_joke":                      return "Expanding the bit…"
+        case "rewrite_in_my_style":              return "Studying your style…"
+        case "find_similar_jokes":               return "Searching your library…"
+        case "generate_tags_for_joke":           return "Generating tags…"
+        case "compare_versions":                 return "Comparing versions…"
+        case "extract_premises_from_notes":      return "Extracting premises…"
+        case "explain_comedy_theory":            return "Looking that up…"
+        case "summarize_style":                  return "Analyzing your style…"
+        case "suggest_unexplored_topics":        return "Scanning for fresh topics…"
+        // Roast
+        case "roast_line_generation":            return "Loading the burns…"
+        case "crowdwork_help":                   return "Prepping crowd work…"
+        // Set lists
+        case "create_set_list":                  return "Building your set list…"
+        case "estimate_set_time":                return "Calculating set time…"
+        case "suggest_set_opener", "suggest_set_closer": return "Picking the perfect bit…"
+        case "reorder_set":                      return "Reordering your set…"
+        // Recordings
+        case "transcribe_recording":             return "Transcribing audio…"
+        // Import
+        case "import_file":                      return "Preparing file import…"
+        // Sync
+        case "sync_now":                         return "Syncing…"
+        case "check_sync_status":                return "Checking sync status…"
+        // Search
+        case _ where intentId.hasPrefix("search"), _ where intentId.hasPrefix("filter"), _ where intentId.hasPrefix("find"):
+            return "Searching…"
+        default:
+            return "Thinking…"
+        }
+    }
     
     /// Removes all files from the app's temporary directory.
     /// Safe to call at any time — only affects throwaway caches/scratch files.

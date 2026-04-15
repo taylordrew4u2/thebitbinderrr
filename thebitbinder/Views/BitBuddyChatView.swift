@@ -95,7 +95,7 @@ struct BitBuddyChatView: View {
                         }
                         
                         if isTyping {
-                            TypingIndicator(roastMode: roastMode)
+                            TypingIndicator(roastMode: roastMode, statusMessage: bitBuddy.statusMessage)
                                 .id("typing-indicator")
                         }
                     }
@@ -784,18 +784,28 @@ struct RoundedCorner: Shape {
 
 struct TypingIndicator: View {
     let roastMode: Bool
+    var statusMessage: String = ""
     @State private var dotOffset: [CGFloat] = [0, 0, 0]
     
     var body: some View {
         HStack(alignment: .top, spacing: 8) {
             BitBuddyAvatar(roastMode: roastMode, size: 32, symbolSize: 14)
             
-            HStack(spacing: 4) {
-                ForEach(0..<3, id: \.self) { index in
-                    Circle()
-                        .fill(Color.secondary.opacity(0.5))
-                        .frame(width: 7, height: 7)
-                        .offset(y: dotOffset[index])
+            HStack(spacing: 6) {
+                HStack(spacing: 4) {
+                    ForEach(0..<3, id: \.self) { index in
+                        Circle()
+                            .fill(Color.secondary.opacity(0.5))
+                            .frame(width: 7, height: 7)
+                            .offset(y: dotOffset[index])
+                    }
+                }
+                
+                if !statusMessage.isEmpty {
+                    Text(statusMessage)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .transition(.opacity.combined(with: .move(edge: .leading)))
                 }
             }
             .padding(.horizontal, 16)
@@ -805,6 +815,7 @@ struct TypingIndicator: View {
             )
             .cornerRadius(16)
             .cornerRadius(4, corners: [.topRight, .bottomLeft, .bottomRight])
+            .animation(.easeInOut(duration: 0.3), value: statusMessage)
             .onAppear {
                 for i in 0..<3 {
                     withAnimation(
