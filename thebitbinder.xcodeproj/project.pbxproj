@@ -311,7 +311,7 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 10.6;
+				MARKETING_VERSION = 10.7;
 				PRODUCT_BUNDLE_IDENTIFIER = "The-BitBinder.thebitbinder";
 				"PRODUCT_BUNDLE_IDENTIFIER[sdk=iphoneos*]" = "The-BitBinder.thebitbinder";
 				"PRODUCT_BUNDLE_IDENTIFIER[sdk=macosx*]" = "The-BitBinder.thebitbinder";
@@ -366,7 +366,7 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 10.6;
+				MARKETING_VERSION = 10.7;
 				PRODUCT_BUNDLE_IDENTIFIER = "The-BitBinder.thebitbinder";
 				"PRODUCT_BUNDLE_IDENTIFIER[sdk=iphoneos*]" = "The-BitBinder.thebitbinder";
 				"PRODUCT_BUNDLE_IDENTIFIER[sdk=macosx*]" = "The-BitBinder.thebitbinder";
@@ -518,7 +518,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 10.6;
+				MARKETING_VERSION = 10.7;
 				PRODUCT_BUNDLE_IDENTIFIER = "The-BitBinder.thebitbinder.bit";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
@@ -551,7 +551,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 10.6;
+				MARKETING_VERSION = 10.7;
 				PRODUCT_BUNDLE_IDENTIFIER = "The-BitBinder.thebitbinder.bit";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
