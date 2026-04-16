@@ -572,6 +572,10 @@ struct HybridGagGrabberSheet: View {
                                     .foregroundStyle(.tertiary)
                                     .monospacedDigit()
                             }
+                            Text("Please stay on this page until it's done!")
+                                .font(.caption)
+                                .foregroundStyle(.orange)
+                                .fontWeight(.medium)
                         }
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 8)
@@ -655,8 +659,10 @@ struct HybridGagGrabberSheet: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Done") { dismiss() }
+                        .disabled(grabber.isExtracting)
                 }
             }
+            .interactiveDismissDisabled(grabber.isExtracting)
             .fileImporter(
                 isPresented: $showPicker,
                 allowedContentTypes: [.text, .plainText, .utf8PlainText, .pdf, .rtf, .html, .commaSeparatedText],
