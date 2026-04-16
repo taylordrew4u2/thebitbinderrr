@@ -153,6 +153,8 @@ final class HybridGagGrabber: ObservableObject {
             let earliest = manager.earliestRetryDate()
             retryAfterDate = earliest
             lastError = sillyRetryMessage(retryDate: earliest)
+            // Clear any partial results — if AI ran out mid-way, nothing was saved
+            extractedJokes = []
         }
 
         isExtracting = false
@@ -203,13 +205,16 @@ final class HybridGagGrabber: ObservableObject {
         ]
         let phrase = phrases.randomElement() ?? phrases[0]
 
+        let retryLine: String
         if let retryDate {
             let formatter = DateFormatter()
             formatter.timeStyle = .short
-            return "\(phrase)\n\nReady again at \(formatter.string(from: retryDate))"
+            retryLine = "Try again at **\(formatter.string(from: retryDate))**"
         } else {
-            return "\(phrase)\n\nTry again in a few minutes!"
+            retryLine = "Try again in a few minutes!"
         }
+
+        return "\(phrase)\n\nYour document hasn't been touched yet — nothing was lost!\n\n\(retryLine)"
     }
 
     // MARK: - Heuristic Extraction (always available)
