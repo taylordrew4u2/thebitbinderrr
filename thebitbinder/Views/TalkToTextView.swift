@@ -323,20 +323,9 @@ struct TalkToTextView: View {
     
     /// Actually kicks off the speech recognition session (call only when permissions are confirmed).
     private func beginRecordingSession() {
-        // Reset any prior session without deactivating the audio session —
-        // rapidly toggling setActive(false) then setActive(true) can cause
-        // the new recognition request to fail silently on some iOS versions.
-        speechRecognizer.resetForNewSession()
-        
         errorMessage = nil
         isRecording = true
-        
-        // Start with a small delay to allow reset to fully complete.
-        // `speechRecognizer` is an @StateObject (class) — captured safely by the closure.
-        let recognizer = speechRecognizer
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            recognizer.startTranscribing()
-        }
+        speechRecognizer.startTranscribing()
     }
     
     private func stopRecording() {
